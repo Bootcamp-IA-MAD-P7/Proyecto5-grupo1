@@ -1,0 +1,54 @@
+name: Deploy to Firebase App Distribution
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Escribe el google-services.json desde el secret
+      - name: Write google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+
+      # 3. Instala Java (necesario para Gradle/Android)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 4. Instala Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+
+      # 5. Descarga dependencias
+      - name: Get dependencies
+        run: flutter pub get
+
+      # 6. Analiza el código
+      - name: Analyze
+        run: flutter analyze
+
+      # 7. Compila el APK en modo release
+      - name: Build APK
+        run: flutter build apk --release
+
+      # 8. Sube el APK a Firebase App Distribution
+      - name: Deploy to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: build/app/outputs/flutter-apk/app-release.apk
+          releaseNotes: "Build automático desde commit ${{ github.sha }}"
