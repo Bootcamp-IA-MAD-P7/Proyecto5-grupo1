@@ -1,14 +1,53 @@
+import 'dart:convert';
 import 'dart:math';
+import 'package:http/http.dart' as http;
 import '../models/prediction_result.dart';
 
 class ApiService {
+  // Cambia esta URL por la de Render cuando hagas el deploy
+  static const String _baseUrl = 'https://fall-detector-api.onrender.com';
+
+  // Ponlo en false cuando el backend esté desplegado
+  static const bool _useMock = true;
+
   final _random = Random();
 
-  // Genera una lectura de sensores simulada (estado normal o caída)
+  // --- API REAL ---
+
+  Future<FallDetectionResult> analyzeRemote(SensorSnapshot snapshot) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/predict'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'accel_x': snapshot.accelX,
+        'accel_y': snapshot.accelY,
+        'accel_z': snapshot.accelZ,
+        'gyro_x': snapshot.gyroX,
+        'gyro_y': snapshot.gyroY,
+        'gyro_z': snapshot.gyroZ,
+        'heart_rate': snapshot.heartRate,
+        'room_temp': snapshot.roomTemp,
+        'room_light': snapshot.roomLight,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return FallDetectionResult(
+        fallDetected: json['fall_detected'] as bool,
+        confidence: (json['confidence'] as num).toDouble(),
+        snapshot: snapshot,
+        timestamp: DateTime.now(),
+      );
+    } else {
+      throw Exception('Error del servidor: ${response.statusCode}');
+    }
+  }
+
+  // --- MOCK ---
+
   SensorSnapshot _generateSensorData({bool simulateFall = false}) {
     if (simulateFall) {
-      // Valores típicos de una caída: aceleración alta, giroscopio alterado,
-      // frecuencia cardíaca elevada por el impacto
       return SensorSnapshot(
         accelX: _randomRange(-18, 18),
         accelY: _randomRange(-18, 18),
@@ -21,11 +60,10 @@ class ApiService {
         roomLight: _randomRange(50, 800),
       );
     } else {
-      // Valores típicos en reposo o movimiento normal
       return SensorSnapshot(
         accelX: _randomRange(-2, 2),
         accelY: _randomRange(-2, 2),
-        accelZ: _randomRange(8, 10), // ~gravedad
+        accelZ: _randomRange(8, 10),
         gyroX: _randomRange(-10, 10),
         gyroY: _randomRange(-10, 10),
         gyroZ: _randomRange(-10, 10),
@@ -36,33 +74,37 @@ class ApiService {
     }
   }
 
-  // Lógica de clasificación basada en magnitudes del dataset mockeado
   bool _classify(SensorSnapshot s) {
     final accelMag = sqrt(s.accelX * s.accelX + s.accelY * s.accelY + s.accelZ * s.accelZ);
     final gyroMag = sqrt(s.gyroX * s.gyroX + s.gyroY * s.gyroY + s.gyroZ * s.gyroZ);
     return accelMag > 15 || gyroMag > 300;
   }
 
-  /// Genera una lectura de sensores y devuelve el resultado de detección.
-  /// [simulateFall] fuerza que los datos simulen una caída.
+  // --- INTERFAZ PÚBLICA ---
+
+  /// Analiza una lectura de sensores.
+  /// Usa el backend real o el mock según [_useMock].
   Future<FallDetectionResult> analyze({bool simulateFall = false}) async {
-    await Future.delayed(const Duration(milliseconds: 600)); // simula latencia
-
     final snapshot = _generateSensorData(simulateFall: simulateFall);
-    final fallDetected = _classify(snapshot);
-    final confidence = fallDetected
-        ? _randomRange(0.80, 0.99)
-        : _randomRange(0.85, 0.99);
 
-    return FallDetectionResult(
-      fallDetected: fallDetected,
-      confidence: confidence,
-      snapshot: snapshot,
-      timestamp: DateTime.now(),
-    );
+    if (_useMock) {
+      await Future.delayed(const Duration(milliseconds: 600));
+      final fallDetected = _classify(snapshot);
+      final confidence = fallDetected
+          ? _randomRange(0.80, 0.99)
+          : _randomRange(0.85, 0.99);
+      return FallDetectionResult(
+        fallDetected: fallDetected,
+        confidence: confidence,
+        snapshot: snapshot,
+        timestamp: DateTime.now(),
+      );
+    }
+
+    return analyzeRemote(snapshot);
   }
 
-  /// Genera una lectura continua (para stream en tiempo real).
+  /// Stream de lecturas de sensores cada segundo.
   Stream<SensorSnapshot> sensorStream() {
     return Stream.periodic(const Duration(seconds: 1), (_) {
       return _generateSensorData();
