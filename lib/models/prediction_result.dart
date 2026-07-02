@@ -1,25 +1,37 @@
-class PredictionResult {
-  final String label;       // "satisfied" | "neutral or dissatisfied"
-  final double confidence;  // 0.0 - 1.0
-  final Map<String, double> probabilities;
+class SensorSnapshot {
+  final double accelX;
+  final double accelY;
+  final double accelZ;
+  final double gyroX;
+  final double gyroY;
+  final double gyroZ;
+  final double heartRate;   // ppm
+  final double roomTemp;    // °C
+  final double roomLight;   // lux
 
-  PredictionResult({
-    required this.label,
-    required this.confidence,
-    required this.probabilities,
+  SensorSnapshot({
+    required this.accelX,
+    required this.accelY,
+    required this.accelZ,
+    required this.gyroX,
+    required this.gyroY,
+    required this.gyroZ,
+    required this.heartRate,
+    required this.roomTemp,
+    required this.roomLight,
   });
+}
 
-  bool get isSatisfied => label == 'satisfied';
+class FallDetectionResult {
+  final bool fallDetected;
+  final double confidence;      // 0.0 - 1.0
+  final SensorSnapshot snapshot;
+  final DateTime timestamp;
 
-  factory PredictionResult.fromJson(Map<String, dynamic> json) {
-    return PredictionResult(
-      label: json['label'] as String,
-      confidence: (json['confidence'] as num).toDouble(),
-      probabilities: Map<String, double>.from(
-        (json['probabilities'] as Map).map(
-          (k, v) => MapEntry(k as String, (v as num).toDouble()),
-        ),
-      ),
-    );
-  }
+  FallDetectionResult({
+    required this.fallDetected,
+    required this.confidence,
+    required this.snapshot,
+    required this.timestamp,
+  });
 }

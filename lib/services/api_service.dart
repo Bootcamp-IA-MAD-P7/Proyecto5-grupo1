@@ -2,54 +2,74 @@ import 'dart:math';
 import '../models/prediction_result.dart';
 
 class ApiService {
-  // Cuando tengas el backend real, cambia esto por tu URL:
-  // static const String _baseUrl = 'http://localhost:8000';
+  final _random = Random();
 
-  /// Llama al modelo de predicción.
-  /// Por ahora devuelve datos mockeados con un pequeño delay para simular red.
-  Future<PredictionResult> predict(Map<String, dynamic> features) async {
-    // Simula latencia de red
-    await Future.delayed(const Duration(milliseconds: 800));
+  // Genera una lectura de sensores simulada (estado normal o caída)
+  SensorSnapshot _generateSensorData({bool simulateFall = false}) {
+    if (simulateFall) {
+      // Valores típicos de una caída: aceleración alta, giroscopio alterado,
+      // frecuencia cardíaca elevada por el impacto
+      return SensorSnapshot(
+        accelX: _randomRange(-18, 18),
+        accelY: _randomRange(-18, 18),
+        accelZ: _randomRange(-18, 18),
+        gyroX: _randomRange(-500, 500),
+        gyroY: _randomRange(-500, 500),
+        gyroZ: _randomRange(-500, 500),
+        heartRate: _randomRange(90, 130),
+        roomTemp: _randomRange(18, 26),
+        roomLight: _randomRange(50, 800),
+      );
+    } else {
+      // Valores típicos en reposo o movimiento normal
+      return SensorSnapshot(
+        accelX: _randomRange(-2, 2),
+        accelY: _randomRange(-2, 2),
+        accelZ: _randomRange(8, 10), // ~gravedad
+        gyroX: _randomRange(-10, 10),
+        gyroY: _randomRange(-10, 10),
+        gyroZ: _randomRange(-10, 10),
+        heartRate: _randomRange(60, 85),
+        roomTemp: _randomRange(18, 26),
+        roomLight: _randomRange(50, 800),
+      );
+    }
+  }
 
-    // --- MOCK LOGIC ---
-    // Lógica sencilla basada en los inputs para que el mock sea coherente:
-    // Si la puntuación media de servicios es >= 3.5 → satisfecho
-    final scores = [
-      features['inflight_wifi'] as int,
-      features['food_and_drink'] as int,
-      features['seat_comfort'] as int,
-      features['inflight_entertainment'] as int,
-      features['cleanliness'] as int,
-      features['online_boarding'] as int,
-    ];
-    final avg = scores.reduce((a, b) => a + b) / scores.length;
+  // Lógica de clasificación basada en magnitudes del dataset mockeado
+  bool _classify(SensorSnapshot s) {
+    final accelMag = sqrt(s.accelX * s.accelX + s.accelY * s.accelY + s.accelZ * s.accelZ);
+    final gyroMag = sqrt(s.gyroX * s.gyroX + s.gyroY * s.gyroY + s.gyroZ * s.gyroZ);
+    return accelMag > 15 || gyroMag > 300;
+  }
 
-    // Añade algo de aleatoriedad para que no sea determinista
-    final noise = (Random().nextDouble() - 0.5) * 0.4;
-    final satisfiedProb = ((avg - 1) / 4 + noise).clamp(0.05, 0.95);
-    final dissatisfiedProb = 1.0 - satisfiedProb;
+  /// Genera una lectura de sensores y devuelve el resultado de detección.
+  /// [simulateFall] fuerza que los datos simulen una caída.
+  Future<FallDetectionResult> analyze({bool simulateFall = false}) async {
+    await Future.delayed(const Duration(milliseconds: 600)); // simula latencia
 
-    final label = satisfiedProb >= 0.5 ? 'satisfied' : 'neutral or dissatisfied';
+    final snapshot = _generateSensorData(simulateFall: simulateFall);
+    final fallDetected = _classify(snapshot);
+    final confidence = fallDetected
+        ? _randomRange(0.80, 0.99)
+        : _randomRange(0.85, 0.99);
 
-    return PredictionResult(
-      label: label,
-      confidence: satisfiedProb >= 0.5 ? satisfiedProb : dissatisfiedProb,
-      probabilities: {
-        'satisfied': satisfiedProb,
-        'neutral or dissatisfied': dissatisfiedProb,
-      },
+    return FallDetectionResult(
+      fallDetected: fallDetected,
+      confidence: confidence,
+      snapshot: snapshot,
+      timestamp: DateTime.now(),
     );
+  }
 
-    // --- CÓDIGO REAL (descomentar cuando tengas el backend) ---
-    // final response = await http.post(
-    //   Uri.parse('$_baseUrl/predict'),
-    //   headers: {'Content-Type': 'application/json'},
-    //   body: jsonEncode(features),
-    // );
-    // if (response.statusCode == 200) {
-    //   return PredictionResult.fromJson(jsonDecode(response.body));
-    // } else {
-    //   throw Exception('Error del servidor: ${response.statusCode}');
-    // }
+  /// Genera una lectura continua (para stream en tiempo real).
+  Stream<SensorSnapshot> sensorStream() {
+    return Stream.periodic(const Duration(seconds: 1), (_) {
+      return _generateSensorData();
+    });
+  }
+
+  double _randomRange(double min, double max) {
+    return min + _random.nextDouble() * (max - min);
   }
 }

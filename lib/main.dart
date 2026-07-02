@@ -11,11 +11,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Airline Satisfaction',
+      title: 'Fall Detector Tester',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1565C0), // Azul aerolínea
+          seedColor: const Color(0xFF1B5E20), // Verde seguridad
+          brightness: Brightness.light,
         ),
         useMaterial3: true,
       ),

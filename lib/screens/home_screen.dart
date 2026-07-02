@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../models/prediction_result.dart';
 import '../services/api_service.dart';
 import 'result_screen.dart';
 
@@ -10,234 +12,328 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _apiService = ApiService();
-  bool _isLoading = false;
+  StreamSubscription<SensorSnapshot>? _streamSubscription;
+  SensorSnapshot? _latest;
+  bool _monitoring = false;
+  bool _analyzing = false;
 
-  // Parámetros del formulario
-  int _age = 30;
-  String _customerType = 'Loyal Customer';
-  String _travelType = 'Business travel';
-  String _flightClass = 'Business';
-  int _flightDistance = 1000;
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
+  }
 
-  // Puntuaciones de servicio (1-5)
-  int _inflightWifi = 3;
-  int _foodAndDrink = 3;
-  int _seatComfort = 3;
-  int _inflightEntertainment = 3;
-  int _cleanliness = 3;
-  int _onlineBoarding = 3;
-
-  Future<void> _predict() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final result = await _apiService.predict({
-        'age': _age,
-        'customer_type': _customerType,
-        'travel_type': _travelType,
-        'class': _flightClass,
-        'flight_distance': _flightDistance,
-        'inflight_wifi': _inflightWifi,
-        'food_and_drink': _foodAndDrink,
-        'seat_comfort': _seatComfort,
-        'inflight_entertainment': _inflightEntertainment,
-        'cleanliness': _cleanliness,
-        'online_boarding': _onlineBoarding,
+  void _toggleMonitoring() {
+    if (_monitoring) {
+      _streamSubscription?.cancel();
+      setState(() {
+        _monitoring = false;
+        _latest = null;
       });
+    } else {
+      _streamSubscription = _apiService.sensorStream().listen((snapshot) {
+        setState(() => _latest = snapshot);
+      });
+      setState(() => _monitoring = true);
+    }
+  }
 
+  Future<void> _analyze({bool simulateFall = false}) async {
+    setState(() => _analyzing = true);
+    try {
+      final result = await _apiService.analyze(simulateFall: simulateFall);
       if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => ResultScreen(result: result)),
       );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _analyzing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('✈️ Predicción de Satisfacción'),
+        title: const Text('Fall Detector Tester'),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: primary,
         foregroundColor: Colors.white,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _sectionTitle('Información del pasajero'),
-            _sliderField(
-              label: 'Edad: $_age años',
-              value: _age.toDouble(),
-              min: 7,
-              max: 85,
-              onChanged: (v) => setState(() => _age = v.round()),
-            ),
-            _dropdownField(
-              label: 'Tipo de cliente',
-              value: _customerType,
-              items: ['Loyal Customer', 'disloyal Customer'],
-              onChanged: (v) => setState(() => _customerType = v!),
-            ),
-            _dropdownField(
-              label: 'Tipo de viaje',
-              value: _travelType,
-              items: ['Business travel', 'Personal Travel'],
-              onChanged: (v) => setState(() => _travelType = v!),
-            ),
-            _dropdownField(
-              label: 'Clase',
-              value: _flightClass,
-              items: ['Business', 'Eco', 'Eco Plus'],
-              onChanged: (v) => setState(() => _flightClass = v!),
-            ),
-            _sliderField(
-              label: 'Distancia del vuelo: $_flightDistance km',
-              value: _flightDistance.toDouble(),
-              min: 50,
-              max: 5000,
-              divisions: 99,
-              onChanged: (v) => setState(() => _flightDistance = v.round()),
-            ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Estado del monitoreo
+          _StatusCard(monitoring: _monitoring),
+          const SizedBox(height: 16),
+
+          // Sensores en tiempo real
+          if (_latest != null) ...[
+            _SectionTitle('Lecturas de sensores'),
+            const SizedBox(height: 8),
+            _SensorGrid(snapshot: _latest!),
             const SizedBox(height: 16),
-            _sectionTitle('Puntuación de servicios (1 = muy malo, 5 = excelente)'),
-            _ratingField('WiFi a bordo', _inflightWifi,
-                (v) => setState(() => _inflightWifi = v)),
-            _ratingField('Comida y bebida', _foodAndDrink,
-                (v) => setState(() => _foodAndDrink = v)),
-            _ratingField('Comodidad del asiento', _seatComfort,
-                (v) => setState(() => _seatComfort = v)),
-            _ratingField('Entretenimiento', _inflightEntertainment,
-                (v) => setState(() => _inflightEntertainment = v)),
-            _ratingField('Limpieza', _cleanliness,
-                (v) => setState(() => _cleanliness = v)),
-            _ratingField('Embarque online', _onlineBoarding,
-                (v) => setState(() => _onlineBoarding = v)),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _predict,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : const Text(
-                        'Predecir satisfacción',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+          ] else if (_monitoring) ...[
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: CircularProgressIndicator(),
               ),
             ),
-            const SizedBox(height: 16),
+          ] else ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'Inicia el monitoreo para ver\nlos datos de los sensores',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 8),
+          _SectionTitle('Acciones'),
+          const SizedBox(height: 8),
+
+          // Botón monitoreo
+          SizedBox(
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _toggleMonitoring,
+              icon: Icon(_monitoring ? Icons.stop : Icons.sensors),
+              label: Text(_monitoring ? 'Detener monitoreo' : 'Iniciar monitoreo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _monitoring ? Colors.red[700] : primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Botón analizar lectura actual
+          SizedBox(
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _analyzing ? null : () => _analyze(),
+              icon: _analyzing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.search),
+              label: const Text('Analizar lectura'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.secondary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Botón simular caída (para testing)
+          SizedBox(
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: _analyzing ? null : () => _analyze(simulateFall: true),
+              icon: const Icon(Icons.warning_amber_rounded),
+              label: const Text('Simular caída'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange[800],
+                side: BorderSide(color: Colors.orange[800]!),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  final bool monitoring;
+  const _StatusCard({required this.monitoring});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = monitoring ? Colors.green : Colors.grey;
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(Icons.circle, color: color, size: 14),
+            const SizedBox(width: 10),
+            Text(
+              monitoring ? 'Monitorizando...' : 'Inactivo',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontSize: 15,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              monitoring ? Icons.favorite : Icons.favorite_border,
+              color: color,
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _sectionTitle(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+class _SectionTitle extends StatelessWidget {
+  final String text;
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.primary,
+        letterSpacing: 0.5,
       ),
     );
   }
+}
 
-  Widget _sliderField({
-    required String label,
-    required double value,
-    required double min,
-    required double max,
-    int? divisions,
-    required ValueChanged<double> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+class _SensorGrid extends StatelessWidget {
+  final SensorSnapshot snapshot;
+  const _SensorGrid({required this.snapshot});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 2.2,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14)),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          divisions: divisions ?? (max - min).round(),
-          onChanged: onChanged,
+        _SensorTile(
+          icon: Icons.speed,
+          label: 'Acelerómetro',
+          value:
+              'X: ${snapshot.accelX.toStringAsFixed(1)}\nY: ${snapshot.accelY.toStringAsFixed(1)}\nZ: ${snapshot.accelZ.toStringAsFixed(1)}',
+          unit: 'm/s²',
+        ),
+        _SensorTile(
+          icon: Icons.rotate_right,
+          label: 'Giroscopio',
+          value:
+              'X: ${snapshot.gyroX.toStringAsFixed(1)}\nY: ${snapshot.gyroY.toStringAsFixed(1)}\nZ: ${snapshot.gyroZ.toStringAsFixed(1)}',
+          unit: '°/s',
+        ),
+        _SensorTile(
+          icon: Icons.favorite,
+          label: 'Frec. cardíaca',
+          value: snapshot.heartRate.toStringAsFixed(0),
+          unit: 'ppm',
+          color: Colors.red,
+        ),
+        _SensorTile(
+          icon: Icons.thermostat,
+          label: 'Temperatura',
+          value: snapshot.roomTemp.toStringAsFixed(1),
+          unit: '°C',
+          color: Colors.orange,
+        ),
+        _SensorTile(
+          icon: Icons.light_mode,
+          label: 'Luz',
+          value: snapshot.roomLight.toStringAsFixed(0),
+          unit: 'lux',
+          color: Colors.amber[700],
         ),
       ],
     );
   }
+}
 
-  Widget _dropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-        initialValue: value,
-        items: items
-            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-            .toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
+class _SensorTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final String unit;
+  final Color? color;
 
-  Widget _ratingField(String label, int value, ValueChanged<int> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
-          ...List.generate(5, (i) {
-            final star = i + 1;
-            return GestureDetector(
-              onTap: () => onChanged(star),
-              child: Icon(
-                star <= value ? Icons.star : Icons.star_border,
-                color: Colors.amber,
-                size: 28,
+  const _SensorTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.unit,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tileColor = color ?? Theme.of(context).colorScheme.primary;
+    return Card(
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: tileColor),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: tileColor,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' $unit',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  ),
+                ],
               ),
-            );
-          }),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

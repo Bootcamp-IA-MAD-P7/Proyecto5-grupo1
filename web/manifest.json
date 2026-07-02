@@ -1,11 +1,11 @@
 {
-    "name": "proyecto_flutter",
-    "short_name": "proyecto_flutter",
+    "name": "Fall Detector Tester",
+    "short_name": "Fall Detector",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Fall Detector Tester application.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
