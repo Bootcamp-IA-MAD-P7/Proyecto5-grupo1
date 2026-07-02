@@ -4,11 +4,10 @@ import 'package:http/http.dart' as http;
 import '../models/prediction_result.dart';
 
 class ApiService {
-  // Cambia esta URL por la de Render cuando hagas el deploy
-  static const String _baseUrl = 'https://fall-detector-api.onrender.com';
+  static const String _baseUrl = 'https://proyecto5-grupo1.onrender.com';
 
-  // Ponlo en false cuando el backend esté desplegado
-  static const bool _useMock = true;
+  // Cambia a false para usar el backend real en Render
+  static const bool _useMock = false;
 
   final _random = Random();
 
