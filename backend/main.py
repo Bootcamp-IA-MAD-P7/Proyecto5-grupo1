@@ -29,11 +29,15 @@ app.add_middleware(
 # Configúralas en Render > Environment.
 _supabase_url = os.environ.get("SUPABASE_URL", "")
 _supabase_key = os.environ.get("SUPABASE_KEY", "")
-supabase: Optional[Client] = (
-    create_client(_supabase_url, _supabase_key)
-    if _supabase_url and _supabase_key
-    else None
-)
+
+def _get_supabase() -> Client:
+    """Crea el cliente de Supabase de forma lazy para no crashear al arrancar."""
+    if not _supabase_url or not _supabase_key:
+        raise HTTPException(status_code=503, detail="Supabase no configurado (faltan variables de entorno)")
+    try:
+        return create_client(_supabase_url, _supabase_key)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Error al conectar con Supabase: {str(e)}")
 
 
 # --- Modelos de datos ---
@@ -104,15 +108,9 @@ def health():
 
 @app.get("/app/latest-version", response_model=AppVersion)
 def get_latest_version():
-    """
-    Devuelve la última versión disponible de la app Android.
-    La app Flutter llama a este endpoint al arrancar para comprobar si hay actualización.
-    """
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Base de datos no configurada")
-
+    db = _get_supabase()
     result = (
-        supabase.table("app_versions")
+        db.table("app_versions")
         .select("*")
         .order("version_code", desc=True)
         .limit(1)
@@ -134,15 +132,8 @@ def get_latest_version():
 
 @app.post("/app/register-version", status_code=201)
 def register_version(body: RegisterVersionRequest):
-    """
-    Registra una nueva versión de la app.
-    Llamado automáticamente desde el pipeline de GitHub Actions tras subir el APK.
-    Sin autenticación por ahora — añadir X-API-Key cuando sea necesario.
-    """
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Base de datos no configurada")
-
-    supabase.table("app_versions").insert({
+    db = _get_supabase()
+    db.table("app_versions").insert({
         "version_code": body.version_code,
         "version_name": body.version_name,
         "apk_url": body.apk_url,
