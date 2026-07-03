@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from math import sqrt
+from typing import Optional
+import os
 import uvicorn
+from supabase import create_client, Client
 
 app = FastAPI(
     title="Fall Detector API",
@@ -10,16 +13,42 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS — permite peticiones desde la app Flutter (mobile/web)
+# CORS — solo orígenes necesarios.
+# Las apps móviles nativas no envían Origin, así que allow_origins=["*"]
+# es seguro en la práctica para una API mobile. Si añades un frontend web,
+# añade su dominio aquí y elimina "*".
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
+)
+
+# --- Supabase client ---
+# Variables de entorno: SUPABASE_URL y SUPABASE_KEY (service_role key)
+# Configúralas en Render > Environment.
+_supabase_url = os.environ.get("SUPABASE_URL", "")
+_supabase_key = os.environ.get("SUPABASE_KEY", "")
+supabase: Optional[Client] = (
+    create_client(_supabase_url, _supabase_key)
+    if _supabase_url and _supabase_key
+    else None
 )
 
 
 # --- Modelos de datos ---
+
+# App versioning
+class AppVersion(BaseModel):
+    version_code: int
+    version_name: str
+    apk_url: str
+    release_notes: Optional[str] = None
+    min_supported_version_code: Optional[int] = None
+
+class RegisterVersionRequest(AppVersion):
+    pass
+
 
 class SensorData(BaseModel):
     accel_x: float
@@ -69,6 +98,59 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+# --- App update endpoints ---
+
+@app.get("/app/latest-version", response_model=AppVersion)
+def get_latest_version():
+    """
+    Devuelve la última versión disponible de la app Android.
+    La app Flutter llama a este endpoint al arrancar para comprobar si hay actualización.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Base de datos no configurada")
+
+    result = (
+        supabase.table("app_versions")
+        .select("*")
+        .order("version_code", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="No hay versiones registradas")
+
+    row = result.data[0]
+    return AppVersion(
+        version_code=row["version_code"],
+        version_name=row["version_name"],
+        apk_url=row["apk_url"],
+        release_notes=row.get("release_notes"),
+        min_supported_version_code=row.get("min_supported_version_code"),
+    )
+
+
+@app.post("/app/register-version", status_code=201)
+def register_version(body: RegisterVersionRequest):
+    """
+    Registra una nueva versión de la app.
+    Llamado automáticamente desde el pipeline de GitHub Actions tras subir el APK.
+    Sin autenticación por ahora — añadir X-API-Key cuando sea necesario.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Base de datos no configurada")
+
+    supabase.table("app_versions").insert({
+        "version_code": body.version_code,
+        "version_name": body.version_name,
+        "apk_url": body.apk_url,
+        "release_notes": body.release_notes,
+        "min_supported_version_code": body.min_supported_version_code,
+    }).execute()
+
+    return {"status": "ok", "version_code": body.version_code}
 
 
 @app.post("/predict", response_model=PredictionResponse)

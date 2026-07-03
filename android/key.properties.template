@@ -1,0 +1,50 @@
+# key.properties — configuración del keystore para firmar el APK release.
+#
+# ⚠️  ESTE ARCHIVO NO DEBE COMMITEARSE (está en .gitignore).
+#     Contiene rutas y contraseñas locales.
+#
+# Para LOCAL: copia este archivo como key.properties (sin .template),
+#             rellena los valores con los de tu keystore y nunca lo subas a git.
+#
+# Para CI/CD: el workflow de GitHub Actions genera este archivo automáticamente
+#             desde los secrets. No tienes que hacer nada extra.
+#
+# ── Cómo generar un keystore nuevo (solo necesitas hacerlo UNA vez) ───────────
+#
+#   keytool -genkey -v \
+#     -keystore ~/fall-detector-release.jks \
+#     -alias fall-detector \
+#     -keyalg RSA \
+#     -keysize 2048 \
+#     -validity 10000
+#
+# Guarda el archivo .jks en un lugar seguro fuera del repositorio.
+# Anota el alias, la keyPassword y la storePassword que hayas elegido.
+#
+# ── Cómo verificar que dos APKs están firmados con la misma key ──────────────
+#
+#   apksigner verify --print-certs app-release.apk
+#
+# El SHA-256 del certificado debe ser idéntico en ambos APKs.
+#
+# ── Cómo subir el keystore a GitHub Secrets ──────────────────────────────────
+#
+#   En Windows PowerShell:
+#     [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\ruta\a\fall-detector-release.jks")) | clip
+#
+#   En Linux/macOS:
+#     base64 -i fall-detector-release.jks | pbcopy   (macOS)
+#     base64 -w 0 fall-detector-release.jks           (Linux)
+#
+#   Luego en GitHub > Settings > Secrets and variables > Actions:
+#     KEYSTORE_BASE64      → el texto base64 copiado
+#     KEY_ALIAS            → fall-detector  (o el que hayas puesto)
+#     KEY_PASSWORD         → la contraseña de la key
+#     KEYSTORE_PASSWORD    → la contraseña del store (puede ser la misma)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+storePassword=PON_AQUI_LA_CONTRASENA_DEL_STORE
+keyPassword=PON_AQUI_LA_CONTRASENA_DE_LA_KEY
+keyAlias=PON_AQUI_EL_ALIAS
+storeFile=PON_AQUI_LA_RUTA_ABSOLUTA_AL_JKS
