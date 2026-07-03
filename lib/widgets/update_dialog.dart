@@ -39,7 +39,7 @@ class UpdateDialog extends StatelessWidget {
       ),
       builder: (_) => ListenableBuilder(
         listenable: service,
-        builder: (_, __) => UpdateDialog(
+        builder: (_, _) => UpdateDialog(
           service: service,
           mandatory: mandatory,
         ),
