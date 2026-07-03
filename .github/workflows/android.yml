@@ -94,6 +94,7 @@ jobs:
       #     Llama a POST /app/register-version con los datos del APK recién publicado.
       #     La URL del APK es la de GitHub Releases construida de forma predecible.
       - name: Notify backend of new version
+        continue-on-error: true
         run: |
           APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
           curl --fail --silent --show-error \
