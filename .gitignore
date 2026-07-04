@@ -50,13 +50,25 @@ Frontend/android/key.properties
 Frontend/android/app/release.jks
 
 # ---------------------------------------------------
-# BACKEND (Python / ML / Datasets)
+# BACKEND (Python / ML)
 # ---------------------------------------------------
 Backend/.venv/
 Backend/__pycache__/
 Backend/**/__pycache__/
 Backend/**/*.pyc
 Backend/.pytest_cache/
+
+# Solo feedback generado en runtime por la app (no es dataset de entrenamiento)
+Backend/data/feedback/*
+!Backend/data/feedback/.gitkeep
+
+# Credenciales locales (nunca en git)
+kaggle.json
+
+# ---------------------------------------------------
+# INFRA (local)
+# ---------------------------------------------------
+infra/.env
 
 # ---------------------------------------------------
 # ORQUESTACIÓN IA

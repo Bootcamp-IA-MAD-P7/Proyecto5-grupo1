@@ -1,0 +1,36 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, dev, feature/*]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'Backend/**'
+
+defaults:
+  run:
+    working-directory: Backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest httpx
+
+      - name: Lint (import check)
+        run: python -c "from api.main import app"
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+        continue-on-error: true  # hasta que existan tests reales

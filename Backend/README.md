@@ -1,53 +1,77 @@
 # Backend — Fall-Sentinel
 
-API REST (FastAPI), pipeline de ML y EDA para clasificación de telemetría (Caída vs. ADL).
+API REST (FastAPI), pipeline de ML y notebooks para clasificación de telemetría (Caída vs. ADL).
 
 ## Estructura
 
 ```
 Backend/
-├── main.py                  # API FastAPI (predict, app versioning)
-├── Dockerfile                 # Despliegue en Render
-├── requirements.txt
-├── build_sisfall_dataset.py   # Convierte .txt crudos SisFall → CSV
-├── eda_sisfall.py             # Análisis exploratorio (genera eda_output/)
-├── train_model.py             # Entrenamiento RandomForest / XGBoost
-├── diagnostico.py             # Diagnóstico de sesgo y feature importance
-├── model.pkl                  # Modelo baseline
-├── model_ablation.pkl         # Modelo sin features shortcut
+├── api/
+│   ├── main.py              # FastAPI (entrada actual)
+│   ├── inference/           # Carga de model.pkl y preprocesado (nivel Esencial+)
+│   ├── routes/              # /predict, /feedback, /telemetry (nivel Medio+)
+│   └── schemas/             # Modelos Pydantic compartidos
+├── ml/
+│   ├── train_model.py
+│   ├── diagnostico.py
+│   ├── build_sisfall_dataset.py
+│   ├── model.pkl            # Modelo activo (migrar a artifacts/ + registry/)
+│   ├── model_ablation.pkl
+│   ├── registry/            # Metadata de versiones de modelo (nivel Experto)
+│   └── artifacts/           # Artefactos versionados
+├── notebooks/
+│   └── eda_sisfall.py
 ├── data/
-│   ├── sisfall_dataset.csv    # Dataset principal (una fila por ensayo)
-│   └── fall_detection_dataset.csv
-└── eda_output/                # Gráficos y análisis de sesgo
+│   ├── raw/
+│   │   ├── sisfall/         # .txt crudos (gitignored)
+│   │   └── kaggle/          # Descarga Kaggle (gitignored)
+│   ├── processed/           # CSVs tabulares + eda_output/
+│   └── feedback/            # Datos desde app (gitignored)
+├── tests/
+│   └── test_health.py
+├── Dockerfile
+├── requirements.txt
+└── README.md
 ```
 
-## Dataset
+> Ejecutar scripts desde la **raíz de `Backend/`**.
 
-**SisFall** — datos de acelerómetro y giroscopio de adultos mayores y adultos jóvenes simulando caídas y ADL.
+## Datasets
 
-Para regenerar el CSV desde archivos crudos:
+Ver [data/README.md](data/README.md). **Política:** crudos y procesados en git.
+
+| ID | Ubicación | Estado |
+|---|---|---|
+| DS-01 SisFall crudo | `data/raw/sisfall/` | Pendiente subir |
+| DS-01b SisFall procesado | `data/processed/sisfall_dataset.csv` | En repo |
+| DS-02 Kaggle | `data/raw/kaggle/` | Pendiente subir |
+| DS-03 Sintético | `data/processed/fall_detection_dataset.csv` | Deprecado |
 
 ```bash
-python build_sisfall_dataset.py --root /ruta/a/SisFall --out data/sisfall_dataset.csv
+# Regenerar DS-01 desde crudos
+python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall_dataset.csv
 ```
 
 ## Pipeline ML
 
 ```bash
-# 1. EDA
-python eda_sisfall.py --data data/sisfall_dataset.csv
-
-# 2. Entrenar
-python train_model.py --data data/sisfall_dataset.csv
-
-# 3. Diagnóstico
-python diagnostico.py --data data/sisfall_dataset.csv
+python notebooks/eda_sisfall.py
+python ml/train_model.py
+python ml/diagnostico.py
 ```
 
-## API local
+## API
 
 ```bash
-uvicorn main:app --reload --port 8000
+uvicorn api.main:app --reload --port 8000
 ```
 
-Variables de entorno en producción (Render): `SUPABASE_URL`, `SUPABASE_KEY`.
+## Variables de entorno
+
+Ver `infra/.env.example`. Producción (Render): `SUPABASE_URL`, `SUPABASE_KEY`, `MODEL_PATH`.
+
+## Tests
+
+```bash
+pytest tests/ -v
+```

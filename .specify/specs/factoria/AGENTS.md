@@ -11,7 +11,7 @@ Instrucciones y reglas para agentes de IA que trabajen en este proyecto.
 
 | Carpeta | Contenido |
 |---|---|
-| `Frontend/` | App Flutter (código en `lib/`, plataformas `android/`, `ios/`, etc.) |
+| `Frontend/` | App Flutter (`lib/`: models, screens, services, widgets; plataformas `android/`, `ios/`, etc.) |
 | `Backend/` | FastAPI, ML, notebooks Kaggle (`notebooks/`), datasets (`data/`) |
 | `docs/` | Documentación operativa y daily standups (`docs/daily/`) |
 | `.specify/` | Orquestación IA y especificaciones SDD (`specs/factoria/`) |
@@ -37,7 +37,7 @@ Cuando se pida cambiar el nombre visible de la app, **debes actualizar todos los
 - El código en `Frontend/lib/` es compartido y no contiene el nombre de la app.
 - El `package ID` (`com.organizacion.app`) es distinto al nombre visible y tiene sus propios campos en cada plataforma.
 - Para proyectos nuevos, usar `flutter create --org com.organizacion nombre_app` dentro de `Frontend/` para evitar tener que cambiar esto manualmente.
-- Los scripts de EDA y entrenamiento viven en `Backend/`; los datasets en `Backend/data/`.
+- Los scripts de EDA van en `Backend/notebooks/`; entrenamiento en `Backend/ml/`; datasets crudos en `Backend/data/raw/`.
 
 ---
 
@@ -47,7 +47,7 @@ La lógica de clasificación existe en dos sitios. Si se modifica una, hay que a
 
 | Entorno | Archivo | Uso |
 |---|---|---|
-| Backend (producción) | `Backend/main.py` → función `classify()` | Llamada real desde Flutter |
+| Backend (producción) | `Backend/api/main.py` → función `classify()` | Llamada real desde Flutter |
 | Flutter (desarrollo) | `Frontend/lib/services/api_service.dart` → función `_classify()` | Mock local cuando `_useMock = true` |
 
-Cuando se integre el modelo ML real, reemplazar `classify()` en `Backend/main.py`. El mock de Flutter puede mantenerse para desarrollo offline.
+Cuando se integre el modelo ML real, reemplazar `classify()` en `Backend/api/main.py`. El mock de Flutter puede mantenerse para desarrollo offline.

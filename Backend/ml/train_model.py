@@ -18,10 +18,10 @@ Diferencias clave respecto al pipeline con datos sintéticos:
     modelo depende de un atajo simple de magnitud en vez de un patrón
     robusto (ver diagnostico.py, sección de feature importance).
 
-Uso:
-    python train_model.py --data data/sisfall_dataset.csv
-    python train_model.py --data data/sisfall_dataset.csv --drop-shortcut-features
-Genera: model.pkl (baseline) o model_ablation.pkl (con el flag activado).
+Uso (desde la raíz de Backend/):
+    python ml/train_model.py --data data/processed/sisfall_dataset.csv
+    python ml/train_model.py --data data/processed/sisfall_dataset.csv --drop-shortcut-features
+Genera: ml/model.pkl (baseline) o ml/model_ablation.pkl (con el flag activado).
 """
 
 import argparse
@@ -41,8 +41,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 
-MODEL_PATH = "model.pkl"
-ABLATION_MODEL_PATH = "model_ablation.pkl"
+MODEL_PATH = "ml/model.pkl"
+ABLATION_MODEL_PATH = "ml/model_ablation.pkl"
 TARGET = "fall_event"
 GROUP_COL = "subject_id"
 # age_group se deja fuera del modelo a propósito: en SisFall, 14 de 15
@@ -132,7 +132,7 @@ def evaluate_on_test(name, model, X_test, y_test, threshold) -> tuple:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/sisfall_dataset.csv",
+    parser.add_argument("--data", default="data/processed/sisfall_dataset.csv",
                          help="CSV generado por build_sisfall_dataset.py")
     parser.add_argument("--drop-shortcut-features", action="store_true",
                          help="Excluye acc1_magnitude_max y gyro_magnitude_max "
