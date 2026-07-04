@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: fall-detector-api
+    runtime: docker
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: ./Backend
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000

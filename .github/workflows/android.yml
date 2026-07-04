@@ -1,54 +1,93 @@
-name: Deploy to Firebase App Distribution
+name: Android Release
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
 
 defaults:
   run:
     working-directory: Frontend
 
 jobs:
-  deploy:
+  build-and-release:
     runs-on: ubuntu-latest
 
+    env:
+      FLUTTER_VERSION: '3.44.4'
+      APK_PATH: build/app/outputs/flutter-apk/app-release.apk
+
     steps:
-      # 1. Descarga el código
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Escribe el google-services.json desde el secret
       - name: Write google-services.json
         working-directory: Frontend
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
-      # 3. Instala Java (necesario para Gradle/Android)
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.jks
+
+      - name: Write key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release.jks
+          EOF
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # 4. Instala Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.4'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
-      # 5. Descarga dependencias
       - name: Get dependencies
         run: flutter pub get
 
-      # 6. Analiza el código
       - name: Analyze
         run: flutter analyze
 
-      # 7. Compila el APK en modo release
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --build-number=${{ github.run_number }} \
+            --build-name=1.0.${{ github.run_number }}
 
-      # 8. Sube el APK a Firebase App Distribution
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Release v1.0.${{ github.run_number }}"
+          body: "Build automático desde commit ${{ github.sha }}"
+          files: ${{ env.APK_PATH }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Notify backend of new version
+        continue-on-error: true
+        run: |
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version_code\": ${{ github.run_number }},
+              \"version_name\": \"1.0.${{ github.run_number }}\",
+              \"apk_url\": \"${APK_URL}\",
+              \"release_notes\": \"Build automático desde commit ${{ github.sha }}\"
+            }" \
+            https://proyecto5-grupo1.onrender.com/app/register-version
+
       - name: Deploy to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:

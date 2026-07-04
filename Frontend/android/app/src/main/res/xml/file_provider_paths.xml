@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rutas que el FileProvider puede exponer al instalador del sistema.
+    open_filex guarda el APK en getExternalFilesDir() (external-files-path)
+    o en getTemporaryDirectory() (cache-path / external-cache-path).
+    Declaramos todas para cubrir ambos casos.
+-->
+<paths>
+    <external-files-path name="external_files" path="." />
+    <external-cache-path name="external_cache" path="." />
+    <cache-path name="cache" path="." />
+    <files-path name="files" path="." />
+</paths>

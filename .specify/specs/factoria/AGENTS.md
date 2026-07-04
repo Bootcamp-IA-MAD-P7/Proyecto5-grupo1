@@ -37,4 +37,17 @@ Cuando se pida cambiar el nombre visible de la app, **debes actualizar todos los
 - El código en `Frontend/lib/` es compartido y no contiene el nombre de la app.
 - El `package ID` (`com.organizacion.app`) es distinto al nombre visible y tiene sus propios campos en cada plataforma.
 - Para proyectos nuevos, usar `flutter create --org com.organizacion nombre_app` dentro de `Frontend/` para evitar tener que cambiar esto manualmente.
-- Los notebooks de Kaggle van en `Backend/notebooks/`; los datasets en `Backend/data/raw/`.
+- Los scripts de EDA y entrenamiento viven en `Backend/`; los datasets en `Backend/data/`.
+
+---
+
+## Regla: Lógica de clasificación de caídas
+
+La lógica de clasificación existe en dos sitios. Si se modifica una, hay que actualizar la otra:
+
+| Entorno | Archivo | Uso |
+|---|---|---|
+| Backend (producción) | `Backend/main.py` → función `classify()` | Llamada real desde Flutter |
+| Flutter (desarrollo) | `Frontend/lib/services/api_service.dart` → función `_classify()` | Mock local cuando `_useMock = true` |
+
+Cuando se integre el modelo ML real, reemplazar `classify()` en `Backend/main.py`. El mock de Flutter puede mantenerse para desarrollo offline.

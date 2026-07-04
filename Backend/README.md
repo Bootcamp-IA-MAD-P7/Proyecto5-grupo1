@@ -1,29 +1,53 @@
 # Backend — Fall-Sentinel
 
-API REST (FastAPI), pipeline de ML y notebooks de Kaggle para clasificación de telemetría (Caída vs. ADL).
+API REST (FastAPI), pipeline de ML y EDA para clasificación de telemetría (Caída vs. ADL).
 
 ## Estructura
 
 ```
 Backend/
-├── api/          # Rutas FastAPI, schemas, servicios
-├── ml/           # Entrenamiento, inferencia, artefactos del modelo
-├── notebooks/    # EDA y experimentos Kaggle (.ipynb)
+├── main.py                  # API FastAPI (predict, app versioning)
+├── Dockerfile                 # Despliegue en Render
+├── requirements.txt
+├── build_sisfall_dataset.py   # Convierte .txt crudos SisFall → CSV
+├── eda_sisfall.py             # Análisis exploratorio (genera eda_output/)
+├── train_model.py             # Entrenamiento RandomForest / XGBoost
+├── diagnostico.py             # Diagnóstico de sesgo y feature importance
+├── model.pkl                  # Modelo baseline
+├── model_ablation.pkl         # Modelo sin features shortcut
 ├── data/
-│   ├── raw/      # Dataset original (no commitear archivos grandes)
-│   └── processed/ # Datos preprocesados
-└── tests/        # Tests unitarios del backend
+│   ├── sisfall_dataset.csv    # Dataset principal (una fila por ensayo)
+│   └── fall_detection_dataset.csv
+└── eda_output/                # Gráficos y análisis de sesgo
 ```
 
-## Dataset candidato
+## Dataset
 
-**Real-Time Patient Fall Detection Data** (Kaggle) — pendiente de validación y descarga.
+**SisFall** — datos de acelerómetro y giroscopio de adultos mayores y adultos jóvenes simulando caídas y ADL.
 
-Los notebooks de Kaggle deben vivir en `notebooks/` y referenciar datos en `data/raw/` con rutas relativas.
+Para regenerar el CSV desde archivos crudos:
 
-## Próximos pasos
+```bash
+python build_sisfall_dataset.py --root /ruta/a/SisFall --out data/sisfall_dataset.csv
+```
 
-1. Descargar y documentar el dataset en `data/raw/`
-2. EDA en `notebooks/`
-3. Entrenar modelo en `ml/`
-4. Exponer predicción vía FastAPI en `api/`
+## Pipeline ML
+
+```bash
+# 1. EDA
+python eda_sisfall.py --data data/sisfall_dataset.csv
+
+# 2. Entrenar
+python train_model.py --data data/sisfall_dataset.csv
+
+# 3. Diagnóstico
+python diagnostico.py --data data/sisfall_dataset.csv
+```
+
+## API local
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+Variables de entorno en producción (Render): `SUPABASE_URL`, `SUPABASE_KEY`.

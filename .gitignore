@@ -18,11 +18,6 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
@@ -44,9 +39,15 @@ Frontend/android/app/debug
 Frontend/android/app/profile
 Frontend/android/app/release
 
+xd.txt
+
 # Firebase - no subir en repos públicos
 google-services.json
 Frontend/android/app/google-services.json
+
+# Android signing (local only)
+Frontend/android/key.properties
+Frontend/android/app/release.jks
 
 # ---------------------------------------------------
 # BACKEND (Python / ML / Datasets)
@@ -56,13 +57,6 @@ Backend/__pycache__/
 Backend/**/__pycache__/
 Backend/**/*.pyc
 Backend/.pytest_cache/
-Backend/ml/artifacts/
-Backend/data/raw/*
-!Backend/data/raw/.gitkeep
-Backend/data/processed/*
-!Backend/data/processed/.gitkeep
-*.pkl
-*.joblib
 
 # ---------------------------------------------------
 # ORQUESTACIÓN IA

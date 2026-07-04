@@ -132,7 +132,57 @@ Frontend/lib/
 
 ---
 
-## 8. Escalado futuro
+## 8. Backend (API)
+
+- **Framework:** FastAPI (Python)
+- **Deploy:** Render (plan gratuito)
+- **URL:** `https://fall-detector-api.onrender.com`
+
+### Endpoints
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/` | Estado del servicio |
+| GET | `/health` | Health check |
+| POST | `/predict` | Recibe datos de sensores, devuelve resultado de detección |
+
+### Payload `/predict`
+```json
+{
+  "accel_x": 0.0, "accel_y": 0.0, "accel_z": 9.8,
+  "gyro_x": 0.0, "gyro_y": 0.0, "gyro_z": 0.0,
+  "heart_rate": 72.0,
+  "room_temp": 22.0,
+  "room_light": 300.0
+}
+```
+
+### Respuesta
+```json
+{
+  "fall_detected": false,
+  "confidence": 0.95,
+  "message": "Sin caída"
+}
+```
+
+### Estructura `backend/`
+```
+backend/
+├── main.py           ← API FastAPI
+├── requirements.txt  ← dependencias Python
+└── Dockerfile        ← imagen para Render
+render.yaml           ← config de deploy en Render
+```
+
+### Conexión Flutter ↔ Backend
+- Controlado por `_useMock` en `lib/services/api_service.dart`
+- `true` → usa mock local (desarrollo)
+- `false` → llama al backend real en Render
+
+---
+
+## 9. Escalado futuro
 
 - Soporte para smartwatch como dispositivo principal de monitorización
 - App separada para cuidadores
