@@ -40,9 +40,32 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+Frontend/android/app/debug
+Frontend/android/app/profile
+Frontend/android/app/release
 
 # Firebase - no subir en repos públicos
 google-services.json
+Frontend/android/app/google-services.json
+
+# ---------------------------------------------------
+# BACKEND (Python / ML / Datasets)
+# ---------------------------------------------------
+Backend/.venv/
+Backend/__pycache__/
+Backend/**/__pycache__/
+Backend/**/*.pyc
+Backend/.pytest_cache/
+Backend/ml/artifacts/
+Backend/data/raw/*
+!Backend/data/raw/.gitkeep
+Backend/data/processed/*
+!Backend/data/processed/.gitkeep
+*.pkl
+*.joblib
+
+# ---------------------------------------------------
+# ORQUESTACIÓN IA
+# ---------------------------------------------------
+.specify/memory/
+.specify/specs/cemp/

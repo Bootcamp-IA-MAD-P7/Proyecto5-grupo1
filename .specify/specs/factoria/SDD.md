@@ -1,3 +1,9 @@
+> **NOTA TEMPORAL — Eliminar cuando el SDD esté completo**
+>
+> Este archivo es **material de referencia previo** a la metodología SDD formal de `.specify/`.
+> Léelo al redactar `1_intent.md`, `2_spec.md`, `3_plan.md` y `4_task.md` en esta misma carpeta.
+> Una vez su contenido esté integrado en esos cuatro archivos, **elimina este documento**.
+
 # SDD — Fall Detector Tester
 
 Software Design Document del proyecto de detección de caídas para personas mayores.
@@ -76,14 +82,29 @@ Procesar con modelo / dataset
 
 ## 7. Arquitectura técnica
 
-- **Framework:** Flutter (Dart)
-- **Detección:** Mock basado en umbrales de magnitud (temporal, hasta integrar dataset real)
-- **Package ID:** `com.jzelada.proyecto_flutter`
-
-### Archivos principales (`lib/`)
+### Estructura del repositorio
 
 ```
-lib/
+├── Frontend/          # App Flutter
+├── Backend/           # FastAPI, ML, notebooks Kaggle, datasets
+│   ├── api/
+│   ├── ml/
+│   ├── notebooks/     # EDA y experimentos Kaggle
+│   └── data/raw/      # Dataset (Real-Time Patient Fall Detection Data)
+├── docs/              # Daily standups y documentación operativa
+└── .specify/          # Orquestación IA y especificaciones SDD (raíz)
+    └── specs/factoria/  # intent → spec → plan → task
+```
+
+- **Frontend:** Flutter (Dart) — `Frontend/`
+- **Backend:** FastAPI + Scikit-learn — `Backend/` *(pendiente de implementación)*
+- **Detección actual:** Mock basado en umbrales de magnitud (temporal, hasta integrar dataset real)
+- **Package ID:** `com.jzelada.proyecto_flutter`
+
+### Archivos principales (`Frontend/lib/`)
+
+```
+Frontend/lib/
 ├── main.dart                          ← entrada, tema de la app
 ├── models/
 │   └── prediction_result.dart         ← SensorSnapshot, FallDetectionResult
