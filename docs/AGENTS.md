@@ -22,3 +22,16 @@ Cuando se pida cambiar el nombre visible de la app, **debes actualizar todos los
 - El código en `lib/` es compartido y no contiene el nombre de la app.
 - El `package ID` (`com.organizacion.app`) es distinto al nombre visible y tiene sus propios campos en cada plataforma.
 - Para proyectos nuevos, usar `flutter create --org com.organizacion nombre_app` para evitar tener que cambiar esto manualmente.
+
+---
+
+## Regla: Lógica de clasificación de caídas
+
+La lógica de clasificación existe en dos sitios. Si se modifica una, hay que actualizar la otra:
+
+| Entorno | Archivo | Uso |
+|---|---|---|
+| Backend (producción) | `backend/main.py` → función `classify()` | Llamada real desde Flutter |
+| Flutter (desarrollo) | `lib/services/api_service.dart` → función `_classify()` | Mock local cuando `_useMock = true` |
+
+Cuando se integre el modelo ML real, reemplazar `classify()` en `backend/main.py`. El mock de Flutter puede mantenerse para desarrollo offline.

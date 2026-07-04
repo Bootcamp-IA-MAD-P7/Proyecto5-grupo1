@@ -44,5 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+xd.txt
+
 # Firebase - no subir en repos públicos
 google-services.json
+
