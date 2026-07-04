@@ -1,3 +1,9 @@
+> **NOTA TEMPORAL — Eliminar cuando el SDD esté completo**
+>
+> Este archivo es **material de referencia previo** a la metodología SDD formal de `.specify/`.
+> Léelo al redactar `1_intent.md`, `2_spec.md`, `3_plan.md` y `4_task.md` en esta misma carpeta.
+> Una vez su contenido esté integrado en esos cuatro archivos, **elimina este documento**.
+
 # SDD — Fall Detector Tester
 
 Software Design Document del proyecto de detección de caídas para personas mayores.
@@ -76,22 +82,46 @@ Procesar con modelo / dataset
 
 ## 7. Arquitectura técnica
 
-- **Framework:** Flutter (Dart)
-- **Detección:** Mock basado en umbrales de magnitud (temporal, hasta integrar dataset real)
-- **Package ID:** `com.jzelada.proyecto_flutter`
-
-### Archivos principales (`lib/`)
+### Estructura del repositorio
 
 ```
-lib/
-├── main.dart                          ← entrada, tema de la app
+├── Frontend/                    # App Flutter
+│   ├── lib/
+│   │   ├── models/
+│   │   ├── screens/
+│   │   ├── services/
+│   │   └── widgets/
+│   └── android/                 # Plataforma principal
+├── Backend/
+│   ├── api/                     # FastAPI
+│   ├── ml/                      # Entrenamiento y modelos
+│   ├── notebooks/               # EDA y experimentos
+│   ├── data/raw/                # Datasets crudos (SisFall .txt, Kaggle)
+│   └── data/processed/          # CSVs tabulares y salida EDA
+├── docs/daily/                  # Standups
+└── .specify/specs/factoria/     # intent → spec → plan → task
+```
+
+- **Frontend:** Flutter (Dart) — `Frontend/`
+- **Backend:** FastAPI + Scikit-learn/XGBoost — `Backend/`
+- **Detección actual:** API en Render con lógica por umbrales (`classify()`); modelo ML entrenado en `Backend/ml/` pendiente de integrar en API
+- **Package ID:** `com.jzelada.proyecto_flutter`
+
+### Archivos principales (`Frontend/lib/`)
+
+```
+Frontend/lib/
+├── main.dart                          ← entrada, tema, chequeo OTA
 ├── models/
 │   └── prediction_result.dart         ← SensorSnapshot, FallDetectionResult
 ├── screens/
 │   ├── home_screen.dart               ← monitorización en tiempo real
 │   └── result_screen.dart             ← resultado del análisis / alerta de caída
-└── services/
-    └── api_service.dart               ← mock de sensores y clasificación
+├── services/
+│   ├── api_service.dart               ← predicción (mock o API Render)
+│   └── update_service.dart            ← auto-actualización Android
+└── widgets/
+    └── update_dialog.dart             ← diálogo de nueva versión
 ```
 
 ### Modelos de datos
@@ -114,8 +144,8 @@ lib/
 ## 8. Backend (API)
 
 - **Framework:** FastAPI (Python)
-- **Deploy:** Render (plan gratuito)
-- **URL:** `https://fall-detector-api.onrender.com`
+- **Deploy:** Render (plan gratuito) — `render.yaml`
+- **URL:** `https://proyecto5-grupo1.onrender.com`
 
 ### Endpoints
 
@@ -124,40 +154,27 @@ lib/
 | GET | `/` | Estado del servicio |
 | GET | `/health` | Health check |
 | POST | `/predict` | Recibe datos de sensores, devuelve resultado de detección |
+| GET | `/app/latest-version` | Versión APK más reciente (OTA) |
+| POST | `/app/register-version` | Registra nueva versión (CI) |
 
-### Payload `/predict`
-```json
-{
-  "accel_x": 0.0, "accel_y": 0.0, "accel_z": 9.8,
-  "gyro_x": 0.0, "gyro_y": 0.0, "gyro_z": 0.0,
-  "heart_rate": 72.0,
-  "room_temp": 22.0,
-  "room_light": 300.0
-}
-```
+### Estructura `Backend/`
 
-### Respuesta
-```json
-{
-  "fall_detected": false,
-  "confidence": 0.95,
-  "message": "Sin caída"
-}
 ```
-
-### Estructura `backend/`
-```
-backend/
-├── main.py           ← API FastAPI
-├── requirements.txt  ← dependencias Python
-└── Dockerfile        ← imagen para Render
-render.yaml           ← config de deploy en Render
+Backend/
+├── api/main.py              ← API FastAPI
+├── ml/                      ← entrenamiento, modelos .pkl
+├── notebooks/               ← EDA
+├── data/raw/                ← datasets crudos
+├── data/processed/          ← CSVs y eda_output/
+├── Dockerfile
+└── requirements.txt
 ```
 
 ### Conexión Flutter ↔ Backend
-- Controlado por `_useMock` en `lib/services/api_service.dart`
-- `true` → usa mock local (desarrollo)
-- `false` → llama al backend real en Render
+
+- Controlado por `_useMock` en `Frontend/lib/services/api_service.dart`
+- `true` → mock local (desarrollo offline)
+- `false` → API real en Render *(configuración actual)*
 
 ---
 

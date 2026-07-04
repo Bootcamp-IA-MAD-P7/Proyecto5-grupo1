@@ -10,8 +10,8 @@ Por qué "una fila por ensayo" y no "una fila por timestamp":
   generando fuga de datos severa. Resumir cada ensayo con estadísticas
   (media, máximo, std, etc.) es la forma correcta de tabularizar esto.
 
-Uso:
-    python build_sisfall_dataset.py --root /ruta/a/SisFall --out data/sisfall_dataset.csv
+Uso (desde la raíz de Backend/):
+    python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall_dataset.csv
 
 El script busca recursivamente cualquier .txt cuyo nombre siga el patrón
 <CODE>_<SUBJECT>_R<TRIAL>.txt (p. ej. F05_SA01_R04.txt, D17_SE04_R02.txt),
@@ -182,7 +182,7 @@ def build_dataset(root: Path) -> pd.DataFrame:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, help="Carpeta raíz de SisFall (busca recursivamente)")
-    parser.add_argument("--out", default="data/sisfall_dataset.csv", help="Ruta del CSV de salida")
+    parser.add_argument("--out", default="data/processed/sisfall_dataset.csv", help="Ruta del CSV de salida")
     args = parser.parse_args()
 
     root = Path(args.root)

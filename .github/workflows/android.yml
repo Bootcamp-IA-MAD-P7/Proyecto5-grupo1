@@ -4,32 +4,26 @@ on:
   push:
     branches: [dev]
 
+defaults:
+  run:
+    working-directory: Frontend
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
-    # ── Variables de entorno globales ────────────────────────────────────────
     env:
       FLUTTER_VERSION: '3.44.4'
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
 
     steps:
-      # 1. Código fuente
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. google-services.json desde secret (Firebase)
       - name: Write google-services.json
+        working-directory: Frontend
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
-      # 3. Keystore: decodificar desde secret base64 y escribir key.properties
-      #
-      #    Secrets necesarios en GitHub > Settings > Secrets and variables > Actions:
-      #      KEYSTORE_BASE64     → contenido del .jks en base64
-      #      KEY_ALIAS           → alias de la key (ej: fall-detector)
-      #      KEY_PASSWORD        → contraseña de la key
-      #      KEYSTORE_PASSWORD   → contraseña del store
-      #
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.jks
@@ -43,41 +37,30 @@ jobs:
           storeFile=release.jks
           EOF
 
-      # 4. Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # 5. Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
-      # 6. Dependencias
       - name: Get dependencies
         run: flutter pub get
 
-      # 7. Análisis estático
       - name: Analyze
         run: flutter analyze
 
-      # 8. Build APK release
-      #    --build-number usa GITHUB_RUN_NUMBER como versionCode autoincremental.
-      #    --build-name mantiene el versionName de pubspec.yaml.
       - name: Build APK
         run: |
           flutter build apk --release \
             --build-number=${{ github.run_number }} \
             --build-name=1.0.${{ github.run_number }}
 
-      # 9. Subir APK a GitHub Releases
-      #    Crea una release con tag v1.0.<run_number> automáticamente.
-      #    La URL del APK quedará en:
-      #    https://github.com/<owner>/<repo>/releases/download/v1.0.<N>/app-release.apk
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -90,9 +73,6 @@ jobs:
           prerelease: false
           token: ${{ secrets.GH_PAT }}
 
-      # 10. Notificar al backend que hay nueva versión disponible
-      #     Llama a POST /app/register-version con los datos del APK recién publicado.
-      #     La URL del APK es la de GitHub Releases construida de forma predecible.
       - name: Notify backend of new version
         continue-on-error: true
         run: |
@@ -108,12 +88,11 @@ jobs:
             }" \
             https://proyecto5-grupo1.onrender.com/app/register-version
 
-      # 11. Firebase App Distribution (se mantiene igual que antes)
       - name: Deploy to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
-          file: ${{ env.APK_PATH }}
+          file: Frontend/build/app/outputs/flutter-apk/app-release.apk
           releaseNotes: "Build automático desde commit ${{ github.sha }}"

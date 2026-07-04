@@ -22,9 +22,9 @@ Diagnóstico rápido para entender el rendimiento del modelo guardado:
      mayoría joven) puede ocultar que el modelo funciona peor justo en
      la población que más importa para un sistema real.
 
-Uso:
-    python diagnostico.py --data data/sisfall_dataset.csv --model model.pkl
-    python diagnostico.py --data data/sisfall_dataset.csv --model model_ablation.pkl
+Uso (desde la raíz de Backend/):
+    python ml/diagnostico.py --data data/processed/sisfall_dataset.csv --model ml/model.pkl
+    python ml/diagnostico.py --data data/processed/sisfall_dataset.csv --model ml/model_ablation.pkl
 """
 
 import argparse
@@ -217,8 +217,8 @@ def run_loso(data_path: str, payload: dict):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/sisfall_dataset.csv")
-    parser.add_argument("--model", default="model.pkl")
+    parser.add_argument("--data", default="data/processed/sisfall_dataset.csv")
+    parser.add_argument("--model", default="ml/model.pkl")
     args = parser.parse_args()
 
     with open(args.model, "rb") as f:

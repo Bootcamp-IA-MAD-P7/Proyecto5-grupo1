@@ -1,141 +1,116 @@
-# Fall Detector AI
+# Fall-Sentinel (Proyecto5 — Grupo 1)
 
-Aplicación móvil desarrollada como parte del **Proyecto 5 - Machine Learning Classification** del Bootcamp de Inteligencia Artificial de **Factoría F5 Madrid**.
+Sistema de detección de caídas mediante Machine Learning: app móvil Flutter + API FastAPI.
 
-El objetivo del proyecto es desarrollar una solución basada en Inteligencia Artificial capaz de estimar el riesgo de caídas en personas mediante el análisis de datos biométricos y de sensores, proporcionando una herramienta de apoyo para profesionales sanitarios, cuidadores y centros asistenciales.
-
----
-
-## Estado del proyecto
-
-🚧 **En desarrollo (Sprint 0 - Discovery).**
-
-Actualmente el repositorio incluye un prototipo funcional desarrollado en Flutter que utiliza datos simulados para validar la experiencia de usuario y la arquitectura de la aplicación.
-
-En las siguientes iteraciones se integrará un modelo de Machine Learning entrenado con un dataset real, junto con los servicios necesarios para realizar predicciones y gestionar futuras funcionalidades como alertas y seguimiento de eventos.
+Proyecto del **Bootcamp de Inteligencia Artificial de Factoría F5 Madrid** (Grupo 1).  
+Objetivo de entrega: alcanzar el **nivel Experto** según `.specify/memory/constitucion_factoria.md`.
 
 ---
 
-## Funcionalidades actuales
+## Estructura del repositorio
 
-- Simulación de datos de sensores.
-- Visualización de variables biométricas.
-- Análisis manual de una lectura.
-- Simulación de detección de caídas.
-- Pantalla de resultados con nivel de confianza.
-
----
-
-## Funcionalidades previstas
-
-- Integración del modelo de clasificación.
-- Predicción del riesgo de caída en tiempo real.
-- Comunicación mediante API.
-- Gestión de alertas.
-- Registro histórico de predicciones.
-- Evolución hacia una aplicación móvil de uso sanitario.
-
----
-
-## Tecnologías
-
-- Flutter
-- Dart
-- Python
-- Scikit-Learn
-- Git
-- GitHub
-- Confluence
-- Jira
-- Material 3
-
----
-
-## Estructura del proyecto
-
-```text
-.
-├── android/
-├── ios/
-├── lib/
-├── docs/
-├── daily/
-├── web/
-├── README.md
-└── pubspec.yaml
+```
+Proyecto5-grupo1/
+├── Frontend/                    # App Flutter
+├── Backend/
+│   ├── api/                     # FastAPI + inference + routes + schemas
+│   ├── ml/                      # Entrenamiento, registry, artifacts
+│   ├── notebooks/               # EDA y experimentos
+│   ├── data/
+│   │   ├── raw/sisfall/         # SisFall .txt (gitignored)
+│   │   ├── raw/kaggle/          # Kaggle (gitignored)
+│   │   ├── processed/           # CSVs y EDA
+│   │   └── feedback/            # Datos desde app (gitignored)
+│   └── tests/
+├── infra/                       # docker-compose + .env.example
+├── docs/daily/
+├── .specify/                    # SDD formal (1_intent → 4_task) — próximo paso
+├── .github/workflows/           # android.yml + backend-ci.yml
+└── render.yaml                  # Deploy API en Render
 ```
 
+Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend/README.md](Backend/README.md) · [infra/README.md](infra/README.md)
+
 ---
 
-## Cómo ejecutar
+## Estrategia de datasets
 
-Clonar el repositorio:
+**Política:** todos los datasets (crudos y procesados) van **en el repositorio**. El equipo trabaja con `git clone` — sin scripts ni descargas manuales.
+
+| ID | Fuente | Ubicación | Estado |
+|---|---|---|---|
+| **DS-01** | SisFall crudo | `Backend/data/raw/sisfall/` | Pendiente — subir `.txt` originales |
+| **DS-01b** | SisFall procesado | `Backend/data/processed/sisfall_dataset.csv` | En repo |
+| **DS-02** | Kaggle Real-Time Patient Fall Detection | `Backend/data/raw/kaggle/` | Pendiente — subir CSV originales |
+| **DS-03** | Sintético legacy | `Backend/data/processed/fall_detection_dataset.csv` | En repo (deprecado) |
+
+Detalle: [Backend/data/README.md](Backend/data/README.md)
+
+---
+
+## Roadmap Factoría F5 (estado actual)
+
+Referencia: `.specify/memory/constitucion_factoria.md`
+
+| Nivel | Estado | Pendiente clave |
+|---|---|---|
+| Esencial | ~70% | Integrar `model.pkl` en API (`api/inference/`) |
+| Medio | ~50% | Optuna, endpoint `/feedback`, ingesta en `data/feedback/` |
+| Avanzado | ~40% | Tests ampliados, telemetría en DB, CI backend estable |
+| Experto | ~5% | LSTM/CNN, MLOps: drift, A/B testing, auto-reemplazo de modelos |
+
+> El SDD formal (`.specify/specs/factoria/1_intent.md` → `4_task.md`) se redactará **cuando esta estructura e infra estén cerradas**.
+
+---
+
+## Deuda técnica conocida
+
+- La API en producción usa umbrales (`classify()`), no el modelo entrenado en `ml/model.pkl`
+- **DS-02 Kaggle** y **DS-01 SisFall crudo** pendientes de subir a `data/raw/` (ver `Backend/data/README.md`)
+- Sin endpoints `/feedback` ni persistencia de predicciones en DB
+- `api/inference/`, `api/routes/`, `ml/registry/` creados como esqueleto — sin lógica aún
+
+---
+
+## Inicio rápido
+
+### Frontend
 
 ```bash
-git clone <repository-url>
+cd Frontend && flutter pub get && flutter run
 ```
 
-Entrar en el proyecto:
+### Backend (local)
 
 ```bash
-cd Proyecto5-grupo1
+cd Backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn api.main:app --reload
 ```
 
-Instalar dependencias:
+### Backend + DB (Docker)
 
 ```bash
-flutter pub get
+cp infra/.env.example infra/.env
+docker compose -f infra/docker-compose.yml up --build
 ```
 
-Ejecutar la aplicación:
-
-```bash
-flutter run
-```
-
-Para ejecutar en un dispositivo o emulador concreto:
-
-```bash
-flutter devices
-flutter run -d <device_id>
-```
+API producción: `https://proyecto5-grupo1.onrender.com`
 
 ---
 
 ## Documentación
 
-La documentación funcional y técnica del proyecto evoluciona junto con el desarrollo.
-
-Los principales documentos disponibles en este repositorio son:
-
-- `docs/SDD.md`
-- `docs/AGENTS.md`
-
-La documentación completa de análisis, planificación y gestión del proyecto se mantiene en **Confluence**.
-
----
-
-## Flujo de trabajo
-
-El equipo utiliza una estrategia basada en ramas de Git y revisión mediante Pull Requests.
-
-Principales ramas:
-
-- `main`
-- `feature/*`
-- `fix/*`
-- `docs/*`
-
-Todo cambio debe ser revisado antes de integrarse en la rama principal.
+| Recurso | Ubicación |
+|---|---|
+| Daily standups | [docs/daily/](docs/daily/) |
+| SDD formal (próximo) | `.specify/specs/factoria/` (`1_intent.md` → `4_task.md`) |
+| Borradores temporales | `.specify/specs/factoria/SDD.md`, `AGENTS.md` (eliminar tras migrar) |
+| Gestión proyecto | Confluence + Jira |
 
 ---
 
 ## Equipo
 
-Proyecto desarrollado por el **Grupo 1** del **Proyecto 5 (Clasificación)** del Bootcamp de Inteligencia Artificial de **Factoría F5 Madrid**.
-
----
-
-## Licencia
-
-Proyecto desarrollado con fines exclusivamente académicos como parte del programa formativo del Bootcamp de Inteligencia Artificial de Factoría F5 Madrid.
+Grupo 1 — Gabriela, Jose, Josue, Arnaldo (Factoría F5 Madrid)
