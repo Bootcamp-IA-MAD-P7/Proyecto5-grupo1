@@ -14,14 +14,11 @@ dependencies:
   cupertino_icons: ^1.0.9
   http: ^1.2.2
 
-  # Firebase
-  firebase_core: ^4.11.0
-
   # Auto-actualización
-  package_info_plus: ^10.2.0   # leer versionCode instalado
-  dio: ^5.10.0                  # descarga con progreso + timeouts
-  open_filex: ^4.7.0            # lanzar instalador nativo
-  path_provider: ^2.1.6         # ruta de descarga del APK
+  package_info_plus: ^10.2.0
+  dio: ^5.10.0
+  open_filex: ^4.7.0
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

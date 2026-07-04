@@ -1,17 +1,10 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint('[Firebase] Error al inicializar: $e');
-  }
+void main() {
   runApp(const MyApp());
 }
 
