@@ -1,4 +1,4 @@
-"""Acceso a PostgreSQL local (docker-compose). Producción → AWS RDS."""
+"""Acceso a PostgreSQL (docker-compose local / EC2 producción)."""
 
 from __future__ import annotations
 

@@ -1,12 +1,19 @@
-# Fall-Sentinel — desarrollo local
-# Uso: cp .env.example .env && make up
+# Fall-Sentinel — QA en EC2 (mismas credenciales que dev local)
+# Uso en servidor: ~/fallsentinel/docker-compose.prod.yml
+#
+# Mapeo de puertos (Security Group — inbound):
+#   API → host 8005 → container 8000
+#   DB  → host 5435 → container 5432  (debug externo; la API usa red interna db:5432)
+#
+# Otros proyectos en el mismo EC2 (34.235.130.33):
+#   Unicorn Valuation — frontend 3005, API 8004, Postgres 5434
 
 name: fallsentinel
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: fallsentinel-db
+    container_name: fallsentinel_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fallsentinel}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fallsentinel123}
@@ -14,6 +21,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_HOST_PORT:-5435}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fallsentinel} -d ${POSTGRES_DB:-fallsentinel}"]
       interval: 5s
@@ -23,20 +32,14 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
-    container_name: fallsentinel-api
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    image: ${DOCKER_USERNAME}/fallsentinel-api:latest
+    container_name: fallsentinel_api
     ports:
-      - "${PORT:-8000}:8000"
-    env_file:
-      - .env
+      - "${PORT:-8005}:8000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fallsentinel}:${POSTGRES_PASSWORD:-fallsentinel123}@db:5432/${POSTGRES_DB:-fallsentinel}
       MODEL_PATH: ${MODEL_PATH:-ml/model.pkl}
-    volumes:
-      - ./Backend:/app
+      MODEL_VERSION: ${MODEL_VERSION:-baseline-v1}
     depends_on:
       db:
         condition: service_healthy

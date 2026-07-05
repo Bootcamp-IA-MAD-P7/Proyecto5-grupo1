@@ -104,7 +104,7 @@ Procesar con modelo / dataset
 
 - **Frontend:** Flutter (Dart) — `Frontend/`
 - **Backend:** FastAPI + Scikit-learn/XGBoost — `Backend/`
-- **Detección actual:** API en Render con lógica por umbrales (`classify()`); modelo ML entrenado en `Backend/ml/` pendiente de integrar en API
+- **Detección actual:** API en EC2 (QA) con lógica por umbrales (`classify()`); modelo ML en `Backend/ml/` pendiente de integrar
 - **Package ID:** `com.jzelada.proyecto_flutter`
 
 ### Archivos principales (`Frontend/lib/`)
@@ -118,7 +118,7 @@ Frontend/lib/
 │   ├── home_screen.dart               ← monitorización en tiempo real
 │   └── result_screen.dart             ← resultado del análisis / alerta de caída
 ├── services/
-│   ├── api_service.dart               ← predicción (mock o API Render)
+│   ├── api_service.dart               ← predicción (mock, local o QA EC2)
 │   └── update_service.dart            ← auto-actualización Android
 └── widgets/
     └── update_dialog.dart             ← diálogo de nueva versión
@@ -144,8 +144,8 @@ Frontend/lib/
 ## 8. Backend (API)
 
 - **Framework:** FastAPI (Python)
-- **Deploy:** Render (plan gratuito) — `render.yaml`
-- **URL:** `https://proyecto5-grupo1.onrender.com`
+- **Deploy:** AWS EC2 — `docker-compose.prod.yml` + `backend-ci.yml`
+- **URL:** `http://34.235.130.33:8005`
 
 ### Endpoints
 
@@ -174,11 +174,79 @@ Backend/
 
 - Controlado por `_useMock` en `Frontend/lib/services/api_service.dart`
 - `true` → mock local (desarrollo offline)
-- `false` → API real en Render *(configuración actual)*
+- `false` → API real (`--dart-define` o `make flutter-qa` → `http://34.235.130.33:8005`)
+
+### Base de datos (PostgreSQL)
+
+- **Local:** `docker-compose.yml` — credenciales `fallsentinel` / `fallsentinel123`
+- **QA EC2:** mismo stack y credenciales; puerto host **5435** (API usa `db:5432` interno)
+- **Endpoints con DB:** `GET/POST /app/*` (OTA). `/predict` no usa DB aún.
+- Schema: `db/init/01_schema.sql` → tabla `app_versions`
 
 ---
 
-## 9. Escalado futuro
+## 9. CI/CD y orden de despliegue
+
+Fuente de verdad operativa: esta sección + `.specify/memory/constitucion_factoria.md` (datasets §6).
+
+### Pipelines
+
+Flujo: **`dev`** = tests (pre-check) → **`main`** = deploy completo.
+
+| Workflow | Rama | Qué hace |
+|---|---|---|
+| `backend-ci.yml` | push/PR `dev` | pytest + data layout + import check |
+| `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
+| `android.yml` | push `main` | espera API → build APK → Release → Firebase → OTA |
+
+### Orden en push a `main`
+
+Ambos workflows arrancan en paralelo. Android no compila hasta que `wait-for-api` confirma `GET /health` en `:8005` (da tiempo al deploy de `backend-ci`).
+
+```
+push main
+  ├── backend-ci: test → build → deploy (DB healthy → API :8005)
+  └── android: wait-for-api → validate → build APK → register-version
+```
+
+### Puertos EC2 compartido (`34.235.130.33`)
+
+| Proyecto | Frontend | API | Postgres (host) |
+|---|---|---|---|
+| Unicorn Valuation | 3005 | 8004 | 5434 |
+| Fall-Sentinel | 3006 (reservado) | **8005** | **5435** |
+
+### Secrets GitHub
+
+| Secret | Workflows | Nota |
+|---|---|---|
+| `DOCKER_USERNAME`, `DOCKER_PASSWORD` | backend-ci | Docker Hub |
+| `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY` | backend-ci, **android** | `EC2_HOST` a nivel **repositorio** (android no usa environment `production`) |
+| `GOOGLE_SERVICES_JSON`, keystore, Firebase | android | Firma y distribución |
+| `GH_PAT` | android | GitHub Release |
+
+Postgres en QA usa defaults del compose (no secrets adicionales).
+
+### Datasets — estado del equipo (2026-07-05)
+
+| ID | Fuente | Estado |
+|---|---|---|
+| DS-01 | SisFall | **Activo** — ver constitución §6 |
+| DS-02 | MobiAct | **Candidato** — pendiente BMI |
+| ~~Kaggle~~ | zara2099 | **Baja** — sin soporte académico |
+
+**No regenerar** `processed/` hasta SDD formal (`1_intent.md` → `4_task.md`). **No confiar** en `model.pkl` actual.
+
+### Próximos pasos SDD
+
+1. Validar MobiAct → `raw/mobiact/`
+2. EDA comparativo SisFall vs MobiAct
+3. Redactar `1_intent.md`, `2_spec.md`, `3_plan.md`, `4_task.md`
+4. Reset pipeline ML (split por sujeto, LOSO)
+
+---
+
+## 10. Escalado futuro
 
 - Soporte para smartwatch como dispositivo principal de monitorización
 - App separada para cuidadores

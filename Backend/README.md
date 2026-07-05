@@ -70,6 +70,17 @@ uvicorn api.main:app --reload --port 8000
 
 Ver `/.env.example`. Local: `DATABASE_URL` → Postgres en Docker.
 
+## Producción (AWS EC2 — entorno QA)
+
+Mismas credenciales que dev: `fallsentinel` / `fallsentinel123`.
+
+| Recurso | URL / puerto |
+|---|---|
+| API | http://34.235.130.33:8005 |
+| Postgres (debug) | `34.235.130.33:5435` |
+
+Deploy automático vía `backend-ci.yml` (push a `main`). Defaults en `docker-compose.prod.yml`.
+
 ## Tests
 
 ```bash

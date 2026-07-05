@@ -14,7 +14,7 @@ Frontend/
 │   │   ├── home_screen.dart     # Monitorización en tiempo real
 │   │   └── result_screen.dart   # Resultado / alerta de caída
 │   ├── services/
-│   │   ├── api_service.dart     # Predicción (mock o API Render)
+│   │   ├── api_service.dart     # Predicción (mock o API local/AWS)
 │   │   └── update_service.dart  # Auto-actualización OTA Android
 │   └── widgets/
 │       └── update_dialog.dart   # Diálogo de nueva versión
@@ -50,10 +50,10 @@ La URL de la API se configura con **`--dart-define=API_BASE_URL`** (ver `lib/con
 
 | Entorno | Comando |
 |---|---|
+| **QA — EC2** | `cp .env.qa.example .env.qa && make flutter-qa` |
 | **Local — móvil físico** | `make flutter-local API_HOST=192.168.x.x` (desde raíz del repo) |
 | **Local — emulador** | `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
 | **Mock offline** | `_useMock = true` en `api_service.dart` |
-| ~~Render legacy~~ | TODO eliminar → AWS |
 
 Build **debug** permite HTTP (`android/app/src/debug/AndroidManifest.xml`).
 
