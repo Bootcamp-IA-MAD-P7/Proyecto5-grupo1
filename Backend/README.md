@@ -68,7 +68,7 @@ uvicorn api.main:app --reload --port 8000
 
 ## Variables de entorno
 
-Ver `infra/.env.example`. Producción (Render): `SUPABASE_URL`, `SUPABASE_KEY`, `MODEL_PATH`.
+Ver `/.env.example`. Local: `DATABASE_URL` → Postgres en Docker.
 
 ## Tests
 

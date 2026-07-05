@@ -7,6 +7,8 @@ import os
 import uvicorn
 from supabase import create_client, Client
 
+from api import db as pg
+
 app = FastAPI(
     title="Fall Detector API",
     description="API para detección de caídas basada en datos de sensores.",
@@ -24,9 +26,9 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-API-Key"],
 )
 
-# --- Supabase client ---
-# Variables de entorno: SUPABASE_URL y SUPABASE_KEY (service_role key)
-# Configúralas en Render > Environment.
+# --- Supabase client (legacy) ---
+# TODO: eliminar — producción migrará a AWS + Postgres (RDS).
+# Solo se usa si DATABASE_URL no está configurada (p. ej. Render legacy).
 _supabase_url = os.environ.get("SUPABASE_URL", "")
 _supabase_key = os.environ.get("SUPABASE_KEY", "")
 supabase: Client | None = None
@@ -36,7 +38,7 @@ if _supabase_url and _supabase_key:
 
 def _require_supabase() -> Client:
     if supabase is None:
-        raise HTTPException(status_code=503, detail="Supabase no configurado")
+        raise HTTPException(status_code=503, detail="Supabase no configurado (legacy)")
     return supabase
 
 
@@ -70,6 +72,16 @@ class PredictionResponse(BaseModel):
     fall_detected: bool
     confidence: float
     message: str
+
+
+def _row_to_app_version(row: dict) -> AppVersion:
+    return AppVersion(
+        version_code=row["version_code"],
+        version_name=row["version_name"],
+        apk_url=row["apk_url"],
+        release_notes=row.get("release_notes"),
+        min_supported_version_code=row.get("min_supported_version_code"),
+    )
 
 
 # --- Lógica de clasificación ---
@@ -108,6 +120,13 @@ def health():
 
 @app.get("/app/latest-version", response_model=AppVersion)
 def get_latest_version():
+    if pg.postgres_enabled():
+        row = pg.fetch_latest_app_version()
+        if not row:
+            raise HTTPException(status_code=404, detail="No hay versiones registradas")
+        return _row_to_app_version(row)
+
+    # TODO: eliminar bloque Supabase al migrar a AWS
     db = _require_supabase()
     result = (
         db.table("app_versions")
@@ -120,26 +139,26 @@ def get_latest_version():
     if not result.data:
         raise HTTPException(status_code=404, detail="No hay versiones registradas")
 
-    row = result.data[0]
-    return AppVersion(
-        version_code=row["version_code"],
-        version_name=row["version_name"],
-        apk_url=row["apk_url"],
-        release_notes=row.get("release_notes"),
-        min_supported_version_code=row.get("min_supported_version_code"),
-    )
+    return _row_to_app_version(result.data[0])
 
 
 @app.post("/app/register-version", status_code=201)
 def register_version(body: RegisterVersionRequest):
-    db = _require_supabase()
-    db.table("app_versions").insert({
+    payload = {
         "version_code": body.version_code,
         "version_name": body.version_name,
         "apk_url": body.apk_url,
         "release_notes": body.release_notes,
         "min_supported_version_code": body.min_supported_version_code,
-    }).execute()
+    }
+
+    if pg.postgres_enabled():
+        pg.insert_app_version(payload)
+        return {"status": "ok", "version_code": body.version_code}
+
+    # TODO: eliminar bloque Supabase al migrar a AWS
+    db = _require_supabase()
+    db.table("app_versions").insert(payload).execute()
 
     return {"status": "ok", "version_code": body.version_code}
 

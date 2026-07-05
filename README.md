@@ -5,7 +5,63 @@ Sistema de detección de caídas mediante Machine Learning: app móvil Flutter +
 Proyecto del **Bootcamp de Inteligencia Artificial de Factoría F5 Madrid** (Grupo 1).  
 Objetivo: alcanzar el **nivel Experto** según `.specify/memory/constitucion_factoria.md`.
 
-**Stack:** Flutter (Android) · FastAPI · scikit-learn / XGBoost · Supabase · Render · Firebase App Distribution
+**Stack local:** Flutter · FastAPI · PostgreSQL (Docker) · scikit-learn / XGBoost
+
+---
+
+## Comandos del equipo (desde la raíz del repo)
+
+| Comando | Qué hace |
+|---|---|
+| `cp .env.example .env` | Primera vez — crea variables locales |
+| `make up` | Levanta `fallsentinel-api` + `fallsentinel-db`, verifica endpoints |
+| `make verify` | Fail-fast: `/health`, `/predict`, Postgres |
+| `make logs` | Logs de API y DB |
+| `make down` | Para contenedores |
+| `make reset-db` | Borra volumen Postgres (`down -v`) — tras cambiar password |
+| `make flutter-local API_HOST=192.168.x.x` | Flutter → API en tu IP LAN |
+| `make flutter-phone` | Igual + usa `DEVICE` del `.env` |
+| `make test-backend` | pytest sin Docker |
+
+### Variables en `.env`
+
+| Variable | Valor local | Uso |
+|---|---|---|
+| `POSTGRES_PASSWORD` | `fallsentinel123` | Credencial DB |
+| `DATABASE_URL` | `postgresql://fallsentinel:fallsentinel123@db:5432/fallsentinel` | API → Postgres |
+| `API_HOST` | IP LAN de tu PC | Flutter en móvil físico |
+| `DEVICE` | ej. `OJLNRO8PNFLNNBFA` | ID adb / `flutter devices` |
+
+### Flutter en móvil (misma WiFi + USB debug)
+
+```bash
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+make up
+hostname -I | awk '{print $1}'    # copiar IP → API_HOST en .env
+adb devices                       # copiar id → DEVICE en .env
+make flutter-phone
+```
+
+Emulador: `cd Frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`
+
+### URLs locales
+
+| URL | Descripción |
+|---|---|
+| http://localhost:8000/health | Healthcheck |
+| http://localhost:8000/docs | Swagger |
+| http://localhost:8000/predict | Predicción (umbrales) |
+| http://\<IP-LAN\>:8000/predict | Desde el móvil |
+
+### ¿Qué lee la base de datos hoy?
+
+Solo **versiones OTA** (`app_versions`): `GET/POST /app/*`.  
+`/predict` no usa DB. Supabase queda inactivo si `DATABASE_URL` está en `.env`.
+
+Detalle SQL: [db/README.md](db/README.md)
 
 ---
 
@@ -13,16 +69,20 @@ Objetivo: alcanzar el **nivel Experto** según `.specify/memory/constitucion_fac
 
 ```
 Proyecto5-grupo1/
-├── Frontend/              # App Flutter — recogida de sensores y predicción
-├── Backend/               # API, ML, datasets, tests
-├── infra/                 # Docker Compose local + .env.example
-├── docs/daily/            # Standups del equipo
-├── .specify/              # SDD formal (1_intent → 4_task) — próximo paso
-├── .github/workflows/     # backend-ci.yml · android.yml
-└── render.yaml            # Deploy API en Render
+├── Frontend/              # App Flutter
+├── Backend/               # API + ML + data/
+├── db/init/               # SQL init Postgres (app_versions)
+├── scripts/               # verify-local.sh · run-flutter-local.sh
+├── docker-compose.yml     # fallsentinel-api + fallsentinel-db
+├── .env.example           # copiar a .env
+├── Makefile               # make up · verify · flutter-phone
+├── docs/daily/
+├── .specify/
+├── .github/workflows/
+└── render.yaml            # legacy — migrar a AWS
 ```
 
-Documentación detallada por módulo: [Frontend/README.md](Frontend/README.md) · [Backend/README.md](Backend/README.md) · [infra/README.md](infra/README.md) · [Backend/data/README.md](Backend/data/README.md)
+Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend/README.md](Backend/README.md) · [db/README.md](db/README.md) · [Backend/data/README.md](Backend/data/README.md)
 
 ---
 
@@ -34,6 +94,8 @@ App **Fall Detector Tester** (`com.jzelada.proyecto_flutter`). Monitoriza IMU + 
 Frontend/
 ├── lib/                              # Código Dart (multiplataforma)
 │   ├── main.dart                     # Entrada, tema Material, chequeo OTA al arrancar
+│   ├── config/
+│   │   └── app_config.dart         # API_BASE_URL vía --dart-define
 │   ├── models/
 │   │   └── prediction_result.dart    # Resultado + snapshot de sensores
 │   ├── screens/
@@ -63,7 +125,8 @@ Frontend/
 cd Frontend && flutter pub get && flutter run
 ```
 
-API producción: `https://proyecto5-grupo1.onrender.com`
+API producción (legacy, TODO eliminar): `https://proyecto5-grupo1.onrender.com`  
+**Desarrollo:** API local en `http://<IP-LAN>:8000` vía `make up`
 
 ---
 
@@ -175,12 +238,49 @@ Los pasos **no continúan** si falla uno anterior (sin `continue-on-error` en pa
 
 ---
 
-## Inicio rápido (Docker)
+## Inicio rápido — Sprint día 0 (local a prueba de balas)
+
+### 1. Backend + PostgreSQL (Docker)
 
 ```bash
-cp infra/.env.example infra/.env
-docker compose -f infra/docker-compose.yml up --build
+make up          # cp .env + docker compose + verify automático
+make verify      # re-comprobar /health, /predict, Postgres
+make logs        # si algo falla
 ```
+
+Requisitos: Docker Compose v2. La API queda en **http://localhost:8000** (Swagger: `/docs`).
+
+### 2. Flutter en tu móvil (misma WiFi)
+
+```bash
+# Sustituye por la IP de tu PC en la red local
+make flutter-local API_HOST=192.168.1.100
+```
+
+El build **debug** permite HTTP a la API local. Emulador Android:
+
+```bash
+cd Frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+### 3. Backend sin Docker (opcional)
+
+```bash
+cd Backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+> Sin Postgres local, `/app/latest-version` devolverá 503 — usa `make up` para stack completo.
+
+### Legacy (TODO: eliminar al migrar a AWS)
+
+- `render.yaml` — deploy Render
+- Supabase en `api/main.py` — solo si no hay `DATABASE_URL`
+- URL hardcodeada antigua sustituida por `AppConfig.apiBaseUrl` + `--dart-define`
+
+Detalle DB: [db/README.md](db/README.md)
 
 ---
 

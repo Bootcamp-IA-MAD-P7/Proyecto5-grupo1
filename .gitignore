@@ -66,9 +66,9 @@ Backend/data/feedback/*
 kaggle.json
 
 # ---------------------------------------------------
-# INFRA (local)
+# ENTORNO LOCAL (raíz)
 # ---------------------------------------------------
-infra/.env
+.env
 
 # ---------------------------------------------------
 # DOCS (local / sesión — no versionar)
