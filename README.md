@@ -194,6 +194,48 @@ docker compose -f infra/docker-compose.yml up --build
 
 ---
 
+## Mapa de datasets y verificaciones
+
+**Política:** los crudos van en GitHub — fuente de verdad del equipo. Tras `git clone`, ejecutar las verificaciones antes de entrenar.
+
+| ID | Fuente | Ruta crudo | Ruta procesado | Estado | Verificación rápida | Esperado |
+|---|---|---|---|---|---|---|
+| **DS-01** | SisFall | `Backend/data/raw/sisfall/` | `Backend/data/processed/sisfall/` | ✅ En repo | `find Backend/data/raw/sisfall -name "*.txt" ! -iname "readme.txt" \| wc -l` | **4.396** archivos · **38** carpetas (SA01–SA23, SE01–SE15) |
+| | | | | | `test -f Backend/data/raw/sisfall/Readme.txt && echo OK` | Metadatos oficiales (edad, sexo, protocolo) |
+| | | | | | `wc -l Backend/data/processed/sisfall/sisfall_dataset.csv` | **4.506** filas (+ header) — regenerar solo en SDD |
+| **DS-02** | MobiAct v2.0 | `Backend/data/raw/mobiact/mobiact_v2.0/` | `Backend/data/processed/mobiact/mobiact_v2.0/` | ⏳ Pendiente BMI | Carpeta no vacía tras respuesta de bmi@hmu.gr | 3 `.txt`/ensayo (acc, gyro, orientación) |
+| **DS-02b** | MobiFall v2.0 | `Backend/data/raw/mobiact/mobifall_v2.0/` | `Backend/data/processed/mobiact/mobifall_v2.0/` | ⏳ Pendiente BMI | `find Backend/data/raw/mobiact -name "*.txt" \| wc -l` | Miles de archivos (66 sujetos, >3.200 ensayos) |
+| ~~DS-X~~ | Kaggle zara2099 | `Backend/data/raw/kaggle/` | — | ❌ Baja | Solo `DEPRECATED.md` — no debe haber CSV | — |
+| **DS-C** | Combinado | — | `Backend/data/processed/combined/` | 🔒 Futuro | Solo tras SDD + EDA de DS-01 y DS-02 | README documentado |
+
+### Script de verificación (copiar tras clone)
+
+```bash
+cd Backend/data/raw/sisfall
+echo "SisFall sujetos: $(ls -d SA* SE* 2>/dev/null | wc -l) (esperado: 38)"
+echo "SisFall ensayos: $(find . -name '*.txt' ! -iname 'readme.txt' | wc -l) (esperado: 4396)"
+test -f Readme.txt && echo "Readme.txt: OK" || echo "Readme.txt: FALTA"
+
+cd ../../processed/sisfall
+test -f sisfall_dataset.csv && echo "processed CSV: OK ($(wc -l < sisfall_dataset.csv) lineas)" || echo "processed CSV: FALTA"
+
+cd ../mobiact
+MOBI=$(find ../../raw/mobiact -name '*.txt' 2>/dev/null | wc -l)
+if [ "$MOBI" -eq 0 ]; then echo "MobiAct: pendiente (email bmi@hmu.gr)"; else echo "MobiAct archivos: $MOBI"; fi
+```
+
+### Plan B si MobiAct no responde a tiempo
+
+| Alternativa | Contacto / URL | Acción |
+|---|---|---|
+| **Solo SisFall (DS-01)** | Ya en repo | Suficiente para Factoría F5; documentar limitación de sesgo en SDD |
+| **UniMiB SHAR** | Univ. Milano-Bicocca | Reserva académica — solicitar igual que MobiAct |
+| **FARSEEING** | Proyecto EU AAL | Caídas reales mayores — acceso bajo solicitud, muestras públicas limitadas |
+
+Detalle académico completo: [Backend/data/README.md](Backend/data/README.md)
+
+---
+
 ## Equipo
 
 Grupo 1 — Gabriela, Jose, Josue, Arnaldo (Factoría F5 Madrid)
