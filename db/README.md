@@ -1,12 +1,12 @@
 # Base de datos — Fall-Sentinel
 
-PostgreSQL vía Docker Compose. **QA en EC2 usa las mismas credenciales que dev.**
+PostgreSQL vía Docker Compose. **QA en EC2 usa las mismas credenciales que dev** (ver `.env.example`).
 
-| Variable | Valor (dev y QA) |
+| Variable | Dónde configurarla |
 |---|---|
-| `POSTGRES_USER` | `fallsentinel` |
-| `POSTGRES_PASSWORD` | `fallsentinel123` |
-| `POSTGRES_DB` | `fallsentinel` |
+| `POSTGRES_USER` | `.env` / `.env.example` |
+| `POSTGRES_PASSWORD` | `.env` / `.env.example` |
+| `POSTGRES_DB` | `.env` / `.env.example` |
 
 ## Local
 
@@ -32,14 +32,10 @@ docker compose down -v && make up
 | Entorno | Host | Puerto host |
 |---|---|---|
 | API (red Docker) | `db` | 5432 interno |
-| Debug externo | `34.235.130.33` | **5435** |
+| Debug externo | ver `QA_POSTGRES_HOST` en `.env.qa` | **5435** |
 
-`DATABASE_URL` en el contenedor API:
+`DATABASE_URL` en el contenedor API: ver `.env.example` (host interno `db:5432`).
 
-```
-postgresql://fallsentinel:fallsentinel123@db:5432/fallsentinel
-```
-
-Para conectar desde tu PC (DBeaver, psql): ver `.env.qa.example` → `QA_DATABASE_URL`.
+Para conectar desde tu PC (DBeaver, psql): ver `.env.qa.example`.
 
 Deploy: `docker-compose.prod.yml` en `~/fallsentinel/` (defaults, sin secrets Postgres en CI).

@@ -72,12 +72,12 @@ Ver `/.env.example`. Local: `DATABASE_URL` → Postgres en Docker.
 
 ## Producción (AWS EC2 — entorno QA)
 
-Mismas credenciales que dev: `fallsentinel` / `fallsentinel123`.
+Mismas credenciales que `.env.example`.
 
 | Recurso | URL / puerto |
 |---|---|
-| API | http://34.235.130.33:8005 |
-| Postgres (debug) | `34.235.130.33:5435` |
+| API | ver `API_BASE_URL` en `.env.qa` |
+| Postgres (debug) | puerto **5435** en `QA_POSTGRES_HOST` |
 
 Deploy automático vía `backend-ci.yml` (push a `main`). Defaults en `docker-compose.prod.yml`.
 
