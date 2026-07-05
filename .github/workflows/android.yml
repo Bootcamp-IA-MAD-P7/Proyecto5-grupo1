@@ -1,42 +1,34 @@
 name: Android Release
 
-# Todo el CI/CD de Android corre solo en main, después de que la API QA esté arriba.
+# Se dispara cuando backend-ci termina con éxito en main (API+DB ya desplegados).
 on:
-  push:
+  workflow_run:
+    workflows: ["Deploy Fall-Sentinel API to EC2"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: Frontend
-
 jobs:
-  wait-for-api:
-    name: Wait for QA API (DB + backend)
+  gate:
+    name: Check backend deploy succeeded
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
-      - name: Wait until API is healthy on EC2
-        run: |
-          echo "→ Esperando API QA en http://${{ secrets.EC2_HOST }}:8005 ..."
-          echo "  (corre en paralelo con backend-ci deploy en el mismo push a main)"
-          for i in $(seq 1 30); do
-            if curl --fail --silent --max-time 10 \
-              "http://${{ secrets.EC2_HOST }}:8005/health" | grep -q '"status":"healthy"'; then
-              echo "✓ API QA lista (intento $i)"
-              exit 0
-            fi
-            echo "Intento $i/30 — deploy backend en curso o API caída, reintento en 15s..."
-            sleep 15
-          done
-          echo "✗ API QA no respondió a tiempo." >&2
-          exit 1
+      - run: echo "✓ Backend deploy OK — continuando con Android"
 
   validate:
     runs-on: ubuntu-latest
-    needs: wait-for-api
+    needs: gate
+    defaults:
+      run:
+        working-directory: Frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -59,12 +51,17 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     needs: validate
+    defaults:
+      run:
+        working-directory: Frontend
     env:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Write google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
@@ -114,7 +111,7 @@ jobs:
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: "Release v1.0.${{ github.run_number }}"
-          body: "Build automático desde commit ${{ github.sha }}"
+          body: "Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}"
           files: ${{ env.APK_PATH }}
           draft: false
           prerelease: false
@@ -134,7 +131,7 @@ jobs:
               \"version_code\": ${{ github.run_number }},
               \"version_name\": \"1.0.${{ github.run_number }}\",
               \"apk_url\": \"${APK_URL}\",
-              \"release_notes\": \"Build automático desde commit ${{ github.sha }}\"
+              \"release_notes\": \"Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}\"
             }" \
             "http://${{ secrets.EC2_HOST }}:8005/app/register-version"
           echo "✓ Versión registrada en Postgres (OTA)"
@@ -156,4 +153,4 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
           file: apk/app-release.apk
-          releaseNotes: "Build automático desde commit ${{ github.sha }}"
+          releaseNotes: "Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}"

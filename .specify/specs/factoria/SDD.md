@@ -197,16 +197,14 @@ Flujo: **`dev`** = tests (pre-check) → **`main`** = deploy completo.
 |---|---|---|
 | `backend-ci.yml` | push/PR `dev` | pytest + data layout + import check |
 | `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
-| `android.yml` | push `main` | espera API → build APK → Release → Firebase → OTA |
+| `android.yml` | tras `backend-ci` OK en `main` | analyze → APK → Release → Firebase → OTA |
 
 ### Orden en push a `main`
 
-Ambos workflows arrancan en paralelo. Android no compila hasta que `wait-for-api` confirma `GET /health` en `:8005` (da tiempo al deploy de `backend-ci`).
-
 ```
-push main
-  ├── backend-ci: test → build → deploy (DB healthy → API :8005)
-  └── android: wait-for-api → validate → build APK → register-version
+push main → backend-ci (test → deploy DB+API)
+                 ↓ éxito
+            android.yml (APK → Firebase email a testers → OTA en Postgres)
 ```
 
 ### Puertos EC2 compartido (`34.235.130.33`)

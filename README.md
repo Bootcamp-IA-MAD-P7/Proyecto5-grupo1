@@ -28,8 +28,8 @@ Objetivo: alcanzar el **nivel Experto** según `.specify/memory/constitucion_fac
 
 | Variable | Valor local | Uso |
 |---|---|---|
-| `POSTGRES_PASSWORD` | `fallsentinel123` | Credencial DB |
-| `DATABASE_URL` | `postgresql://fallsentinel:fallsentinel123@db:5432/fallsentinel` | API → Postgres |
+| `POSTGRES_PASSWORD` | ver `.env.example` | Credencial DB (solo local/QA) |
+| `DATABASE_URL` | ver `.env.example` | API → Postgres |
 | `API_HOST` | IP LAN de tu PC | Flutter en móvil físico |
 | `DEVICE` | ej. `OJLNRO8PNFLNNBFA` | ID adb / `flutter devices` |
 
@@ -64,7 +64,7 @@ Solo **versiones OTA** (`app_versions`): `GET/POST /app/*`.
 
 Detalle SQL: [db/README.md](db/README.md)
 
-### URLs QA (EC2 — mismas credenciales que dev)
+### URLs QA (EC2)
 
 | URL | Descripción |
 |---|---|
@@ -96,8 +96,7 @@ Proyecto5-grupo1/
 ├── Makefile               # make up · verify · flutter-phone
 ├── docs/daily/
 ├── .specify/
-├── .github/workflows/
-└── docs/daily/
+└── .github/workflows/
 ```
 
 Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend/README.md](Backend/README.md) · [db/README.md](db/README.md) · [Backend/data/README.md](Backend/data/README.md)
@@ -144,8 +143,8 @@ Frontend/
 cd Frontend && flutter pub get && flutter run
 ```
 
-**Producción:** `http://34.235.130.33:8005` (QA — credenciales = dev)  
-**Desarrollo:** API local en `http://<IP-LAN>:8000` vía `make up`
+**QA:** http://34.235.130.33:8005  
+**Local:** API en `http://<IP-LAN>:8000` vía `make up`
 
 ---
 
@@ -232,24 +231,23 @@ Flujo: push/PR a **`dev`** (solo tests) → merge a **`main`** (deploy completo)
 |---|---|---|
 | `backend-ci.yml` | push/PR `dev` | pytest + data layout + import check |
 | `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
-| `android.yml` | push `main` | espera API → analyze → APK → Release → Firebase → OTA |
+| `android.yml` | tras `backend-ci` OK en `main` | analyze → APK → Release → Firebase → OTA |
 
-**Orden en el mismo push a `main`:** `backend-ci` despliega DB+API en paralelo con `android`; el job `wait-for-api` de Android espera hasta 7,5 min a que `:8005/health` responda antes de compilar. Detalle: `.specify/specs/factoria/SDD.md` §9.
+**Orden en push a `main`:** primero `backend-ci` (DB + API); al terminar con éxito se lanza `android.yml` (APK, Firebase, OTA). Detalle: `.specify/specs/factoria/SDD.md` §9.
 
 `EC2_HOST` debe estar como secret a **nivel repositorio**.
 
-### Puertos en EC2 compartido (`34.235.130.33`)
+### Puertos QA (EC2)
 
-| Proyecto | Frontend | API | Postgres (host) |
-|---|---|---|---|
-| Unicorn Valuation | 3005 | 8004 | 5434 |
-| **Fall-Sentinel** | 3006 *(reservado)* | **8005** | **5435** |
+| Servicio | Puerto host |
+|---|---|
+| API | **8005** |
+| Postgres (debug) | **5435** |
+| Frontend (reservado) | **3006** |
 
 Abrir en Security Group: **TCP 8005** (API) y **TCP 5435** (Postgres debug, opcional).
 
 ### Secrets GitHub (environment `production`)
-
-Solo despliegue — **no** hace falta configurar credenciales Postgres (usa defaults de dev).
 
 | Secret | Nota |
 |---|---|
@@ -259,7 +257,7 @@ Solo despliegue — **no** hace falta configurar credenciales Postgres (usa defa
 | `EC2_USER` | `ubuntu` o `ec2-user` |
 | `EC2_SSH_KEY` | Clave PEM privada |
 
-Credenciales QA en EC2 (por defecto, igual que local): `fallsentinel` / `fallsentinel123` / DB `fallsentinel`.
+Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.qa`).
 
 ---
 
@@ -339,15 +337,13 @@ Detalle DB: [db/README.md](db/README.md)
 
 **Política:** los crudos van en GitHub — fuente de verdad del equipo. Tras `git clone`, ejecutar las verificaciones antes de entrenar.
 
-| ID | Fuente | Ruta crudo | Ruta procesado | Estado | Verificación rápida | Esperado |
-|---|---|---|---|---|---|---|
-| **DS-01** | SisFall | `Backend/data/raw/sisfall/` | `Backend/data/processed/sisfall/` | ✅ En repo | `find Backend/data/raw/sisfall -name "*.txt" ! -iname "readme.txt" \| wc -l` | **4.396** archivos · **38** carpetas (SA01–SA23, SE01–SE15) |
-| | | | | | `test -f Backend/data/raw/sisfall/Readme.txt && echo OK` | Metadatos oficiales (edad, sexo, protocolo) |
-| | | | | | `wc -l Backend/data/processed/sisfall/sisfall_dataset.csv` | **4.506** filas (+ header) — regenerar solo en SDD |
-| **DS-02** | MobiAct v2.0 | `Backend/data/raw/mobiact/mobiact_v2.0/` | `Backend/data/processed/mobiact/mobiact_v2.0/` | ⏳ Pendiente BMI | Carpeta no vacía tras respuesta de bmi@hmu.gr | 3 `.txt`/ensayo (acc, gyro, orientación) |
-| **DS-02b** | MobiFall v2.0 | `Backend/data/raw/mobiact/mobifall_v2.0/` | `Backend/data/processed/mobiact/mobifall_v2.0/` | ⏳ Pendiente BMI | `find Backend/data/raw/mobiact -name "*.txt" \| wc -l` | Miles de archivos (66 sujetos, >3.200 ensayos) |
-| ~~DS-X~~ | Kaggle zara2099 | `Backend/data/raw/kaggle/` | — | ❌ Baja | Solo `DEPRECATED.md` — no debe haber CSV | — |
-| **DS-C** | Combinado | — | `Backend/data/processed/combined/` | 🔒 Futuro | Solo tras SDD + EDA de DS-01 y DS-02 | README documentado |
+| ID | Fuente | Ruta crudo | Ruta procesado | Estado | Esperado |
+|---|---|---|---|---|---|
+| **DS-01** | SisFall | `Backend/data/raw/sisfall/` | `Backend/data/processed/sisfall/` | ✅ En repo | 4.396 `.txt` · 38 sujetos · CSV 4.506 filas |
+| **DS-02** | MobiAct v2.0 | `Backend/data/raw/mobiact/mobiact_v2.0/` | `Backend/data/processed/mobiact/mobiact_v2.0/` | ⏳ Pendiente BMI | 3 `.txt`/ensayo (acc, gyro, orientación) |
+| **DS-02b** | MobiFall v2.0 | `Backend/data/raw/mobiact/mobifall_v2.0/` | `Backend/data/processed/mobiact/mobifall_v2.0/` | ⏳ Pendiente BMI | >3.200 ensayos · 66 sujetos |
+| ~~DS-X~~ | Kaggle zara2099 | `Backend/data/raw/kaggle/` | — | ❌ Baja | Solo `DEPRECATED.md` |
+| **DS-C** | Combinado | — | `Backend/data/processed/combined/` | 🔒 Futuro | Tras SDD + EDA DS-01/DS-02 |
 
 ### Script de verificación (copiar tras clone)
 

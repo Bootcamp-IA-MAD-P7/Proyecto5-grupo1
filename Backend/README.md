@@ -72,7 +72,7 @@ Ver `/.env.example`. Local: `DATABASE_URL` → Postgres en Docker.
 
 ## Producción (AWS EC2 — entorno QA)
 
-Mismas credenciales que dev: `fallsentinel` / `fallsentinel123`.
+Mismas credenciales que `.env.example`.
 
 | Recurso | URL / puerto |
 |---|---|
