@@ -6,8 +6,8 @@
 /// Emulador Android:
 ///   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ///
-/// Legacy Render (TODO: eliminar al migrar a AWS):
-///   https://proyecto5-grupo1.onrender.com
+/// Producción AWS EC2:
+///   flutter run --dart-define=API_BASE_URL=http://34.235.130.33:8005
 class AppConfig {
   AppConfig._();
 

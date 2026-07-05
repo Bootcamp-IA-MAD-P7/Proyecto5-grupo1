@@ -5,7 +5,6 @@ from math import sqrt
 from typing import Optional
 import os
 import uvicorn
-from supabase import create_client, Client
 
 from api import db as pg
 
@@ -26,20 +25,12 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-API-Key"],
 )
 
-# --- Supabase client (legacy) ---
-# TODO: eliminar — producción migrará a AWS + Postgres (RDS).
-# Solo se usa si DATABASE_URL no está configurada (p. ej. Render legacy).
-_supabase_url = os.environ.get("SUPABASE_URL", "")
-_supabase_key = os.environ.get("SUPABASE_KEY", "")
-supabase: Client | None = None
-if _supabase_url and _supabase_key:
-    supabase = create_client(_supabase_url, _supabase_key)
-
-
-def _require_supabase() -> Client:
-    if supabase is None:
-        raise HTTPException(status_code=503, detail="Supabase no configurado (legacy)")
-    return supabase
+def _require_postgres() -> None:
+    if not pg.postgres_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="DATABASE_URL no configurada — requiere PostgreSQL",
+        )
 
 
 # --- Modelos de datos ---
@@ -120,26 +111,11 @@ def health():
 
 @app.get("/app/latest-version", response_model=AppVersion)
 def get_latest_version():
-    if pg.postgres_enabled():
-        row = pg.fetch_latest_app_version()
-        if not row:
-            raise HTTPException(status_code=404, detail="No hay versiones registradas")
-        return _row_to_app_version(row)
-
-    # TODO: eliminar bloque Supabase al migrar a AWS
-    db = _require_supabase()
-    result = (
-        db.table("app_versions")
-        .select("*")
-        .order("version_code", desc=True)
-        .limit(1)
-        .execute()
-    )
-
-    if not result.data:
+    _require_postgres()
+    row = pg.fetch_latest_app_version()
+    if not row:
         raise HTTPException(status_code=404, detail="No hay versiones registradas")
-
-    return _row_to_app_version(result.data[0])
+    return _row_to_app_version(row)
 
 
 @app.post("/app/register-version", status_code=201)
@@ -152,14 +128,8 @@ def register_version(body: RegisterVersionRequest):
         "min_supported_version_code": body.min_supported_version_code,
     }
 
-    if pg.postgres_enabled():
-        pg.insert_app_version(payload)
-        return {"status": "ok", "version_code": body.version_code}
-
-    # TODO: eliminar bloque Supabase al migrar a AWS
-    db = _require_supabase()
-    db.table("app_versions").insert(payload).execute()
-
+    _require_postgres()
+    pg.insert_app_version(payload)
     return {"status": "ok", "version_code": body.version_code}
 
 

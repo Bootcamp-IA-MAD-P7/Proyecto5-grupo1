@@ -21,6 +21,7 @@ Objetivo: alcanzar el **nivel Experto** según `.specify/memory/constitucion_fac
 | `make reset-db` | Borra volumen Postgres (`down -v`) — tras cambiar password |
 | `make flutter-local API_HOST=192.168.x.x` | Flutter → API en tu IP LAN |
 | `make flutter-phone` | Igual + usa `DEVICE` del `.env` |
+| `make flutter-qa` | Flutter → API QA en EC2 (`cp .env.qa.example .env.qa`) |
 | `make test-backend` | pytest sin Docker |
 
 ### Variables en `.env`
@@ -59,9 +60,24 @@ Emulador: `cd Frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2
 ### ¿Qué lee la base de datos hoy?
 
 Solo **versiones OTA** (`app_versions`): `GET/POST /app/*`.  
-`/predict` no usa DB. Supabase queda inactivo si `DATABASE_URL` está en `.env`.
+`/predict` no usa DB.
 
 Detalle SQL: [db/README.md](db/README.md)
+
+### URLs QA (EC2 — mismas credenciales que dev)
+
+| URL | Descripción |
+|---|---|
+| http://34.235.130.33:8005/health | Healthcheck |
+| http://34.235.130.33:8005/docs | Swagger |
+| http://34.235.130.33:8005/predict | Predicción |
+
+Flutter contra QA (sin levantar backend local):
+
+```bash
+cp .env.qa.example .env.qa
+make flutter-qa
+```
 
 ---
 
@@ -73,13 +89,15 @@ Proyecto5-grupo1/
 ├── Backend/               # API + ML + data/
 ├── db/init/               # SQL init Postgres (app_versions)
 ├── scripts/               # verify-local.sh · run-flutter-local.sh
-├── docker-compose.yml     # fallsentinel-api + fallsentinel-db
-├── .env.example           # copiar a .env
+├── docker-compose.yml     # fallsentinel-api + fallsentinel-db (local)
+├── docker-compose.prod.yml # API + DB en EC2 (CI/CD)
+├── .env.example           # copiar a .env (local)
+├── .env.qa.example        # copiar a .env.qa (Flutter → EC2)
 ├── Makefile               # make up · verify · flutter-phone
 ├── docs/daily/
 ├── .specify/
 ├── .github/workflows/
-└── render.yaml            # legacy — migrar a AWS
+└── docs/daily/
 ```
 
 Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend/README.md](Backend/README.md) · [db/README.md](db/README.md) · [Backend/data/README.md](Backend/data/README.md)
@@ -102,7 +120,7 @@ Frontend/
 │   │   ├── home_screen.dart          # Monitor en tiempo real, stream de sensores
 │   │   └── result_screen.dart        # Alerta visual si caída detectada
 │   ├── services/
-│   │   ├── api_service.dart          # POST /predict (Render) o mock offline
+│   │   ├── api_service.dart          # POST /predict (API local o AWS)
 │   │   └── update_service.dart       # GET /app/latest-version — OTA Android
 │   └── widgets/
 │       └── update_dialog.dart        # Diálogo descarga APK desde GitHub Releases
@@ -118,14 +136,15 @@ Frontend/
 
 | Modo API | Configuración | Uso |
 |---|---|---|
-| Producción | `_useMock = false` en `api_service.dart` | Render (actual) |
+| QA (EC2) | `make flutter-qa` + `.env.qa` | Debug frontend sin Docker local |
+| Local | `make flutter-local API_HOST=192.168.x.x` | Desarrollo en LAN |
 | Offline | `_useMock = true` | Desarrollo sin backend |
 
 ```bash
 cd Frontend && flutter pub get && flutter run
 ```
 
-API producción (legacy, TODO eliminar): `https://proyecto5-grupo1.onrender.com`  
+**Producción:** `http://34.235.130.33:8005` (QA — credenciales = dev)  
 **Desarrollo:** API local en `http://<IP-LAN>:8000` vía `make up`
 
 ---
@@ -170,7 +189,7 @@ Backend/
 │   └── README.md                     # Inventario + matriz académica de fuentes
 ├── tests/
 │   └── test_health.py                # / y /health
-├── Dockerfile                        # Imagen Render
+├── Dockerfile                        # Imagen Docker (local + EC2)
 ├── requirements.txt
 └── README.md
 ```
@@ -207,12 +226,40 @@ Detalle completo: [Backend/data/README.md](Backend/data/README.md)
 
 ## CI/CD
 
-| Workflow | Trigger | Qué hace |
-|---|---|---|
-| `backend-ci.yml` | push/PR en `Backend/**` | Import check + pytest (fail-fast) |
-| `android.yml` | push a `dev` | analyze → build APK → Release → Firebase |
+Flujo: push/PR a **`dev`** (solo tests) → merge a **`main`** (deploy completo).
 
-Los pasos **no continúan** si falla uno anterior (sin `continue-on-error` en pasos críticos).
+| Workflow | Rama | Qué hace |
+|---|---|---|
+| `backend-ci.yml` | push/PR `dev` | pytest + data layout + import check |
+| `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
+| `android.yml` | push `main` | espera API → analyze → APK → Release → Firebase → OTA |
+
+**Orden en el mismo push a `main`:** `backend-ci` despliega DB+API en paralelo con `android`; el job `wait-for-api` de Android espera hasta 7,5 min a que `:8005/health` responda antes de compilar. Detalle: `.specify/specs/factoria/SDD.md` §9.
+
+`EC2_HOST` debe estar como secret a **nivel repositorio**.
+
+### Puertos en EC2 compartido (`34.235.130.33`)
+
+| Proyecto | Frontend | API | Postgres (host) |
+|---|---|---|---|
+| Unicorn Valuation | 3005 | 8004 | 5434 |
+| **Fall-Sentinel** | 3006 *(reservado)* | **8005** | **5435** |
+
+Abrir en Security Group: **TCP 8005** (API) y **TCP 5435** (Postgres debug, opcional).
+
+### Secrets GitHub (environment `production`)
+
+Solo despliegue — **no** hace falta configurar credenciales Postgres (usa defaults de dev).
+
+| Secret | Nota |
+|---|---|
+| `DOCKER_USERNAME` | Usuario Docker Hub |
+| `DOCKER_PASSWORD` | Token Docker Hub |
+| `EC2_HOST` | `34.235.130.33` |
+| `EC2_USER` | `ubuntu` o `ec2-user` |
+| `EC2_SSH_KEY` | Clave PEM privada |
+
+Credenciales QA en EC2 (por defecto, igual que local): `fallsentinel` / `fallsentinel123` / DB `fallsentinel`.
 
 ---
 
@@ -274,12 +321,6 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 > Sin Postgres local, `/app/latest-version` devolverá 503 — usa `make up` para stack completo.
 
-### Legacy (TODO: eliminar al migrar a AWS)
-
-- `render.yaml` — deploy Render
-- Supabase en `api/main.py` — solo si no hay `DATABASE_URL`
-- URL hardcodeada antigua sustituida por `AppConfig.apiBaseUrl` + `--dart-define`
-
 Detalle DB: [db/README.md](db/README.md)
 
 ---
@@ -289,7 +330,7 @@ Detalle DB: [db/README.md](db/README.md)
 | Recurso | Ubicación |
 |---|---|
 | Daily standups | [docs/daily/](docs/daily/) |
-| SDD formal (próximo) | `.specify/specs/factoria/` |
+| Documentación operativa | `.specify/specs/factoria/SDD.md` (CI/CD §9) |
 | Constitución Factoría | `.specify/memory/constitucion_factoria.md` |
 
 ---

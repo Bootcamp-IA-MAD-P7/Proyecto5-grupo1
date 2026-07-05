@@ -1,6 +1,6 @@
 # Fall-Sentinel — comandos homologados (ejecutar desde la raíz del repo)
 
-.PHONY: up down logs verify flutter-local flutter-phone env reset-db test-backend
+.PHONY: up down logs verify flutter-local flutter-phone flutter-qa env env-qa reset-db test-backend
 
 env:
 	@test -f .env || cp .env.example .env
@@ -33,6 +33,15 @@ flutter-phone:
 	 API_HOST=$${API_HOST:-$$(hostname -I | awk '{print $$1}')} \
 	 DEVICE=$${DEVICE:-} \
 	 bash scripts/run-flutter-local.sh
+
+env-qa:
+	@test -f .env.qa || cp .env.qa.example .env.qa
+	@echo ".env.qa listo (API QA en EC2)"
+
+flutter-qa: env-qa
+	@set -a && . ./.env.qa; set +a; \
+	 DEVICE=$${DEVICE:-} \
+	 bash scripts/run-flutter-qa.sh
 
 test-backend:
 	cd Backend && pip install -r requirements.txt pytest httpx && pytest tests/ -v
