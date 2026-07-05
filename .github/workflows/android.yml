@@ -1,17 +1,12 @@
 name: Android Release
 
-# Se dispara cuando backend-ci termina en main (API+DB ya desplegados).
-# Así Firebase App Distribution y OTA no corren contra un backend caído.
+# Se dispara cuando backend-ci termina con éxito en main (API+DB ya desplegados).
 on:
   workflow_run:
     workflows: ["Deploy Fall-Sentinel API to EC2"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
-
-defaults:
-  run:
-    working-directory: Frontend
 
 jobs:
   gate:
@@ -26,6 +21,9 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     needs: gate
+    defaults:
+      run:
+        working-directory: Frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,6 +51,9 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     needs: validate
+    defaults:
+      run:
+        working-directory: Frontend
     env:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
 
