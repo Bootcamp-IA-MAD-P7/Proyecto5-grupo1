@@ -9,13 +9,13 @@ Genera:
     una sola variable). Un AUC individual sospechosamente alto (>0.95) es
     la señal que hubiera detectado el problema de n_samples antes de
     entrenar nada.
-  - Boxplots de cada feature por clase (fall_event) -> data/processed/eda_output/boxplots/
-  - Matriz de correlación entre features -> data/processed/eda_output/correlation_heatmap.png
-  - Conteo de ensayos por sujeto -> data/processed/eda_output/trials_per_subject.png
+  - Boxplots de cada feature por clase (fall_event) -> data/processed/sisfall/eda_output/boxplots/
+  - Matriz de correlación entre features -> data/processed/sisfall/eda_output/correlation_heatmap.png
+  - Conteo de ensayos por sujeto -> data/processed/sisfall/eda_output/trials_per_subject.png
   - Chequeo de valores atípicos / fuera de rango físico plausible
 
 Uso (desde la raíz de Backend/):
-    python notebooks/eda_sisfall.py --data data/processed/sisfall_dataset.csv
+    python notebooks/eda_sisfall.py --data data/processed/sisfall/sisfall_dataset.csv
 """
 
 import argparse
@@ -33,7 +33,7 @@ GROUP_COL = "subject_id"
 CATEGORICAL_FEATURES = ["age_group"]
 NON_FEATURE_COLS = {TARGET, GROUP_COL, "activity_code", "trial"}
 
-OUT_DIR = Path("data/processed/eda_output")
+OUT_DIR = Path("data/processed/sisfall/eda_output")
 
 
 def section(title: str):
@@ -203,7 +203,7 @@ def outlier_scan(df: pd.DataFrame, numeric_features: list):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/processed/sisfall_dataset.csv")
+    parser.add_argument("--data", default="data/processed/sisfall/sisfall_dataset.csv")
     args = parser.parse_args()
 
     OUT_DIR.mkdir(exist_ok=True)

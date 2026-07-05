@@ -29,7 +29,15 @@ app.add_middleware(
 # Configúralas en Render > Environment.
 _supabase_url = os.environ.get("SUPABASE_URL", "")
 _supabase_key = os.environ.get("SUPABASE_KEY", "")
-supabase: Client = create_client(_supabase_url, _supabase_key)
+supabase: Client | None = None
+if _supabase_url and _supabase_key:
+    supabase = create_client(_supabase_url, _supabase_key)
+
+
+def _require_supabase() -> Client:
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Supabase no configurado")
+    return supabase
 
 
 # --- Modelos de datos ---
@@ -65,7 +73,7 @@ class PredictionResponse(BaseModel):
 
 
 # --- Lógica de clasificación ---
-# TODO: reemplazar por modelo ML entrenado con dataset real
+# TODO: eliminar umbrales — reemplazar por modelo ML en api/inference/
 
 def classify(data: SensorData) -> tuple[bool, float]:
     accel_mag = sqrt(data.accel_x**2 + data.accel_y**2 + data.accel_z**2)
@@ -100,8 +108,9 @@ def health():
 
 @app.get("/app/latest-version", response_model=AppVersion)
 def get_latest_version():
+    db = _require_supabase()
     result = (
-        supabase.table("app_versions")
+        db.table("app_versions")
         .select("*")
         .order("version_code", desc=True)
         .limit(1)
@@ -123,7 +132,8 @@ def get_latest_version():
 
 @app.post("/app/register-version", status_code=201)
 def register_version(body: RegisterVersionRequest):
-    supabase.table("app_versions").insert({
+    db = _require_supabase()
+    db.table("app_versions").insert({
         "version_code": body.version_code,
         "version_name": body.version_name,
         "apk_url": body.apk_url,

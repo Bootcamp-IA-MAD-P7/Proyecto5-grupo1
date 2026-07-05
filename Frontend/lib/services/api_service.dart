@@ -43,7 +43,8 @@ class ApiService {
     }
   }
 
-  // --- MOCK ---
+  // --- MOCK (TODO: eliminar cuando sensores reales + modelo ML estén integrados) ---
+  // Datos generados con Random — solo para desarrollo offline. No usar para entrenamiento.
 
   SensorSnapshot _generateSensorData({bool simulateFall = false}) {
     if (simulateFall) {

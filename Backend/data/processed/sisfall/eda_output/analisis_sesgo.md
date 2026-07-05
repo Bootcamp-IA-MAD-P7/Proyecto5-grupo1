@@ -130,6 +130,6 @@ Ningún ajuste de hiperparámetros, regularización o selección de features pue
 ## Apéndice: reproducibilidad
 
 - Dataset: `sisfall_dataset.csv` (generado por `build_sisfall_dataset.py`)
-- Modelo baseline: `ml/model.pkl` — XGBoost, `python ml/train_model.py --data data/processed/sisfall_dataset.csv`
-- Modelo ablation: `ml/model_ablation.pkl` — `python ml/train_model.py --data data/processed/sisfall_dataset.csv --drop-shortcut-features`
-- Diagnóstico completo (feature importance + LOSO + desglose por edad): `python ml/diagnostico.py --data data/processed/sisfall_dataset.csv --model ml/model.pkl`
+- Modelo baseline: `ml/model.pkl` — XGBoost, `python ml/train_model.py --data data/processed/sisfall/sisfall_dataset.csv`
+- Modelo ablation: `ml/model_ablation.pkl` — `python ml/train_model.py --data data/processed/sisfall/sisfall_dataset.csv --drop-shortcut-features`
+- Diagnóstico completo (feature importance + LOSO + desglose por edad): `python ml/diagnostico.py --data data/processed/sisfall/sisfall_dataset.csv --model ml/model.pkl`

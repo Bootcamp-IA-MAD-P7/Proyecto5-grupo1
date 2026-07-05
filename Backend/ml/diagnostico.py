@@ -23,8 +23,8 @@ Diagnóstico rápido para entender el rendimiento del modelo guardado:
      la población que más importa para un sistema real.
 
 Uso (desde la raíz de Backend/):
-    python ml/diagnostico.py --data data/processed/sisfall_dataset.csv --model ml/model.pkl
-    python ml/diagnostico.py --data data/processed/sisfall_dataset.csv --model ml/model_ablation.pkl
+    python ml/diagnostico.py --data data/processed/sisfall/sisfall_dataset.csv --model ml/model.pkl
+    python ml/diagnostico.py --data data/processed/sisfall/sisfall_dataset.csv --model ml/model_ablation.pkl
 """
 
 import argparse
@@ -217,7 +217,7 @@ def run_loso(data_path: str, payload: dict):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/processed/sisfall_dataset.csv")
+    parser.add_argument("--data", default="data/processed/sisfall/sisfall_dataset.csv")
     parser.add_argument("--model", default="ml/model.pkl")
     args = parser.parse_args()
 
