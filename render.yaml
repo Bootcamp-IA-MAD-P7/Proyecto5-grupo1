@@ -1,3 +1,6 @@
+# TODO: eliminar — deploy legacy en Render. Producción migrará a AWS.
+# Mantener solo hasta cutover; desarrollo local usa docker-compose.yml en la raíz
+
 services:
   - type: web
     name: fall-detector-api

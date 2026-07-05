@@ -46,12 +46,16 @@ flutter run -d <device_id>
 
 ## Conexión con Backend
 
-| Modo | Configuración | Uso |
-|---|---|---|
-| API real | `_useMock = false` en `lib/services/api_service.dart` | Producción (actual) |
-| Mock local | `_useMock = true` | Desarrollo offline |
+La URL de la API se configura con **`--dart-define=API_BASE_URL`** (ver `lib/config/app_config.dart`).
 
-API desplegada: `https://proyecto5-grupo1.onrender.com`
+| Entorno | Comando |
+|---|---|
+| **Local — móvil físico** | `make flutter-local API_HOST=192.168.x.x` (desde raíz del repo) |
+| **Local — emulador** | `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
+| **Mock offline** | `_useMock = true` en `api_service.dart` |
+| ~~Render legacy~~ | TODO eliminar → AWS |
+
+Build **debug** permite HTTP (`android/app/src/debug/AndroidManifest.xml`).
 
 ## Auto-actualización (Android)
 

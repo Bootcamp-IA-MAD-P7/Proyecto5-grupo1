@@ -23,9 +23,9 @@ Backend/
 │   └── eda_sisfall.py
 ├── data/
 │   ├── raw/
-│   │   ├── sisfall/         # .txt crudos (gitignored)
-│   │   └── kaggle/          # Descarga Kaggle (gitignored)
-│   ├── processed/           # CSVs tabulares + eda_output/
+│   │   ├── sisfall/         # DS-01 (.txt crudos)
+│   │   └── mobiact/         # DS-02 candidato
+│   ├── processed/           # sisfall/, mobiact/, combined/
 │   └── feedback/            # Datos desde app (gitignored)
 ├── tests/
 │   └── test_health.py
@@ -42,14 +42,14 @@ Ver [data/README.md](data/README.md). **Política:** crudos y procesados en git.
 
 | ID | Ubicación | Estado |
 |---|---|---|
-| DS-01 SisFall crudo | `data/raw/sisfall/` | Pendiente subir |
-| DS-01b SisFall procesado | `data/processed/sisfall_dataset.csv` | En repo |
-| DS-02 Kaggle | `data/raw/kaggle/` | Pendiente subir |
-| DS-03 Sintético | `data/processed/fall_detection_dataset.csv` | Deprecado |
+| DS-01 SisFall crudo | `data/raw/sisfall/` | Descargado |
+| DS-01b SisFall procesado | `data/processed/sisfall/` | En repo |
+| DS-02 MobiAct | `data/raw/mobiact/` | Candidato — pendiente |
+| ~~Kaggle~~ | — | Dado de baja (constitución §6) |
 
 ```bash
 # Regenerar DS-01 desde crudos
-python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall_dataset.csv
+python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall/sisfall_dataset.csv
 ```
 
 ## Pipeline ML
@@ -68,7 +68,7 @@ uvicorn api.main:app --reload --port 8000
 
 ## Variables de entorno
 
-Ver `infra/.env.example`. Producción (Render): `SUPABASE_URL`, `SUPABASE_KEY`, `MODEL_PATH`.
+Ver `/.env.example`. Local: `DATABASE_URL` → Postgres en Docker.
 
 ## Tests
 

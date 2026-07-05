@@ -28,9 +28,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt pytest httpx
 
+      - name: Verify data layout (post-refactor)
+        run: |
+          test -d data/raw/sisfall
+          test -d data/processed/sisfall
+          test -f data/processed/sisfall/sisfall_dataset.csv
+          test -d data/raw/mobiact
+          test -d data/processed/mobiact
+          test -d data/processed/combined
+          echo "Data layout OK"
+
       - name: Lint (import check)
         run: python -c "from api.main import app"
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
-        continue-on-error: true  # hasta que existan tests reales

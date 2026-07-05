@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../models/prediction_result.dart';
 
 class ApiService {
-  static const String _baseUrl = 'https://proyecto5-grupo1.onrender.com';
+  static const String _baseUrl = AppConfig.apiBaseUrl;
 
-  // Cambia a false para usar el backend real en Render
+  // false = API local/docker o remota vía --dart-define=API_BASE_URL=...
   static const bool _useMock = false;
 
   final _random = Random();
@@ -43,7 +44,8 @@ class ApiService {
     }
   }
 
-  // --- MOCK ---
+  // --- MOCK (TODO: eliminar cuando sensores reales + modelo ML estén integrados) ---
+  // Datos generados con Random — solo para desarrollo offline. No usar para entrenamiento.
 
   SensorSnapshot _generateSensorData({bool simulateFall = false}) {
     if (simulateFall) {

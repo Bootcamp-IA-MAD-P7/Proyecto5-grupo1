@@ -19,8 +19,8 @@ Diferencias clave respecto al pipeline con datos sintéticos:
     robusto (ver diagnostico.py, sección de feature importance).
 
 Uso (desde la raíz de Backend/):
-    python ml/train_model.py --data data/processed/sisfall_dataset.csv
-    python ml/train_model.py --data data/processed/sisfall_dataset.csv --drop-shortcut-features
+    python ml/train_model.py --data data/processed/sisfall/sisfall_dataset.csv
+    python ml/train_model.py --data data/processed/sisfall/sisfall_dataset.csv --drop-shortcut-features
 Genera: ml/model.pkl (baseline) o ml/model_ablation.pkl (con el flag activado).
 """
 
@@ -132,7 +132,7 @@ def evaluate_on_test(name, model, X_test, y_test, threshold) -> tuple:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/processed/sisfall_dataset.csv",
+    parser.add_argument("--data", default="data/processed/sisfall/sisfall_dataset.csv",
                          help="CSV generado por build_sisfall_dataset.py")
     parser.add_argument("--drop-shortcut-features", action="store_true",
                          help="Excluye acc1_magnitude_max y gyro_magnitude_max "

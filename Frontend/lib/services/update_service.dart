@@ -6,6 +6,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../config/app_config.dart';
+
 /// Estado del proceso de actualización.
 enum UpdateStatus {
   idle,
@@ -92,7 +94,7 @@ class UpdateException implements Exception {
 ///
 /// Escucha cambios con [addListener] (es un [ChangeNotifier]).
 class UpdateService extends ChangeNotifier {
-  static const String _baseUrl = 'https://proyecto5-grupo1.onrender.com';
+  static const String _baseUrl = AppConfig.apiBaseUrl;
   static const Duration _checkTimeout = Duration(seconds: 10);
 
   final Dio _dio = Dio(BaseOptions(
