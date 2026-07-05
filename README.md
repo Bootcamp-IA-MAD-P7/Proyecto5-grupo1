@@ -68,11 +68,9 @@ Detalle SQL: [db/README.md](db/README.md)
 
 | URL | Descripción |
 |---|---|
-| http://\<EC2_HOST\>:8005/health | Healthcheck |
-| http://\<EC2_HOST\>:8005/docs | Swagger |
-| http://\<EC2_HOST\>:8005/predict | Predicción |
-
-Host y puerto en `.env.qa.example` (`QA_API_HOST`, `QA_API_PORT`).
+| http://34.235.130.33:8005/health | Healthcheck |
+| http://34.235.130.33:8005/docs | Swagger |
+| http://34.235.130.33:8005/predict | Predicción |
 
 Flutter contra QA (sin levantar backend local):
 
@@ -145,7 +143,7 @@ Frontend/
 cd Frontend && flutter pub get && flutter run
 ```
 
-**QA:** `make flutter-qa` (URLs en `.env.qa`)  
+**QA:** http://34.235.130.33:8005  
 **Local:** API en `http://<IP-LAN>:8000` vía `make up`
 
 ---
@@ -233,9 +231,9 @@ Flujo: push/PR a **`dev`** (solo tests) → merge a **`main`** (deploy completo)
 |---|---|---|
 | `backend-ci.yml` | push/PR `dev` | pytest + data layout + import check |
 | `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
-| `android.yml` | push `main` | espera API → analyze → APK → Release → Firebase → OTA |
+| `android.yml` | tras `backend-ci` OK en `main` | analyze → APK → Release → Firebase → OTA |
 
-**Orden en el mismo push a `main`:** `backend-ci` despliega DB+API en paralelo con `android`; el job `wait-for-api` de Android espera hasta 7,5 min a que `:8005/health` responda antes de compilar. Detalle: `.specify/specs/factoria/SDD.md` §9.
+**Orden en push a `main`:** primero `backend-ci` (DB + API); al terminar con éxito se lanza `android.yml` (APK, Firebase, OTA). Detalle: `.specify/specs/factoria/SDD.md` §9.
 
 `EC2_HOST` debe estar como secret a **nivel repositorio**.
 
@@ -255,7 +253,7 @@ Abrir en Security Group: **TCP 8005** (API) y **TCP 5435** (Postgres debug, opci
 |---|---|
 | `DOCKER_USERNAME` | Usuario Docker Hub |
 | `DOCKER_PASSWORD` | Token Docker Hub |
-| `EC2_HOST` | IP pública del servidor |
+| `EC2_HOST` | `34.235.130.33` |
 | `EC2_USER` | `ubuntu` o `ec2-user` |
 | `EC2_SSH_KEY` | Clave PEM privada |
 

@@ -32,7 +32,7 @@ docker compose down -v && make up
 | Entorno | Host | Puerto host |
 |---|---|---|
 | API (red Docker) | `db` | 5432 interno |
-| Debug externo | ver `QA_POSTGRES_HOST` en `.env.qa` | **5435** |
+| Debug externo | `34.235.130.33` | **5435** |
 
 `DATABASE_URL` en el contenedor API: ver `.env.example` (host interno `db:5432`).
 

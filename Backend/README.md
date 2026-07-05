@@ -76,8 +76,8 @@ Mismas credenciales que `.env.example`.
 
 | Recurso | URL / puerto |
 |---|---|
-| API | ver `API_BASE_URL` en `.env.qa` |
-| Postgres (debug) | puerto **5435** en `QA_POSTGRES_HOST` |
+| API | http://34.235.130.33:8005 |
+| Postgres (debug) | `34.235.130.33:5435` |
 
 Deploy automático vía `backend-ci.yml` (push a `main`). Defaults en `docker-compose.prod.yml`.
 
