@@ -76,3 +76,9 @@ kaggle.json
 # ---------------------------------------------------
 .specify/memory/
 .specify/specs/cemp/
+
+# -----------------------------------------------------------------------------
+# Local Scrum Master / Developer workspace
+# Personal notes and analysis (never committed)
+# -----------------------------------------------------------------------------
+notes/
