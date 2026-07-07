@@ -17,7 +17,7 @@ Este documento responde a cuatro preguntas fundamentales:
 
 ## 2. Visión del producto
 
-Fall-Sentinel es una plataforma de apoyo basada en Inteligencia Artificial diseñada para estimar el riesgo de caída de una persona a partir de información obtenida mediante sensores y variables biométricas.
+Fall-Sentinel es una plataforma de apoyo basada en Inteligencia Artificial diseñada para detectar y confirmar de forma inmediata la ocurrencia de una caída a partir de información obtenida mediante sensores y variables biométricas.
 
 La solución integra una aplicación móvil desarrollada en Flutter, una API REST implementada con FastAPI y un modelo de Machine Learning entrenado con datasets científicos para ofrecer una evaluación sencilla, rápida y accesible.
 
