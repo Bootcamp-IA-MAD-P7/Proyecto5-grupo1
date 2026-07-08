@@ -1,5 +1,5 @@
-name: proyecto_flutter
-description: "Fall Detector Tester application."
+name: sentilife
+description: "SentiLife — Fall detection and monitoring application."
 publish_to: 'none'
 
 version: 1.0.0+1

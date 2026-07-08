@@ -1,11 +1,11 @@
 {
-    "name": "Fall Detector Tester",
-    "short_name": "Fall Detector",
+    "name": "SentiLife",
+    "short_name": "SentiLife",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Fall Detector Tester application.",
+    "description": "SentiLife — Fall detection and monitoring application.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
