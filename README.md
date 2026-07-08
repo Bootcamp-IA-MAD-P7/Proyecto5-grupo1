@@ -233,7 +233,7 @@ Flujo: push/PR a **`dev`** (solo tests) → merge a **`main`** (deploy completo)
 | `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
 | `android.yml` | tras `backend-ci` OK en `main` | analyze → APK → Release → Firebase → OTA |
 
-**Orden en push a `main`:** primero `backend-ci` (DB + API); al terminar con éxito se lanza `android.yml` (APK, Firebase, OTA). Detalle: `.specify/specs/factoria/SDD.md` §9.
+**Orden en push a `main`:** primero `backend-ci` (DB + API); al terminar con éxito se lanza `android.yml` (APK, Firebase, OTA). Detalle: `.specify/specs/factoria/3_plan.md` §5.
 
 `EC2_HOST` debe estar como secret a **nivel repositorio**.
 
@@ -328,7 +328,9 @@ Detalle DB: [db/README.md](db/README.md)
 | Recurso | Ubicación |
 |---|---|
 | Daily standups | [docs/daily/](docs/daily/) |
-| Documentación operativa | `.specify/specs/factoria/SDD.md` (CI/CD §9) |
+| Metodología SDD (intent → spec → plan → task) | `.specify/specs/factoria/1_intent.md` … `4_task.md` |
+| CI/CD y arquitectura | `.specify/specs/factoria/3_plan.md` |
+| Roadmap + backlog Jira (orden de ejecución) | `.specify/specs/factoria/5_roadmap.md` |
 | Constitución Factoría | `.specify/memory/constitucion_factoria.md` |
 
 ---
