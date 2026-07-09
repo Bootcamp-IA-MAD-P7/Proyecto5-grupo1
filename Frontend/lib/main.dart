@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'l10n/generated/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
@@ -8,14 +9,29 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale _locale = const Locale('es');
+
+  void _changeLocale(Locale locale) {
+    if (_locale == locale) return;
+    setState(() => _locale = locale);
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SentiLife',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
+      locale: _locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1B5E20),
@@ -23,13 +39,15 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const _AppRoot(),
+      home: _AppRoot(onLocaleChanged: _changeLocale),
     );
   }
 }
 
 class _AppRoot extends StatefulWidget {
-  const _AppRoot();
+  final ValueChanged<Locale> onLocaleChanged;
+
+  const _AppRoot({required this.onLocaleChanged});
 
   @override
   State<_AppRoot> createState() => _AppRootState();
@@ -57,11 +75,7 @@ class _AppRootState extends State<_AppRoot> {
         _updateService.installedVersionCode ?? 0,
       );
 
-      await UpdateDialog.show(
-        context,
-        _updateService,
-        mandatory: isMandatory,
-      );
+      await UpdateDialog.show(context, _updateService, mandatory: isMandatory);
     }
   }
 
@@ -73,6 +87,6 @@ class _AppRootState extends State<_AppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    return const HomeScreen();
+    return HomeScreen(onLocaleChanged: widget.onLocaleChanged);
   }
 }
