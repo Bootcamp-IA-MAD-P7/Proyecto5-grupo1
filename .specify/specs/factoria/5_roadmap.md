@@ -45,6 +45,7 @@
 | BE-B | SL-5 compose (+Java, +RabbitMQ, +Prometheus, +Grafana) · SL-7 FastAPI solo inferencia | `docker compose up` todo verde |
 | FE-A | SL-8 renombrado SentiLife → SL-9 i18n base (es) | APK "SentiLife" |
 | FE-B | SL-10 **mock de contratos** | FE desbloqueado al 100% |
+| ALL | SL-12 flujo local (`make up` + health checks + `make flutter-local`) | Arranque local homologado |
 | ML | SL-13 EDA SisFall — **ruta crítica, prioridad absoluta** | Notebook avanzado |
 
 ### 🗓 JUE 9 — Contrato de ventana + primeros endpoints
@@ -153,6 +154,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-8 | Renombrado SentiLife | FE-A | MUST | mié 8 | SL-1 | ✅ |
 | SL-9 | i18n base (es) | FE-A | SHOULD | mié 8 | SL-8 | ✅ |
 | SL-10 | Mock de contratos completo | FE-B | MUST | mié 8 | SL-1 | ✅ |
+| SL-12 | Flujo local Makefile + health checks | ALL | MUST | mié 8 | SL-5 | ✅ |
 | SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | 🔲 |
 | SL-3 | Flyway + seed (+`telemetry_windows`) | BE-A | MUST | jue 9 | SL-2 | 🔲 |
 | SL-14 | Contrato de ventana | ML | MUST | jue 9 | SL-13 | 🔲 |
