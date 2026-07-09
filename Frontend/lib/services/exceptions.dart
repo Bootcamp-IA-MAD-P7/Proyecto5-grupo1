@@ -1,4 +1,5 @@
 /// Excepciones compartidas por todos los servicios de la app.
+library;
 
 class ApiException implements Exception {
   final int status;

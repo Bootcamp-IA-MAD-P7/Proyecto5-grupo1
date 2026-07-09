@@ -22,7 +22,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
-        android:label="Fall Detector Tester"
+        android:label="SentiLife"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

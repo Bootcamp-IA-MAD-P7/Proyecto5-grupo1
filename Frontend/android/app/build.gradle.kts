@@ -19,7 +19,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.jzelada.proyecto_flutter"
+    namespace = "com.sentilife.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -39,7 +39,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.jzelada.proyecto_flutter"
+        applicationId = "com.sentilife.app"
         minSdk        = flutter.minSdkVersion
         targetSdk     = flutter.targetSdkVersion
 
