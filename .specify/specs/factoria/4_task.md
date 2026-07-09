@@ -22,7 +22,7 @@
 ### Estructura Java (no existe — tarea inicial de creación)
 
 - [x] **T0.4** `BE-A` — **Crear desde cero la estructura `backend-java/`**: Spring Boot 3 + Java 21 (Spring Initializr: web, security, data-jpa, validation, actuator, postgresql), paquetes `com.sentilife.{auth,users,monitored,consent,telemetry,alerts,notifications,admin,ota,config}`, perfil `application-docker.yml`, Dockerfile multi-stage, `/actuator/health` respondiendo. *(ADR-01 — bloqueante para todo BE)*
-- [ ] **T0.5** `BE-B` — Migraciones de esquema (Flyway) con las tablas de spec §5.1 (incluidas `paired_devices` y `push_tokens`); seed de usuario `IT_ADMIN`.
+- [x] **T0.5** `BE-B` — Migraciones de esquema (Flyway) con las tablas de spec §5.1 (incluidas `paired_devices` y `push_tokens`); seed de usuario `IT_ADMIN`.
 
 ### Infraestructura y compose (premisa: un solo `docker compose up`)
 
