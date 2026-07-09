@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:proyecto_flutter/models/alert.dart';
-import 'package:proyecto_flutter/models/monitored_person.dart';
-import 'package:proyecto_flutter/models/retrain_status.dart';
-import 'package:proyecto_flutter/models/user.dart';
-import 'package:proyecto_flutter/services/admin_service.dart';
-import 'package:proyecto_flutter/services/alerts_service.dart';
-import 'package:proyecto_flutter/services/auth_service.dart';
-import 'package:proyecto_flutter/services/devices_service.dart';
-import 'package:proyecto_flutter/services/exceptions.dart';
-import 'package:proyecto_flutter/services/monitored_service.dart';
-import 'package:proyecto_flutter/services/telemetry_service.dart';
+import 'package:sentilife/models/alert.dart';
+import 'package:sentilife/models/monitored_person.dart';
+import 'package:sentilife/models/retrain_status.dart';
+import 'package:sentilife/models/user.dart';
+import 'package:sentilife/services/admin_service.dart';
+import 'package:sentilife/services/alerts_service.dart';
+import 'package:sentilife/services/auth_service.dart';
+import 'package:sentilife/services/devices_service.dart';
+import 'package:sentilife/services/exceptions.dart';
+import 'package:sentilife/services/monitored_service.dart';
+import 'package:sentilife/services/telemetry_service.dart';
 
 void main() {
   // ── AuthService ────────────────────────────────────────────────────────────

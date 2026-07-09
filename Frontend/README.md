@@ -67,6 +67,6 @@ Build **debug** permite HTTP (`android/app/src/debug/AndroidManifest.xml`).
 
 | Campo | Valor |
 |---|---|
-| Nombre visible | Fall Detector Tester |
-| Package ID | `com.jzelada.proyecto_flutter` |
-| Proyecto pubspec | `proyecto_flutter` |
+| Nombre visible | SentiLife |
+| Package ID | `com.sentilife.app` |
+| Proyecto pubspec | `sentilife` |
