@@ -334,25 +334,24 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 ### 1. Backend + PostgreSQL (Docker)
 
 ```bash
-make up          # cp .env + docker compose + verify automático
-make verify      # re-comprobar /health, /predict, Postgres
+make up          # cp .env + docker compose; espera y verifica todos los health checks
+make verify      # re-comprobar contenedores y /health de la API
 make logs        # si algo falla
 ```
 
 Requisitos: Docker Compose v2. La API queda en **http://localhost:8000** (Swagger: `/docs`).
 
-### 2. Flutter en tu móvil (misma WiFi)
+### 2. Flutter contra la infraestructura local
 
 ```bash
-# Sustituye por la IP de tu PC en la red local
+# Emulador Android (usa 10.0.2.2 por defecto)
+make flutter-local
+
+# Móvil físico en la misma WiFi: sustituye por la IP LAN de tu PC
 make flutter-local API_HOST=192.168.1.100
 ```
 
-El build **debug** permite HTTP a la API local. Emulador Android:
-
-```bash
-cd Frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
-```
+`make flutter-local` comprueba antes que el stack esté sano. El build **debug** permite HTTP a la API local.
 
 ### 3. Backend sin Docker (opcional)
 
