@@ -1,68 +1,142 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+"""SentiLife internal inference service.
+
+Business APIs belong to the Spring Boot backend. OTA endpoints remain here only
+as a deprecated compatibility bridge until their postponed migration.
+"""
+
+from __future__ import annotations
+
 from math import sqrt
-from typing import Optional
-import os
+from time import perf_counter
+from typing import Annotated, Literal
+
 import uvicorn
+from fastapi import FastAPI, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from pydantic import BaseModel, Field, model_validator
 
 from api import db as pg
 
 app = FastAPI(
-    title="Fall Detector API",
-    description="API para detección de caídas basada en datos de sensores.",
-    version="0.1.0",
+    title="SentiLife Inference Service",
+    description="Internal service for fall-detection model inference.",
+    version="0.2.0",
 )
 
-# CORS — solo orígenes necesarios.
-# Las apps móviles nativas no envían Origin, así que allow_origins=["*"]
-# es seguro en la práctica para una API mobile. Si añades un frontend web,
-# añade su dominio aquí y elimina "*".
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-API-Key"],
+REQUESTS = Counter(
+    "sentilife_inference_http_requests_total",
+    "HTTP requests handled by the inference service.",
+    ("method", "path", "status"),
+)
+REQUEST_LATENCY = Histogram(
+    "sentilife_inference_http_request_duration_seconds",
+    "HTTP request latency by endpoint.",
+    ("method", "path"),
+)
+PREDICTION_LATENCY = Histogram(
+    "sentilife_inference_prediction_duration_seconds",
+    "Time spent computing a prediction.",
 )
 
-def _require_postgres() -> None:
-    if not pg.postgres_enabled():
-        raise HTTPException(
-            status_code=503,
-            detail="DATABASE_URL no configurada — requiere PostgreSQL",
+
+@app.middleware("http")
+async def observe_requests(request, call_next):
+    path = request.url.path
+    started_at = perf_counter()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        REQUESTS.labels(request.method, path, str(status)).inc()
+        REQUEST_LATENCY.labels(request.method, path).observe(
+            perf_counter() - started_at
         )
 
 
-# --- Modelos de datos ---
-
-# App versioning
 class AppVersion(BaseModel):
+    """Deprecated OTA contract retained until its Java migration."""
+
     version_code: int
     version_name: str
     apk_url: str
-    release_notes: Optional[str] = None
-    min_supported_version_code: Optional[int] = None
+    release_notes: str | None = None
+    min_supported_version_code: int | None = None
+
 
 class RegisterVersionRequest(AppVersion):
     pass
 
 
-class SensorData(BaseModel):
-    accel_x: float
-    accel_y: float
-    accel_z: float
-    gyro_x: float
-    gyro_y: float
-    gyro_z: float
-    heart_rate: float
-    room_temp: float
-    room_light: float
+SampleSeries = Annotated[list[float], Field(min_length=1)]
+
+
+class SensorSamples(BaseModel):
+    accX: SampleSeries
+    accY: SampleSeries
+    accZ: SampleSeries
+    gyroX: SampleSeries
+    gyroY: SampleSeries
+    gyroZ: SampleSeries
+
+    @model_validator(mode="after")
+    def validate_series_length(self):
+        lengths = {len(series) for series in self.__dict__.values()}
+        if len(lengths) != 1:
+            raise ValueError("all sensor series must contain the same number of samples")
+        return self
+
+
+class SubjectFeatures(BaseModel):
+    age: int = Field(ge=0, le=130)
+    sex: Literal["M", "F", "OTHER"]
+    weightKg: float = Field(gt=0)
+    heightCm: float = Field(gt=0)
+
+
+class PredictionRequest(BaseModel):
+    windowId: str = Field(min_length=1)
+    monitoredId: str = Field(min_length=1)
+    sampleRateHz: float = Field(gt=0)
+    samples: SensorSamples
+    subjectFeatures: SubjectFeatures
 
 
 class PredictionResponse(BaseModel):
-    fall_detected: bool
-    confidence: float
-    message: str
+    fallDetected: bool
+    confidence: float = Field(ge=0, le=1)
+    modelVersion: str
+    latencyMs: float = Field(ge=0)
+
+
+class ModelInfo(BaseModel):
+    version: str
+    algorithm: str
+    trainedAt: str | None
+    metrics: dict[str, float]
+
+
+class ReloadResponse(BaseModel):
+    status: Literal["unchanged"]
+    modelVersion: str
+    detail: str
+
+
+MODEL_INFO = ModelInfo(
+    version="threshold-baseline-0.1.0",
+    algorithm="ThresholdBaseline",
+    trainedAt=None,
+    metrics={},
+)
+
+
+def _require_postgres() -> None:
+    if not pg.postgres_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="DATABASE_URL is not configured; PostgreSQL is required",
+        )
 
 
 def _row_to_app_version(row: dict) -> AppVersion:
@@ -75,72 +149,96 @@ def _row_to_app_version(row: dict) -> AppVersion:
     )
 
 
-# --- Lógica de clasificación ---
-# TODO: eliminar umbrales — reemplazar por modelo ML en api/inference/
-
-def classify(data: SensorData) -> tuple[bool, float]:
-    accel_mag = sqrt(data.accel_x**2 + data.accel_y**2 + data.accel_z**2)
-    gyro_mag = sqrt(data.gyro_x**2 + data.gyro_y**2 + data.gyro_z**2)
-
-    fall = accel_mag > 15 or gyro_mag > 300
-
-    # Confianza aproximada basada en cuánto superan el umbral
-    if fall:
-        accel_ratio = min(accel_mag / 15, 2.0)
-        gyro_ratio = min(gyro_mag / 300, 2.0)
-        confidence = min(0.75 + max(accel_ratio, gyro_ratio) * 0.1, 0.99)
-    else:
-        confidence = min(0.85 + (1 - min(accel_mag / 15, 1.0)) * 0.1, 0.99)
-
-    return fall, round(confidence, 3)
-
-
-# --- Endpoints ---
-
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "Fall Detector API"}
+def classify(samples: SensorSamples) -> tuple[bool, float]:
+    """Temporary baseline; SL-20 replaces it with the trained model."""
+    accel_peak = max(
+        sqrt(x**2 + y**2 + z**2)
+        for x, y, z in zip(samples.accX, samples.accY, samples.accZ)
+    )
+    gyro_peak = max(
+        sqrt(x**2 + y**2 + z**2)
+        for x, y, z in zip(samples.gyroX, samples.gyroY, samples.gyroZ)
+    )
+    fall_detected = accel_peak > 15 or gyro_peak > 300
+    peak_ratio = max(accel_peak / 15, gyro_peak / 300)
+    confidence = (
+        min(0.75 + min(peak_ratio, 2.0) * 0.1, 0.99)
+        if fall_detected
+        else min(0.85 + (1 - min(peak_ratio, 1.0)) * 0.1, 0.99)
+    )
+    return fall_detected, round(confidence, 3)
 
 
-@app.get("/health")
+@app.get("/health", tags=["operation"])
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "service": "sentilife-inference",
+        "modelVersion": MODEL_INFO.version,
+    }
 
 
-# --- App update endpoints ---
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-@app.get("/app/latest-version", response_model=AppVersion)
-def get_latest_version():
+
+@app.get("/model/info", response_model=ModelInfo, tags=["model"])
+def model_info():
+    return MODEL_INFO
+
+
+@app.post("/model/reload", response_model=ReloadResponse, tags=["model"])
+def reload_model():
+    return ReloadResponse(
+        status="unchanged",
+        modelVersion=MODEL_INFO.version,
+        detail="Model registry is not configured yet; hot reload is delivered by SL-54.",
+    )
+
+
+@app.post("/predict", response_model=PredictionResponse, tags=["inference"])
+def predict(data: PredictionRequest):
+    started_at = perf_counter()
+    with PREDICTION_LATENCY.time():
+        fall_detected, confidence = classify(data.samples)
+    latency_ms = (perf_counter() - started_at) * 1000
+    return PredictionResponse(
+        fallDetected=fall_detected,
+        confidence=confidence,
+        modelVersion=MODEL_INFO.version,
+        latencyMs=round(latency_ms, 3),
+    )
+
+
+@app.get(
+    "/app/latest-version",
+    response_model=AppVersion,
+    deprecated=True,
+    tags=["deprecated-ota"],
+)
+def get_latest_version(response: Response):
+    response.headers["Deprecation"] = "true"
+    response.headers["Warning"] = '299 - "Migrate this endpoint to the Java backend"'
     _require_postgres()
     row = pg.fetch_latest_app_version()
     if not row:
-        raise HTTPException(status_code=404, detail="No hay versiones registradas")
+        raise HTTPException(status_code=404, detail="No app versions are registered")
     return _row_to_app_version(row)
 
 
-@app.post("/app/register-version", status_code=201)
-def register_version(body: RegisterVersionRequest):
-    payload = {
-        "version_code": body.version_code,
-        "version_name": body.version_name,
-        "apk_url": body.apk_url,
-        "release_notes": body.release_notes,
-        "min_supported_version_code": body.min_supported_version_code,
-    }
-
+@app.post(
+    "/app/register-version",
+    status_code=201,
+    deprecated=True,
+    tags=["deprecated-ota"],
+)
+def register_version(body: RegisterVersionRequest, response: Response):
+    response.headers["Deprecation"] = "true"
+    response.headers["Warning"] = '299 - "Migrate this endpoint to the Java backend"'
     _require_postgres()
-    pg.insert_app_version(payload)
+    pg.insert_app_version(body.model_dump())
     return {"status": "ok", "version_code": body.version_code}
-
-
-@app.post("/predict", response_model=PredictionResponse)
-def predict(data: SensorData):
-    fall_detected, confidence = classify(data)
-    return PredictionResponse(
-        fall_detected=fall_detected,
-        confidence=confidence,
-        message="Caída detectada" if fall_detected else "Sin caída",
-    )
 
 
 if __name__ == "__main__":

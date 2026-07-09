@@ -52,6 +52,11 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(builder: (_) => ResultScreen(result: result)),
       );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.unknownError)));
     } finally {
       if (mounted) setState(() => _analyzing = false);
     }
