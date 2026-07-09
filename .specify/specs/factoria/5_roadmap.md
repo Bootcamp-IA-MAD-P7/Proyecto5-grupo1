@@ -155,7 +155,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-9 | i18n base (es) | FE-A | SHOULD | mié 8 | SL-8 | ✅ |
 | SL-10 | Mock de contratos completo | FE-B | MUST | mié 8 | SL-1 | ✅ |
 | SL-12 | Flujo local Makefile + health checks | ALL | MUST | mié 8 | SL-5 | ✅ |
-| SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | 🔲 |
+| SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | ✅ |
 | SL-3 | Flyway + seed (+`telemetry_windows`) | BE-A | MUST | jue 9 | SL-2 | 🔲 |
 | SL-14 | Contrato de ventana | ML | MUST | jue 9 | SL-13 | 🔲 |
 | SL-16 | Pipeline de features | ML | MUST | jue 9 | SL-14 | 🔲 |

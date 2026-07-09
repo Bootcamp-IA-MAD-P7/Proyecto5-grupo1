@@ -1,0 +1,11 @@
+activity_code,subject_id,trial,source_path,key
+D17,SE15,01,data\raw\sisfall\SA15\D17_SE15_R01.txt,D17_SE15_R01
+D17,SE15,01,data\raw\sisfall\SE15\D17_SE15_R01.txt,D17_SE15_R01
+D17,SE15,02,data\raw\sisfall\SA15\D17_SE15_R02.txt,D17_SE15_R02
+D17,SE15,02,data\raw\sisfall\SE15\D17_SE15_R02.txt,D17_SE15_R02
+D17,SE15,03,data\raw\sisfall\SA15\D17_SE15_R03.txt,D17_SE15_R03
+D17,SE15,03,data\raw\sisfall\SE15\D17_SE15_R03.txt,D17_SE15_R03
+D17,SE15,04,data\raw\sisfall\SA15\D17_SE15_R04.txt,D17_SE15_R04
+D17,SE15,04,data\raw\sisfall\SE15\D17_SE15_R04.txt,D17_SE15_R04
+D17,SE15,05,data\raw\sisfall\SA15\D17_SE15_R05.txt,D17_SE15_R05
+D17,SE15,05,data\raw\sisfall\SE15\D17_SE15_R05.txt,D17_SE15_R05
