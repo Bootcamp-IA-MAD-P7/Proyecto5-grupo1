@@ -147,6 +147,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 |---|---|---|---|---|---|---|
 | SL-1 | Kickoff: roadmap + contratos congelados | ALL | MUST | mié 8 | — | 🔲 |
 | SL-2 | Estructura backend-java (Spring Boot 3) | BE-A | MUST | mié 8 | SL-1 | 🔲 |
+| SL-4 | README SentiLife + arquitectura + SDD | ALL | MUST | mié 8 | SL-8 | ✅ |
 | SL-5 | Compose completo (+Java/RabbitMQ/Prom/Grafana) | BE-B | MUST | mié 8 | SL-1 | 🔲 |
 | SL-7 | FastAPI reducido a inferencia | BE-B | MUST | mié 8 | SL-1 | 🔲 |
 | SL-8 | Renombrado SentiLife | FE-A | MUST | mié 8 | SL-1 | ✅ |
