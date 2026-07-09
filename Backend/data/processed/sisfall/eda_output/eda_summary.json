@@ -1,11 +1,11 @@
 {
   "dataset": "SisFall",
   "task": "SL-13 / T1.1",
-  "processed_trials": 4505,
+  "processed_trials": 4396,
   "raw_trial_files": 4396,
   "subjects": 38,
-  "falls": 1798,
-  "adl": 2707,
+  "falls": 1744,
+  "adl": 2652,
   "sample_rate_hz": 200,
   "outputs": [
     "class_balance.csv",
@@ -29,11 +29,11 @@
   "high_correlation_pairs": 0,
   "duration_delta_abs_median_sec": 0.0,
   "data_consistency": {
-    "processed_rows": 4505,
-    "processed_unique_keys": 4500,
+    "processed_rows": 4396,
+    "processed_unique_keys": 4391,
     "raw_rows": 4396,
     "raw_unique_keys": 4391,
-    "processed_keys_missing_in_raw": 109,
+    "processed_keys_missing_in_raw": 0,
     "raw_keys_missing_in_processed": 0,
     "processed_duplicate_rows": 10,
     "raw_duplicate_rows": 10

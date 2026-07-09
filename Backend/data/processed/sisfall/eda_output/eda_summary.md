@@ -2,11 +2,11 @@
 
 ## Cobertura
 
-- Ensayos procesados: 4505
+- Ensayos procesados: 4396
 - Archivos crudos analizados: 4396
 - Sujetos: 38
-- Caidas: 1798
-- ADL: 2707
+- Caidas: 1744
+- ADL: 2652
 - Frecuencia documentada: 200 Hz
 
 ## Evidencias generadas

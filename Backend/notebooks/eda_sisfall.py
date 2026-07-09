@@ -473,6 +473,25 @@ def data_consistency_report(df: pd.DataFrame, inventory: pd.DataFrame, out_dir: 
         "raw_duplicate_rows": int(len(raw_dupes)),
     }
 
+    if processed_not_raw or raw_not_processed:
+        consistency_text = (
+            "El EDA queda generado, pero el crudo local no reproduce exactamente el CSV agregado actual. "
+            "Revisar los CSV de detalle antes de entrenar."
+        )
+    else:
+        consistency_text = (
+            "El CSV procesado fue regenerado desde el crudo local y ya no hay claves faltantes entre "
+            "`raw/sisfall/` y `processed/sisfall/sisfall_dataset.csv`."
+        )
+
+    if raw_dupes.empty and processed_dupes.empty:
+        duplicate_text = "No se detectan duplicados por clave actividad/sujeto/rep."
+    else:
+        duplicate_text = (
+            "Persisten duplicados por clave actividad/sujeto/rep. En el crudo local destacan "
+            "`D17_SE15_R01..R05`, que aparecen tanto bajo `raw/sisfall/SA15/` como bajo `raw/sisfall/SE15/`."
+        )
+
     lines = [
         "# Consistencia raw vs processed",
         "",
@@ -489,12 +508,9 @@ def data_consistency_report(df: pd.DataFrame, inventory: pd.DataFrame, out_dir: 
         "",
         "## Interpretacion",
         "",
-        "El EDA queda generado, pero el crudo local no reproduce exactamente el CSV agregado actual. "
-        "No se regenera `processed/sisfall/sisfall_dataset.csv` en SL-13 porque `Backend/data/README.md` "
-        "indica que esa accion requiere decision del equipo.",
+        consistency_text,
         "",
-        "Hallazgo principal: el CSV contiene claves de SA07 ausentes en el crudo local actual, y hay duplicados "
-        "`D17_SE15_R01..R05` porque aparecen tanto bajo `raw/sisfall/SA15/` como bajo `raw/sisfall/SE15/`.",
+        duplicate_text,
         "",
         "## Archivos de detalle",
         "",
