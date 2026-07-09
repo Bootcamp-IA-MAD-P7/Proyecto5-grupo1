@@ -1,0 +1,27 @@
+# Perfil para tests — usa H2 en memoria para no necesitar PostgreSQL
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+sentilife:
+  jwt:
+    secret: test-secret-key-min-32-chars-for-testing-only!!
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+  inference:
+    url: http://localhost:8000

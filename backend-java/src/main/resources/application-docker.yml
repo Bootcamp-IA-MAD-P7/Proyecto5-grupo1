@@ -1,0 +1,21 @@
+# Perfil activo dentro de Docker Compose.
+# Sobreescribe solo lo que cambia respecto a application.yml.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/${POSTGRES_DB:fallsentinel}
+    username: ${POSTGRES_USER:fallsentinel}
+    password: ${POSTGRES_PASSWORD:fallsentinel123}
+
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+server:
+  port: 8080
+
+sentilife:
+  inference:
+    url: http://api:8000
