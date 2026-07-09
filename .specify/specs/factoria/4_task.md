@@ -54,7 +54,7 @@
 
 - [ ] **T1.7** `BE-B` — Integrar modelo en FastAPI: carga `model.pkl`, preprocesado idéntico al entrenamiento, respuesta spec §6.8. Eliminar `classify()` por umbrales. *(ML-04, RF-13)* (T1.2, T1.5)
 - [x] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` v1 (sin consentimiento aún): valida payload → escribe InfluxDB → llama inferencia síncrona → devuelve predicción según spec §6.3. Medir latencia (histograma Prometheus). *(RF-12)* (T0.8)
-- [ ] **T1.9** `BE-A` — Java: vinculación de dispositivo `POST /api/v1/devices/pair` + `pairingCode` en personas (spec §6.4).
+- [x] **T1.9** `BE-A` — Java: vinculación de dispositivo `POST /api/v1/devices/pair` + `pairingCode` en personas (spec §6.4).
 
 ### Frontend (paralelo, contra mock)
 

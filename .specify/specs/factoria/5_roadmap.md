@@ -164,7 +164,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-17 | Baseline por sujeto | ML | MUST | vie 10 | SL-16 | 🔲 |
 | SL-18 | Modelo < 5% overfitting (🟢) | ML | MUST | vie 10 | SL-17 | 🔲 |
 | SL-20 | Modelo real en FastAPI (🟢) | BE-B | MUST | vie 10 | SL-18 | 🔲 |
-| SL-22 | /devices/pair | BE-B | MUST | vie 10 | SL-3 | 🔲 |
+| SL-22 | /devices/pair | BE-B | MUST | vie 10 | SL-3 | ✅ |
 | SL-26 | Auth JWT completa | BE-A | MUST | vie 10 | SL-3 | 🔲 |
 | SL-27 | CRUD personas | BE-A | MUST | vie 10 | SL-26 | 🔲 |
 | SL-24 | Pantalla MONITORED | FE-A | MUST | vie 10 | SL-23 | 🔲 |

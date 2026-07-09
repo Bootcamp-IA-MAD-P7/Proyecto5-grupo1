@@ -30,6 +30,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/prometheus").permitAll()
                 // Auth endpoints — públicos
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                // Vinculación de dispositivo — público (usa pairingCode)
+                .requestMatchers("/api/v1/devices/pair").permitAll()
                 // Telemetría — accesible para pruebas (en Fase 2 requiere JWT + rol MONITORED)
                 .requestMatchers("/api/v1/telemetry/**").permitAll()
                 // Todo lo demás requiere autenticación
