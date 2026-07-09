@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+
+import '../l10n/l10n.dart';
 import '../models/prediction_result.dart';
 import '../services/api_service.dart';
 import 'result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ValueChanged<Locale> onLocaleChanged;
+
+  const HomeScreen({super.key, required this.onLocaleChanged});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -57,13 +61,31 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fall Detector Tester'),
+        title: Text(l10n.fallDetectorTester),
         centerTitle: true,
         backgroundColor: primary,
         foregroundColor: Colors.white,
+        actions: [
+          PopupMenuButton<Locale>(
+            tooltip: l10n.language,
+            icon: const Icon(Icons.language),
+            onSelected: widget.onLocaleChanged,
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: const Locale('es'),
+                child: Text(l10n.spanish),
+              ),
+              PopupMenuItem(
+                value: const Locale('en'),
+                child: Text(l10n.english),
+              ),
+            ],
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -74,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Sensores en tiempo real
           if (_latest != null) ...[
-            _SectionTitle('Lecturas de sensores'),
+            _SectionTitle(l10n.sensorReadings),
             const SizedBox(height: 8),
             _SensorGrid(snapshot: _latest!),
             const SizedBox(height: 16),
@@ -86,20 +108,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ] else ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: Text(
-                  'Inicia el monitoreo para ver\nlos datos de los sensores',
+                  l10n.startMonitoringHint,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ),
             ),
           ],
 
           const SizedBox(height: 8),
-          _SectionTitle('Acciones'),
+          _SectionTitle(l10n.actions),
           const SizedBox(height: 8),
 
           // Botón monitoreo
@@ -108,7 +130,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ElevatedButton.icon(
               onPressed: _toggleMonitoring,
               icon: Icon(_monitoring ? Icons.stop : Icons.sensors),
-              label: Text(_monitoring ? 'Detener monitoreo' : 'Iniciar monitoreo'),
+              label: Text(
+                _monitoring ? l10n.stopMonitoring : l10n.startMonitoring,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _monitoring ? Colors.red[700] : primary,
                 foregroundColor: Colors.white,
@@ -130,10 +154,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.search),
-              label: const Text('Analizar lectura'),
+              label: Text(l10n.analyzeReading),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.secondary,
                 foregroundColor: Colors.white,
@@ -151,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: OutlinedButton.icon(
               onPressed: _analyzing ? null : () => _analyze(simulateFall: true),
               icon: const Icon(Icons.warning_amber_rounded),
-              label: const Text('Simular caída'),
+              label: Text(l10n.simulateFall),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.orange[800],
                 side: BorderSide(color: Colors.orange[800]!),
@@ -174,6 +200,7 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = monitoring ? Colors.green : Colors.grey;
+    final l10n = context.l10n;
     return Card(
       elevation: 2,
       child: Padding(
@@ -183,7 +210,7 @@ class _StatusCard extends StatelessWidget {
             Icon(Icons.circle, color: color, size: 14),
             const SizedBox(width: 10),
             Text(
-              monitoring ? 'Monitorizando...' : 'Inactivo',
+              monitoring ? l10n.monitoringActive : l10n.monitoringInactive,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: color,
@@ -226,6 +253,8 @@ class _SensorGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -236,35 +265,35 @@ class _SensorGrid extends StatelessWidget {
       children: [
         _SensorTile(
           icon: Icons.speed,
-          label: 'Acelerómetro',
+          label: l10n.accelerometer,
           value:
               'X: ${snapshot.accelX.toStringAsFixed(1)}\nY: ${snapshot.accelY.toStringAsFixed(1)}\nZ: ${snapshot.accelZ.toStringAsFixed(1)}',
           unit: 'm/s²',
         ),
         _SensorTile(
           icon: Icons.rotate_right,
-          label: 'Giroscopio',
+          label: l10n.gyroscope,
           value:
               'X: ${snapshot.gyroX.toStringAsFixed(1)}\nY: ${snapshot.gyroY.toStringAsFixed(1)}\nZ: ${snapshot.gyroZ.toStringAsFixed(1)}',
           unit: '°/s',
         ),
         _SensorTile(
           icon: Icons.favorite,
-          label: 'Frec. cardíaca',
+          label: l10n.heartRate,
           value: snapshot.heartRate.toStringAsFixed(0),
           unit: 'ppm',
           color: Colors.red,
         ),
         _SensorTile(
           icon: Icons.thermostat,
-          label: 'Temperatura',
+          label: l10n.temperature,
           value: snapshot.roomTemp.toStringAsFixed(1),
           unit: '°C',
           color: Colors.orange,
         ),
         _SensorTile(
           icon: Icons.light_mode,
-          label: 'Luz',
+          label: l10n.light,
           value: snapshot.roomLight.toStringAsFixed(0),
           unit: 'lux',
           color: Colors.amber[700],

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../l10n/l10n.dart';
 import '../models/prediction_result.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -8,16 +10,19 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final isFall = result.fallDetected;
     final color = isFall ? Colors.red[700]! : Colors.green[700]!;
-    final icon = isFall ? Icons.warning_amber_rounded : Icons.check_circle_outline;
-    final label = isFall ? '¡CAÍDA DETECTADA!' : 'Sin caída';
+    final icon = isFall
+        ? Icons.warning_amber_rounded
+        : Icons.check_circle_outline;
+    final label = isFall ? l10n.fallDetected : l10n.noFall;
     final confidencePct = (result.confidence * 100).toStringAsFixed(1);
     final s = result.snapshot;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resultado'),
+        title: Text(l10n.result),
         centerTitle: true,
         backgroundColor: color,
         foregroundColor: Colors.white,
@@ -50,7 +55,7 @@ class ResultScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Confianza: $confidencePct%',
+                  l10n.confidence(confidencePct),
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 4),
@@ -83,7 +88,7 @@ class ResultScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Alerta de emergencia',
+                          l10n.emergencyAlert,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.red[700],
@@ -92,7 +97,7 @@ class ResultScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'En producción se notificaría al contacto de emergencia.',
+                          l10n.emergencyAlertDescription,
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.red[600],
@@ -108,9 +113,9 @@ class ResultScreen extends StatelessWidget {
           ],
 
           // Datos del snapshot
-          const Text(
-            'LECTURA DEL SENSOR',
-            style: TextStyle(
+          Text(
+            l10n.sensorReading,
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: Colors.grey,
@@ -118,13 +123,17 @@ class ResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _DataRow('Acelerómetro',
-              'X: ${s.accelX.toStringAsFixed(2)}  Y: ${s.accelY.toStringAsFixed(2)}  Z: ${s.accelZ.toStringAsFixed(2)} m/s²'),
-          _DataRow('Giroscopio',
-              'X: ${s.gyroX.toStringAsFixed(2)}  Y: ${s.gyroY.toStringAsFixed(2)}  Z: ${s.gyroZ.toStringAsFixed(2)} °/s'),
-          _DataRow('Frec. cardíaca', '${s.heartRate.toStringAsFixed(0)} ppm'),
-          _DataRow('Temperatura sala', '${s.roomTemp.toStringAsFixed(1)} °C'),
-          _DataRow('Luz sala', '${s.roomLight.toStringAsFixed(0)} lux'),
+          _DataRow(
+            l10n.accelerometer,
+            'X: ${s.accelX.toStringAsFixed(2)}  Y: ${s.accelY.toStringAsFixed(2)}  Z: ${s.accelZ.toStringAsFixed(2)} m/s²',
+          ),
+          _DataRow(
+            l10n.gyroscope,
+            'X: ${s.gyroX.toStringAsFixed(2)}  Y: ${s.gyroY.toStringAsFixed(2)}  Z: ${s.gyroZ.toStringAsFixed(2)} °/s',
+          ),
+          _DataRow(l10n.heartRate, '${s.heartRate.toStringAsFixed(0)} ppm'),
+          _DataRow(l10n.roomTemperature, '${s.roomTemp.toStringAsFixed(1)} °C'),
+          _DataRow(l10n.roomLight, '${s.roomLight.toStringAsFixed(0)} lux'),
 
           const SizedBox(height: 32),
 
@@ -134,7 +143,7 @@ class ResultScreen extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Volver', style: TextStyle(fontSize: 16)),
+              label: Text(l10n.back, style: const TextStyle(fontSize: 16)),
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
