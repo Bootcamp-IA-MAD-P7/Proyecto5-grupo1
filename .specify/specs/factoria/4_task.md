@@ -16,7 +16,7 @@
 ### Comunes
 
 - [ ] **T0.1** `ALL` — Revisar y aprobar en equipo los 4 documentos SDD + constitución. **Congelar contratos de spec §6 para la fase.** *(bloqueante para todo)*
-- [ ] **T0.2** `FE-A` — Renombrar la app a **SentiLife** en todas las plataformas según tabla de `3_plan.md` §3.
+- [x] **T0.2** `FE-A` — Renombrar la app a **SentiLife** en todas las plataformas según tabla de `3_plan.md` §3.
 - [ ] **T0.3** `ALL` — Actualizar `README.md` raíz: nombre, arquitectura, referencia a los 4 documentos SDD.
 
 ### Estructura Java (no existe — tarea inicial de creación)
@@ -53,7 +53,7 @@
 ### Backend (paralelo a ML)
 
 - [ ] **T1.7** `BE-B` — Integrar modelo en FastAPI: carga `model.pkl`, preprocesado idéntico al entrenamiento, respuesta spec §6.8. Eliminar `classify()` por umbrales. *(ML-04, RF-13)* (T1.2, T1.5)
-- [ ] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` v1 (sin consentimiento aún): valida payload → escribe InfluxDB → llama inferencia síncrona → devuelve predicción según spec §6.3. Medir latencia (histograma Prometheus). *(RF-12)* (T0.8)
+- [x] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` v1 (sin consentimiento aún): valida payload → escribe InfluxDB → llama inferencia síncrona → devuelve predicción según spec §6.3. Medir latencia (histograma Prometheus). *(RF-12)* (T0.8)
 - [ ] **T1.9** `BE-A` — Java: vinculación de dispositivo `POST /api/v1/devices/pair` + `pairingCode` en personas (spec §6.4).
 
 ### Frontend (paralelo, contra mock)
