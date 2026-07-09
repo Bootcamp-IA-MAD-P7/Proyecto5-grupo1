@@ -156,7 +156,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-3 | Flyway + seed (+`telemetry_windows`) | BE-A | MUST | jue 9 | SL-2 | ✅ |
 | SL-14 | Contrato de ventana | ML | MUST | jue 9 | SL-13 | 🔲 |
 | SL-16 | Pipeline de features | ML | MUST | jue 9 | SL-14 | 🔲 |
-| SL-21 | POST /telemetry/windows (síncrono, Postgres) | BE-B | MUST | jue 9 | SL-3, SL-7 | 🔲 |
+| SL-21 | POST /telemetry/windows (síncrono, Postgres) | BE-B | MUST | jue 9 | SL-3, SL-7 | ✅ |
 | SL-23 | Sensores + ventanas Flutter | FE-A | MUST | jue 9 | SL-10 | 🔲 |
 | SL-11 | Navegación 3 perfiles | FE-B | MUST | jue 9 | SL-10 | 🔲 |
 | SL-31 | Perfil CAREGIVER | FE-B | MUST | jue 9 | SL-11 | 🔲 |
