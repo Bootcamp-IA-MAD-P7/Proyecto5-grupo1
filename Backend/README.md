@@ -66,6 +66,18 @@ python ml/diagnostico.py
 uvicorn api.main:app --reload --port 8000
 ```
 
+FastAPI es ahora un servicio interno de inferencia. Expone:
+
+- `POST /predict`
+- `GET /health`
+- `GET /metrics`
+- `GET /model/info`
+- `POST /model/reload`
+
+Los endpoints `/app/*` se conservan temporalmente por compatibilidad, marcados
+como obsoletos en OpenAPI y mediante cabeceras HTTP. Su migración a Java está
+pospuesta según ADR-06.
+
 ## Variables de entorno
 
 Ver `/.env.example`. Local: `DATABASE_URL` → Postgres en Docker.
