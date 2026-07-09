@@ -43,7 +43,7 @@
 
 ### ML / datos
 
-- [ ] **T1.1** `ML` — EDA SisFall completo (`Backend/notebooks/`): clases, histogramas X/Y/Z, correlación, sesgo edad/sexo, frecuencia de muestreo → `processed/sisfall/eda_output/`. *(ML-01)*
+- [x] **T1.1** `ML` — EDA SisFall completo (`Backend/notebooks/`): clases, histogramas X/Y/Z, correlación, sesgo edad/sexo, frecuencia de muestreo → `processed/sisfall/eda_output/`. *(ML-01)*
 - [ ] **T1.2** `ML` — Definir la **ventana** (tamaño, solape, frecuencia) y publicarla como contrato compartido entrenamiento ↔ inferencia ↔ app. *(ADR-05 — bloqueante T1.3, T1.7, T1.8)*
 - [ ] **T1.3** `ML` — Pipeline de features reproducible: regenerar `processed/sisfall/` con ventanas + features estadísticas. (T1.2)
 - [ ] **T1.4** `ML` — Baseline con split por sujeto (GroupKFold). *(ML-07)*

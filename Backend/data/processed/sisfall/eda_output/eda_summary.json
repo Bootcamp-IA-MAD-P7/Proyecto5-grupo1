@@ -1,0 +1,41 @@
+{
+  "dataset": "SisFall",
+  "task": "SL-13 / T1.1",
+  "processed_trials": 4505,
+  "raw_trial_files": 4396,
+  "subjects": 38,
+  "falls": 1798,
+  "adl": 2707,
+  "sample_rate_hz": 200,
+  "outputs": [
+    "class_balance.csv",
+    "activity_balance.csv",
+    "subject_balance.csv",
+    "bias_by_age_sex.csv",
+    "single_feature_auc_scan.csv",
+    "feature_correlation.csv",
+    "high_correlation_pairs.csv",
+    "raw_trial_inventory.csv",
+    "sampling_frequency_by_activity.csv",
+    "data_consistency.md",
+    "class_distribution.png",
+    "trials_per_subject.png",
+    "signal_xyz_histograms.png",
+    "correlation_heatmap.png",
+    "boxplots/all_features_by_class.png",
+    "analisis_sesgo.md"
+  ],
+  "review_required_features": [],
+  "high_correlation_pairs": 0,
+  "duration_delta_abs_median_sec": 0.0,
+  "data_consistency": {
+    "processed_rows": 4505,
+    "processed_unique_keys": 4500,
+    "raw_rows": 4396,
+    "raw_unique_keys": 4391,
+    "processed_keys_missing_in_raw": 109,
+    "raw_keys_missing_in_processed": 0,
+    "processed_duplicate_rows": 10,
+    "raw_duplicate_rows": 10
+  }
+}

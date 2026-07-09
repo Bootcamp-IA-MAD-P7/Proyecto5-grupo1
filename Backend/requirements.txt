@@ -4,5 +4,6 @@ pydantic==2.9.2
 prometheus-client==0.21.0
 scikit-learn==1.5.2
 pandas==2.2.3
+matplotlib==3.9.2
 xgboost==2.1.1
 psycopg2-binary==2.9.10

@@ -1,0 +1,5 @@
+age_group,sex,n_trials,n_falls,n_subjects,fall_rate
+adult,F,1839,898,12,0.4883
+adult,M,1693,825,11,0.4873
+elderly,F,406,0,7,0.0
+elderly,M,567,75,8,0.1323
