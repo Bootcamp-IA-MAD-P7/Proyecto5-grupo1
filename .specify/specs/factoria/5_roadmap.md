@@ -149,7 +149,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-2 | Estructura backend-java (Spring Boot 3) | BE-A | MUST | mié 8 | SL-1 | 🔲 |
 | SL-5 | Compose completo (+Java/RabbitMQ/Prom/Grafana) | BE-B | MUST | mié 8 | SL-1 | 🔲 |
 | SL-7 | FastAPI reducido a inferencia | BE-B | MUST | mié 8 | SL-1 | 🔲 |
-| SL-8 | Renombrado SentiLife | FE-A | MUST | mié 8 | SL-1 | 🔲 |
+| SL-8 | Renombrado SentiLife | FE-A | MUST | mié 8 | SL-1 | ✅ |
 | SL-9 | i18n base (es) | FE-A | SHOULD | mié 8 | SL-8 | 🔲 |
 | SL-10 | Mock de contratos completo | FE-B | MUST | mié 8 | SL-1 | 🔲 |
 | SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | 🔲 |
