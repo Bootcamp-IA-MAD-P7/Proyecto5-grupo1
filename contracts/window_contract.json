@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": "SL-14 window contract, aligned with SDD ADR-05 and spec section 6.3/6.8",
+  "window": {
+    "durationMs": 2500,
+    "sampleRateHz": 50,
+    "overlapRatio": 0.5,
+    "hopMs": 1250,
+    "samplesPerSignal": 125
+  },
+  "signals": {
+    "required": [
+      {
+        "name": "accX",
+        "unit": "m/s^2"
+      },
+      {
+        "name": "accY",
+        "unit": "m/s^2"
+      },
+      {
+        "name": "accZ",
+        "unit": "m/s^2"
+      },
+      {
+        "name": "gyroX",
+        "unit": "deg/s"
+      },
+      {
+        "name": "gyroY",
+        "unit": "deg/s"
+      },
+      {
+        "name": "gyroZ",
+        "unit": "deg/s"
+      }
+    ],
+    "optionalContext": [
+      {
+        "name": "heartRate",
+        "unit": "bpm"
+      },
+      {
+        "name": "roomTemp",
+        "unit": "celsius"
+      },
+      {
+        "name": "roomLight",
+        "unit": "lux"
+      }
+    ]
+  },
+  "api": {
+    "telemetryEndpoint": "/api/v1/telemetry/windows",
+    "inferenceEndpoint": "/predict",
+    "timestampFormat": "ISO-8601 UTC",
+    "samplesObjectKeys": [
+      "accX",
+      "accY",
+      "accZ",
+      "gyroX",
+      "gyroY",
+      "gyroZ"
+    ]
+  },
+  "compatibility": {
+    "training": "ML feature generation must use the same duration, sample rate, overlap and signal keys.",
+    "inference": "FastAPI must receive the same sample arrays and sampleRateHz used by training.",
+    "flutter": "Flutter must build sliding windows with the same duration, sample rate, overlap and signal keys."
+  }
+}
