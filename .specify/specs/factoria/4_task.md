@@ -114,7 +114,7 @@
 - [ ] **T3.3** `BE-B` — Despliegue QA en EC2, Security Group (8005 público, resto interno). *(ML-13)*
 - [ ] **T3.4** `BE-A`+`BE-B` — Suite de tests completa: Java (auth, consentimiento, permisos por rol, alertas, contrato de errores) y Python (preprocesado, métricas, contrato `/predict`). *(ML-14)*
 - [ ] **T3.5** `BE-B` — Dashboard Grafana definitivo: latencia extremo a extremo, latencia `/predict`, colas, errores, entregas push. *(RF-25, RNF-01/02)*
-- [ ] **T3.6** `BE-A` — Supresión GDPR end-to-end (Postgres + InfluxDB + tokens) con test. *(RF-08)*
+- [x] **T3.6** `BE-A` — Supresión GDPR end-to-end (Postgres + InfluxDB + tokens) con test. *(RF-08)*
 - [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en (incluidos textos legales versionados) + pulido de UX; revisar textos de push localizados por `locale` del token. *(RF-31)*
 - [ ] **T3.8** `FE-B` — OTA apuntando al endpoint Java migrado; verificar auto-actualización en dispositivo real. *(RF-23)*
 - [ ] **T3.INT** `ALL` — Push a `main` → despliegue automático → demo de caída sobre QA con dashboard en vivo, app en ambos idiomas y latencia verificada (si > 5 s, contingencias de `3_plan.md` §8).

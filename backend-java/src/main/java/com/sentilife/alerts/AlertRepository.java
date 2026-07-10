@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface AlertRepository extends JpaRepository<Alert, UUID> {
@@ -22,4 +23,10 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             @Param("caregiverId") UUID caregiverId,
             @Param("status") String status,
             Pageable pageable);
+
+    /** Used for GDPR suppression — get alert IDs before deleting feedback */
+    List<Alert> findByMonitoredPersonId(UUID monitoredPersonId);
+
+    /** Used for GDPR suppression — delete all alerts for a person */
+    void deleteByMonitoredPersonId(UUID monitoredPersonId);
 }

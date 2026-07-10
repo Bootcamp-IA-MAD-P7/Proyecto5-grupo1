@@ -174,7 +174,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-25 | T1.INT núcleo real | ALL | MUST | vie 10 | SL-20…SL-24 | 🔲 |
 | SL-41 | Ensembles LOSO + Optuna (🟡, background nocturno) | ML | MUST | vie 10→dom | SL-18 | 🔲 |
 | SL-28 | Consentimiento + 403 | BE-A | MUST | sáb 11 | SL-27 | ✅ |
-| SL-48 | Supresión GDPR | BE-A | MUST | sáb 11 | SL-28 | 🔲 |
+| SL-48 | Supresión GDPR | BE-A | MUST | sáb 11 | SL-28 | ✅ |
 | SL-34 | Alertas + feedback_labels (🟡) | BE-B | MUST | sáb 11 | SL-21 | ✅ |
 | SL-35 | Push FCM backend (gate 16:00) | BE-B | SHOULD | sáb 11 | SL-34 | 🔲 |
 | SL-30 | Login real por rol | FE-A | MUST | sáb 11 | SL-26 | 🔲 |

@@ -19,4 +19,7 @@ public interface TelemetryWindowRepository extends JpaRepository<TelemetryWindow
     @Query("SELECT t FROM TelemetryWindow t WHERE t.monitoredPersonId = :personId " +
            "ORDER BY t.windowStart DESC LIMIT 1")
     Optional<TelemetryWindow> findLastByMonitoredPersonId(@Param("personId") UUID personId);
+
+    /** Used for GDPR suppression — delete all telemetry windows for a person */
+    void deleteByMonitoredPersonId(UUID monitoredPersonId);
 }

@@ -1,9 +1,13 @@
 package com.sentilife.monitored;
 
+import com.sentilife.alerts.AlertRepository;
+import com.sentilife.alerts.FeedbackLabelRepository;
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.Consent;
 import com.sentilife.consent.ConsentRepository;
+import com.sentilife.devices.PairedDeviceRepository;
+import com.sentilife.telemetry.TelemetryWindowRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,11 +27,23 @@ public class MonitoredService {
 
     private final MonitoredPersonRepository repository;
     private final ConsentRepository consentRepository;
+    private final AlertRepository alertRepository;
+    private final FeedbackLabelRepository feedbackRepository;
+    private final TelemetryWindowRepository telemetryRepository;
+    private final PairedDeviceRepository pairedDeviceRepository;
 
     public MonitoredService(MonitoredPersonRepository repository,
-                            ConsentRepository consentRepository) {
-        this.repository        = repository;
-        this.consentRepository = consentRepository;
+                            ConsentRepository consentRepository,
+                            AlertRepository alertRepository,
+                            FeedbackLabelRepository feedbackRepository,
+                            TelemetryWindowRepository telemetryRepository,
+                            PairedDeviceRepository pairedDeviceRepository) {
+        this.repository            = repository;
+        this.consentRepository     = consentRepository;
+        this.alertRepository       = alertRepository;
+        this.feedbackRepository    = feedbackRepository;
+        this.telemetryRepository   = telemetryRepository;
+        this.pairedDeviceRepository = pairedDeviceRepository;
     }
 
     @Transactional
@@ -59,8 +75,20 @@ public class MonitoredService {
     @Transactional
     public void delete(UUID caregiverId, UUID personId) {
         MonitoredPerson person = findOwned(caregiverId, personId);
-        // GDPR suppression: delete consents before deleting the person
+
+        // GDPR full suppression — order matters due to FK constraints:
+        // 1. feedback_labels (references alerts)
+        alertRepository.findByMonitoredPersonId(personId)
+                .forEach(a -> feedbackRepository.deleteByAlertId(a.getId()));
+        // 2. alerts
+        alertRepository.deleteByMonitoredPersonId(personId);
+        // 3. telemetry windows
+        telemetryRepository.deleteByMonitoredPersonId(personId);
+        // 4. paired devices
+        pairedDeviceRepository.deleteByMonitoredPersonId(personId);
+        // 5. consents
         consentRepository.deleteByMonitoredPersonId(personId);
+        // 6. the person itself
         repository.delete(person);
     }
 
