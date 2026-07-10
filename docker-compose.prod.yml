@@ -1,19 +1,20 @@
-# Fall-Sentinel — QA en EC2 (mismas credenciales que dev local)
-# Uso en servidor: ~/fallsentinel/docker-compose.prod.yml
+# SentiLife — QA/Production on EC2
+# Ports (Security Group inbound):
+#   Java API  → host 8005 → container 8080
+#   DB        → host 5435 → container 5432 (debug only)
+#   Grafana   → host 3006 → container 3000
+#   Inference, RabbitMQ, Prometheus → internal only
 #
-# Mapeo de puertos (Security Group — inbound):
-#   API → host 8005 → container 8000
-#   DB  → host 5435 → container 5432  (debug externo; la API usa red interna db:5432)
-#
-# Otros proyectos en el mismo EC2 (34.235.130.33):
+# Other projects on same EC2 (34.235.130.33):
 #   Unicorn Valuation — frontend 3005, API 8004, Postgres 5434
 
-name: fallsentinel
+name: sentilife
 
 services:
+  # ── PostgreSQL ─────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
-    container_name: fallsentinel_db
+    container_name: sentilife-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fallsentinel}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fallsentinel123}
@@ -31,11 +32,55 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  api:
-    image: ${DOCKER_USERNAME}/fallsentinel-api:latest
-    container_name: fallsentinel_api
+  # ── RabbitMQ ───────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: sentilife-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+
+  # ── Backend Java ───────────────────────────────────────────────
+  backend-java:
+    image: ${DOCKER_USERNAME}/sentilife-java:latest
+    container_name: sentilife-backend-java
     ports:
-      - "${PORT:-8005}:8000"
+      - "${JAVA_HOST_PORT:-8005}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_USER: ${POSTGRES_USER:-fallsentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fallsentinel123}
+      POSTGRES_DB: ${POSTGRES_DB:-fallsentinel}
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      JWT_SECRET: ${JWT_SECRET}
+      INFERENCE_URL: http://api:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  # ── FastAPI Inference ──────────────────────────────────────────
+  api:
+    image: ${DOCKER_USERNAME}/sentilife-inference:latest
+    container_name: sentilife-inference
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fallsentinel}:${POSTGRES_PASSWORD:-fallsentinel123}@db:5432/${POSTGRES_DB:-fallsentinel}
       MODEL_PATH: ${MODEL_PATH:-ml/model.pkl}
@@ -51,5 +96,55 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  # ── Prometheus ─────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: sentilife-prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    depends_on:
+      backend-java:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Grafana ────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: sentilife-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_HOST_PORT:-3006}:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
