@@ -1,5 +1,6 @@
 package com.sentilife.config;
 
+import com.sentilife.config.DomainConstants;
 import com.sentilife.users.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,12 +45,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         // Si no hay header o no empieza por "Bearer ", dejamos pasar sin autenticar
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith(DomainConstants.BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String token = authHeader.substring(7);
+        final String token = authHeader.substring(DomainConstants.BEARER_PREFIX.length());
 
         if (!jwtService.isValid(token)) {
             filterChain.doFilter(request, response);
@@ -57,7 +58,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         // Solo los access tokens autentican requests normales
-        if (!"ACCESS".equals(jwtService.extractType(token))) {
+        if (!DomainConstants.TOKEN_ACCESS.equals(jwtService.extractType(token))) {
             filterChain.doFilter(request, response);
             return;
         }

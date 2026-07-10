@@ -1,5 +1,6 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.config.DomainConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -87,9 +88,11 @@ public class TelemetryService {
                                 w.getModelVersion() != null ? w.getModelVersion() : "unknown",
                                 w.getLatencyMs() != null ? w.getLatencyMs() : 0)
                             : null;
-                    return new TelemetryDtos.MonitoringStatus("ACTIVE", w.getWindowStart(), last);
+                    return new TelemetryDtos.MonitoringStatus(
+                            DomainConstants.MONITORING_ACTIVE, w.getWindowStart(), last);
                 })
-                .orElse(new TelemetryDtos.MonitoringStatus("INACTIVE", null, null));
+                .orElse(new TelemetryDtos.MonitoringStatus(
+                        DomainConstants.MONITORING_INACTIVE, null, null));
     }
 
     private Map<String, Object> buildSubjectFeatures(Map<String, Object> context) {

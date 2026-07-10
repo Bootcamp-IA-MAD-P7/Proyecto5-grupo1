@@ -33,4 +33,11 @@ public class DomainConstants {
     // Tipos de JWT
     public static final String TOKEN_ACCESS  = "ACCESS";
     public static final String TOKEN_REFRESH = "REFRESH";
+
+    // HTTP
+    public static final String BEARER_PREFIX = "Bearer ";
+
+    // Estados de monitorización
+    public static final String MONITORING_ACTIVE   = "ACTIVE";
+    public static final String MONITORING_INACTIVE = "INACTIVE";
 }

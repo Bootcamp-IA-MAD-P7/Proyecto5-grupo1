@@ -1,5 +1,6 @@
 package com.sentilife.config;
 
+import com.sentilife.config.DomainConstants;
 import com.sentilife.users.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -38,11 +39,11 @@ public class JwtService {
     }
 
     public String generateAccessToken(User user) {
-        return buildToken(user, accessTokenExpiration, "ACCESS");
+        return buildToken(user, accessTokenExpiration, DomainConstants.TOKEN_ACCESS);
     }
 
     public String generateRefreshToken(User user) {
-        return buildToken(user, refreshTokenExpiration, "REFRESH");
+        return buildToken(user, refreshTokenExpiration, DomainConstants.TOKEN_REFRESH);
     }
 
     private String buildToken(User user, long expirationSeconds, String type) {
