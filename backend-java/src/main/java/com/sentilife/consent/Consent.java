@@ -1,5 +1,6 @@
 package com.sentilife.consent;
 
+import com.sentilife.config.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,18 +9,10 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Consentimiento GDPR de una persona monitorizada.
- * Solo puede haber uno ACTIVE por persona a la vez (índice único en BD).
- */
 @Entity
 @Table(name = "consents")
 @Getter @Setter @NoArgsConstructor
-public class Consent {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class Consent extends BaseEntity {
 
     @Column(name = "monitored_person_id", nullable = false)
     private UUID monitoredPersonId;
@@ -28,7 +21,7 @@ public class Consent {
     private String policyVersion;
 
     @Column(nullable = false)
-    private String status;  // ACTIVE | REVOKED
+    private String status;
 
     @Column(name = "accepted_at", nullable = false, updatable = false)
     private Instant acceptedAt = Instant.now();
