@@ -1,4 +1,4 @@
-# Perfil para tests — usa H2 en memoria para no necesitar PostgreSQL
+# Test profile — uses H2 in-memory database, no PostgreSQL or RabbitMQ needed.
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -10,13 +10,17 @@ spring:
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
 
   flyway:
     enabled: false
 
-  rabbitmq:
-    host: localhost
-    port: 5672
+  # Disable RabbitMQ auto-configuration in tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
 sentilife:
   jwt:

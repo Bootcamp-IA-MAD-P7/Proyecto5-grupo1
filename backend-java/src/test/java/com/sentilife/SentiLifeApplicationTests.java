@@ -10,6 +10,6 @@ class SentiLifeApplicationTests {
 
     @Test
     void contextLoads() {
-        // Verifica que el contexto de Spring arranca sin errores
+        // Verifies the Spring context starts without errors
     }
 }

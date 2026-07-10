@@ -183,7 +183,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-43 | T2.INT MVP completo local | ALL | MUST | sáb 11 | SL-28…SL-39 | 🔲 |
 | SL-53 | CNN 1D/LSTM vs. ensemble (🔴, lanza sáb noche) | ML | MUST | sáb→lun | SL-41 | 🔲 |
 | SL-44 | CI mvn test | BE-A | MUST | dom 12 | SL-26 | 🔲 |
-| SL-46 | Tests Java (auth/roles/consent) (🟠) | BE-A | MUST | dom 12 | SL-43 | 🔲 |
+| SL-46 | Tests Java (auth/roles/consent) (🟠) | BE-A | MUST | dom 12 | SL-43 | ✅ |
 | SL-54 | Registry + hot-reload (🔴 base) | BE-B | MUST | dom 12 | SL-20 | 🔲 |
 | SL-36 | Export dataset etiquetado (🟡) | BE-B/FE | MUST | dom 12 | SL-34 | ✅ |
 | SL-42 | Cierre Optuna + informe v2 (🟡) | ML | MUST | dom 12 | SL-41 | 🔲 |
