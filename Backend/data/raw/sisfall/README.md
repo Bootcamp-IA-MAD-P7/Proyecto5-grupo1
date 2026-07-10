@@ -9,5 +9,8 @@ Fuente oficial (frecuentemente caída): http://sisfall.imed.li/
 - Hugging Face: https://huggingface.co/datasets/Algo-rythmic/Sisfall_Dataset
 - Google Drive: `gdown 1-E-TLd5_J-DDWZXkuYL-moMpoezlMn4Z` → descomprimir aquí
 
-Procesar a CSV con:
+Procesar a ventanas SL-14 + features con:
+`python ml/build_sisfall_window_features.py --root data/raw/sisfall --out data/processed/sisfall/sisfall_windows_features.csv.gz --manifest data/processed/sisfall/feature_manifest.json`
+
+Dataset legacy por ensayo completo:
 `python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall/sisfall_dataset.csv`

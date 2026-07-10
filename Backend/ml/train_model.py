@@ -1,6 +1,6 @@
 """
 Script de entrenamiento del modelo de detección de caídas, sobre el
-dataset generado por build_sisfall_dataset.py (una fila por ensayo,
+dataset generado por build_sisfall_window_features.py (una fila por ventana,
 con features estadísticas de la señal + metadata del sujeto).
 
 Diferencias clave respecto al pipeline con datos sintéticos:
@@ -13,14 +13,14 @@ Diferencias clave respecto al pipeline con datos sintéticos:
     menos interpretable físicamente. Nos apoyamos en class_weight.
   - Selección de umbral en validation, métricas finales en test (una sola
     vez), igual que antes.
-  - Flag --drop-shortcut-features: excluye acc1_magnitude_max y
-    gyro_magnitude_max del entrenamiento, para probar por ablation si el
+  - Flag --drop-shortcut-features: excluye las magnitudes maximas
+    del entrenamiento, para probar por ablation si el
     modelo depende de un atajo simple de magnitud en vez de un patrón
     robusto (ver diagnostico.py, sección de feature importance).
 
 Uso (desde la raíz de Backend/):
-    python ml/train_model.py --data data/processed/sisfall/sisfall_dataset.csv
-    python ml/train_model.py --data data/processed/sisfall/sisfall_dataset.csv --drop-shortcut-features
+    python ml/train_model.py --data data/processed/sisfall/sisfall_windows_features.csv.gz
+    python ml/train_model.py --data data/processed/sisfall/sisfall_windows_features.csv.gz --drop-shortcut-features
 Genera: ml/model.pkl (baseline) o ml/model_ablation.pkl (con el flag activado).
 """
 
@@ -52,13 +52,28 @@ GROUP_COL = "subject_id"
 # justo lo opuesto de lo que importa en un sistema real para esta población.
 CATEGORICAL_FEATURES = []
 # columnas que no son features (metadata / identificadores)
-NON_FEATURE_COLS = {TARGET, GROUP_COL, "activity_code", "trial", "age_group"}
+NON_FEATURE_COLS = {
+    TARGET,
+    GROUP_COL,
+    "activity_code",
+    "trial",
+    "age_group",
+    "source_file",
+    "window_id",
+    "window_index",
+    "window_start_ms",
+    "window_end_ms",
+    "source_start_sample",
+    "source_end_sample",
+    "sample_rate_hz",
+    "samples_per_signal",
+}
 
 # Features sospechosas de ser un "atajo" del modelo (ver diagnostico.py):
 # AUC individual muy alto (>0.9) y acaparan >50% de la importancia total
 # en XGBoost. Puede ser señal física real del impacto, o un artefacto de
 # que SisFall usa caídas actuadas con picos más marcados que caídas reales.
-SHORTCUT_FEATURES = ["acc1_magnitude_max", "gyro_magnitude_max"]
+SHORTCUT_FEATURES = ["acc1_magnitude_max", "gyro_magnitude_max", "acc_magnitude_max"]
 
 RANDOM_STATE = 42
 
@@ -132,10 +147,13 @@ def evaluate_on_test(name, model, X_test, y_test, threshold) -> tuple:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/processed/sisfall/sisfall_dataset.csv",
-                         help="CSV generado por build_sisfall_dataset.py")
+    parser.add_argument(
+        "--data",
+        default="data/processed/sisfall/sisfall_windows_features.csv.gz",
+        help="CSV generado por build_sisfall_window_features.py",
+    )
     parser.add_argument("--drop-shortcut-features", action="store_true",
-                         help="Excluye acc1_magnitude_max y gyro_magnitude_max "
+                         help="Excluye las features de magnitud maxima "
                               "para probar por ablation si el modelo depende "
                               "de un atajo. Guarda en model_ablation.pkl en "
                               "vez de model.pkl.")
