@@ -77,17 +77,13 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  # ── FastAPI Inference ──────────────────────────────────────────
+  # ── FastAPI Inference (ML only — no DB) ─────────────────────────
   api:
     image: ${DOCKER_USERNAME}/sentilife-inference:latest
     container_name: sentilife-inference
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-fallsentinel}:${POSTGRES_PASSWORD:-fallsentinel123}@db:5432/${POSTGRES_DB:-fallsentinel}
       MODEL_PATH: ${MODEL_PATH:-ml/model.pkl}
       MODEL_VERSION: ${MODEL_VERSION:-baseline-v1}
-    depends_on:
-      db:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
       interval: 10s
