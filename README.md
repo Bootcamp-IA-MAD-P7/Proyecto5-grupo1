@@ -378,6 +378,7 @@ Detalle DB: [db/README.md](db/README.md)
 | 3. Plan: arquitectura, ADR y CI/CD | [3_plan.md](.specify/specs/factoria/3_plan.md) |
 | 4. Tareas: backlog ejecutable | [4_task.md](.specify/specs/factoria/4_task.md) |
 | Roadmap y tablero de estado | [5_roadmap.md](.specify/specs/factoria/5_roadmap.md) |
+| Contrato SL-14 de ventana | [window_contract.md](contracts/window_contract.md) |
 | Constitución Factoría | [constitucion_factoria.md](.specify/memory/constitucion_factoria.md) |
 
 ---

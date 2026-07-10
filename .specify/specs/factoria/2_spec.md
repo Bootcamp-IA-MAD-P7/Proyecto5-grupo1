@@ -34,7 +34,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | ID | Requisito | Nivel |
 |---|---|---|
 | RF-10 | La app captura de forma continua acelerómetro (`accX/Y/Z` en m/s²) y giroscopio (`gyroX/Y/Z` en °/s) del móvil. Sensores adicionales (frecuencia cardíaca, temperatura ambiente, luz) se capturan si están disponibles, como datos de contexto para crecimiento futuro. | Esencial |
-| RF-11 | La app envía la telemetría en **ventanas deslizantes** (tamaño y solape definidos en `3_plan.md` conforme al preprocesado del modelo) al backend Java. | Esencial |
+| RF-11 | La app envía la telemetría en **ventanas deslizantes** según el contrato SL-14/T1.2 versionado en `contracts/window_contract.json` y documentado en `contracts/window_contract.md`: 2.5 s, 50 Hz, 50% de solape y 125 muestras por señal obligatoria. | Esencial |
 | RF-12 | El backend Java valida el consentimiento, persiste la ventana (InfluxDB) y solicita la clasificación al servicio de inferencia FastAPI. | Esencial |
 | RF-13 | El servicio de inferencia devuelve: `fallDetected` (bool), `confidence` (0.0–1.0), versión del modelo y timestamp. | Esencial |
 | RF-14 | Ante `fallDetected = true`, el backend publica un evento `fall.detected` en RabbitMQ y crea una **alerta** persistida en PostgreSQL. | Medio |
@@ -283,7 +283,7 @@ Convenciones generales:
 
 ### 6.3 Telemetría (`/api/v1/telemetry`) — rol MONITORED (dispositivo vinculado)
 
-**POST `/windows`** (RF-11/RF-12) — una ventana según ADR-05:
+**POST `/windows`** (RF-11/RF-12) — una ventana según ADR-05 y el contrato SL-14/T1.2 (`contracts/window_contract.json`):
 
 ```json
 // request
@@ -308,6 +308,8 @@ Convenciones generales:
 ```
 
 `context` es opcional y extensible: campos nuevos de sensores se añaden aquí sin romper el contrato.
+
+Reglas fijas SL-14/T1.2: `sampleRateHz = 50`; `windowEnd = windowStart + 2500 ms`; cada array obligatorio en `samples` contiene exactamente 125 valores finitos en unidades físicas (`acc*` en `m/s²`, `gyro*` en `°/s`). SisFall se remuestrea de 200 Hz a 50 Hz con interpolación lineal; producción conserva gravedad y deja cualquier normalización dentro del pipeline del modelo.
 
 **GET `/status/{monitoredPersonId}`** — rol CAREGIVER: `{ "monitoringStatus": "ACTIVE", "lastWindowAt": "...", "lastPrediction": { ... } }`.
 

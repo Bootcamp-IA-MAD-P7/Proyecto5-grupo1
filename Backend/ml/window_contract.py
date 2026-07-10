@@ -25,6 +25,19 @@ class WindowContract:
     overlap_ratio: float
     hop_ms: int
     samples_per_signal: int
+    source_rate_hz: int
+    resample_method: str
+    acceleration_unit: str
+    gyroscope_unit: str
+    missing_samples_policy: str
+    extra_samples_policy: str
+    normalization_policy: str
+    required_sample_count: int
+    required_sample_rate_hz: int
+    allowed_sample_rate_tolerance_hz: int
+    reject_nan_or_infinite: bool
+    reject_missing_required_signals: bool
+    context_required: bool
     required_signal_keys: tuple[str, ...]
     optional_context_keys: tuple[str, ...]
 
@@ -68,6 +81,17 @@ def _require_string(raw: dict, key: str, *, section: str | None = None) -> str:
     if not isinstance(value, str) or not value:
         raise ValueError(
             f"Invalid window contract: '{path}' must be a non-empty string"
+        )
+    return value
+
+
+def _require_bool(raw: dict, key: str, *, section: str) -> bool:
+    if key not in raw:
+        raise ValueError(f"Invalid window contract: missing '{section}.{key}'")
+    value = raw[key]
+    if not isinstance(value, bool):
+        raise ValueError(
+            f"Invalid window contract: '{section}.{key}' must be boolean"
         )
     return value
 
@@ -116,13 +140,16 @@ def load_window_contract() -> WindowContract:
     _require_string(raw, "schemaVersion")
     _require_string(raw, "source")
     window = _require_mapping(raw, "window")
+    preprocessing = _require_mapping(raw, "preprocessing")
     signals = _require_mapping(raw, "signals")
     api = _require_mapping(raw, "api")
+    validation = _require_mapping(raw, "validation")
     compatibility = _require_mapping(raw, "compatibility")
 
     _require_string(api, "telemetryEndpoint", section="api")
     _require_string(api, "inferenceEndpoint", section="api")
     _require_string(api, "timestampFormat", section="api")
+    _require_string(api, "windowEndRule", section="api")
     api_sample_keys = _require_string_list(
         api, "samplesObjectKeys", section="api"
     )
@@ -142,6 +169,48 @@ def load_window_contract() -> WindowContract:
     samples_per_signal = int(
         _require_number(window, "samplesPerSignal", section="window")
     )
+    source_rate_hz = int(
+        _require_number(preprocessing, "sourceRateHz", section="preprocessing")
+    )
+    resample_method = _require_string(
+        preprocessing, "resampleMethod", section="preprocessing"
+    )
+    acceleration_unit = _require_string(
+        preprocessing, "accelerationUnit", section="preprocessing"
+    )
+    gyroscope_unit = _require_string(
+        preprocessing, "gyroscopeUnit", section="preprocessing"
+    )
+    _require_string(preprocessing, "gravityHandling", section="preprocessing")
+    missing_samples_policy = _require_string(
+        preprocessing, "missingSamples", section="preprocessing"
+    )
+    extra_samples_policy = _require_string(
+        preprocessing, "extraSamples", section="preprocessing"
+    )
+    normalization_policy = _require_string(
+        preprocessing, "normalization", section="preprocessing"
+    )
+    required_sample_count = int(
+        _require_number(validation, "requiredSampleCount", section="validation")
+    )
+    required_sample_rate_hz = int(
+        _require_number(validation, "requiredSampleRateHz", section="validation")
+    )
+    allowed_sample_rate_tolerance_hz = int(
+        _require_number(
+            validation, "allowedSampleRateToleranceHz", section="validation"
+        )
+    )
+    reject_nan_or_infinite = _require_bool(
+        validation, "rejectNaNOrInfinite", section="validation"
+    )
+    reject_missing_required_signals = _require_bool(
+        validation, "rejectMissingRequiredSignals", section="validation"
+    )
+    context_required = _require_bool(
+        validation, "contextRequired", section="validation"
+    )
 
     if duration_ms <= 0:
         raise ValueError("Invalid window contract: 'window.durationMs' must be > 0")
@@ -156,6 +225,25 @@ def load_window_contract() -> WindowContract:
     if samples_per_signal <= 0:
         raise ValueError(
             "Invalid window contract: 'window.samplesPerSignal' must be > 0"
+        )
+    if source_rate_hz < sample_rate_hz:
+        raise ValueError(
+            "Invalid window contract: 'preprocessing.sourceRateHz' must be >= "
+            "'window.sampleRateHz'"
+        )
+    if required_sample_count != samples_per_signal:
+        raise ValueError(
+            "Invalid window contract: 'validation.requiredSampleCount' must "
+            "match 'window.samplesPerSignal'"
+        )
+    if required_sample_rate_hz != sample_rate_hz:
+        raise ValueError(
+            "Invalid window contract: 'validation.requiredSampleRateHz' must "
+            "match 'window.sampleRateHz'"
+        )
+    if allowed_sample_rate_tolerance_hz != 0:
+        raise ValueError(
+            "Invalid window contract: sample-rate tolerance must be 0 for v1"
         )
 
     expected_samples = duration_ms * sample_rate_hz / 1000
@@ -190,6 +278,19 @@ def load_window_contract() -> WindowContract:
         overlap_ratio=overlap_ratio,
         hop_ms=hop_ms,
         samples_per_signal=samples_per_signal,
+        source_rate_hz=source_rate_hz,
+        resample_method=resample_method,
+        acceleration_unit=acceleration_unit,
+        gyroscope_unit=gyroscope_unit,
+        missing_samples_policy=missing_samples_policy,
+        extra_samples_policy=extra_samples_policy,
+        normalization_policy=normalization_policy,
+        required_sample_count=required_sample_count,
+        required_sample_rate_hz=required_sample_rate_hz,
+        allowed_sample_rate_tolerance_hz=allowed_sample_rate_tolerance_hz,
+        reject_nan_or_infinite=reject_nan_or_infinite,
+        reject_missing_required_signals=reject_missing_required_signals,
+        context_required=context_required,
         required_signal_keys=required_signal_keys,
         optional_context_keys=optional_context_keys,
     )
