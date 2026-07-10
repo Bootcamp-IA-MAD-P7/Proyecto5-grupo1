@@ -78,7 +78,7 @@
 
 - [x] **T2.3** `BE-A` — Auth completa: register, login, refresh, JWT con roles, BCrypt, contrato spec §6.1. Tests. *(RF-01, RF-02, ADR-04)*
 - [x] **T2.4** `BE-A` — CRUD personas monitorizadas según spec §6.2 (formulario del cuidador). *(RF-03)*
-- [ ] **T2.5** `BE-A` — Consentimiento: aceptar/revocar con versión+idioma; filtro que devuelve 403 en telemetría sin consentimiento activo. *(RF-05…RF-07)* (T2.4)
+- [x] **T2.5** `BE-A` — Consentimiento: aceptar/revocar con versión+idioma; filtro que devuelve 403 en telemetría sin consentimiento activo. *(RF-05…RF-07)* (T2.4)
 - [ ] **T2.6** `BE-A` — Migrar OTA (`/app/*`) de FastAPI a Java (spec §6.7). *(ADR-06, RF-23)*
 
 ### Stream BE-B (eventos, alertas, push)

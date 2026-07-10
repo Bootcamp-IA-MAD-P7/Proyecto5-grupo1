@@ -1,6 +1,8 @@
 package com.sentilife.telemetry;
 
 import com.sentilife.config.DomainConstants;
+import com.sentilife.config.DomainExceptions;
+import com.sentilife.consent.ConsentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,17 +31,26 @@ public class TelemetryService {
 
     private final TelemetryWindowRepository repository;
     private final InferenceClient inferenceClient;
+    private final ConsentRepository consentRepository;
 
     public TelemetryService(TelemetryWindowRepository repository,
-                            InferenceClient inferenceClient) {
-        this.repository      = repository;
-        this.inferenceClient = inferenceClient;
+                            InferenceClient inferenceClient,
+                            ConsentRepository consentRepository) {
+        this.repository        = repository;
+        this.inferenceClient   = inferenceClient;
+        this.consentRepository = consentRepository;
     }
 
     @Transactional
     public TelemetryDtos.WindowResponse ingest(TelemetryDtos.WindowRequest request) {
         log.debug("Ingesting window for person={} device={}",
                 request.monitoredPersonId(), request.deviceId());
+
+        // Verify active consent before accepting telemetry — spec §6.3, RF-06
+        if (!consentRepository.existsByMonitoredPersonIdAndStatus(
+                request.monitoredPersonId(), DomainConstants.CONSENT_ACTIVE)) {
+            throw DomainExceptions.ForbiddenException.of("No active consent for this person");
+        }
 
         // 1. Persist the window
         TelemetryWindow window = new TelemetryWindow();
