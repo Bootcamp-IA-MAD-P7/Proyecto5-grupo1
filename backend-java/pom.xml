@@ -101,6 +101,13 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
+        <!-- ── Firebase Admin SDK (push notifications) ─────────── -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.3.0</version>
+        </dependency>
+
         <!-- ── Lombok ────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.projectlombok</groupId>

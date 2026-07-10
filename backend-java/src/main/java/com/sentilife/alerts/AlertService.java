@@ -3,6 +3,7 @@ package com.sentilife.alerts;
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
 import com.sentilife.monitored.MonitoredPersonRepository;
+import com.sentilife.notifications.AlertEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,13 +26,16 @@ public class AlertService {
     private final AlertRepository alertRepository;
     private final FeedbackLabelRepository feedbackRepository;
     private final MonitoredPersonRepository monitoredPersonRepository;
+    private final AlertEventPublisher alertEventPublisher;
 
     public AlertService(AlertRepository alertRepository,
                         FeedbackLabelRepository feedbackRepository,
-                        MonitoredPersonRepository monitoredPersonRepository) {
+                        MonitoredPersonRepository monitoredPersonRepository,
+                        AlertEventPublisher alertEventPublisher) {
         this.alertRepository           = alertRepository;
         this.feedbackRepository        = feedbackRepository;
         this.monitoredPersonRepository = monitoredPersonRepository;
+        this.alertEventPublisher       = alertEventPublisher;
     }
 
     /**
@@ -47,7 +51,13 @@ public class AlertService {
         alert.setModelVersion(modelVersion);
         alert.setStatus(DomainConstants.ALERT_PENDING);
         alert.setTelemetryWindowId(windowId);
-        return alertRepository.save(alert);
+        alert = alertRepository.save(alert);
+
+        // Publish event for async push notification (ADR-07)
+        alertEventPublisher.publishAlertCreated(
+                alert.getId(), monitoredPersonId, confidence, modelVersion);
+
+        return alert;
     }
 
     /**

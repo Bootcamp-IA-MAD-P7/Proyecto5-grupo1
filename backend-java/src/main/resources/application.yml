@@ -60,3 +60,7 @@ sentilife:
   # ── FastAPI inferencia (interna) ─────────────────────────────
   inference:
     url: ${INFERENCE_URL:http://localhost:8000}
+
+  # ── Firebase (push notifications) ──────────────────────────
+  firebase:
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT:}
