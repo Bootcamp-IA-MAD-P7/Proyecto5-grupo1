@@ -8,6 +8,16 @@
     "hopMs": 1250,
     "samplesPerSignal": 125
   },
+  "preprocessing": {
+    "sourceRateHz": 200,
+    "resampleMethod": "linear_interpolation_to_50hz",
+    "accelerationUnit": "m/s^2",
+    "gyroscopeUnit": "deg/s",
+    "gravityHandling": "preserve_gravity_component",
+    "missingSamples": "reject_window_if_any_required_signal_has_less_than_125_samples",
+    "extraSamples": "trim_or_resample_to_exactly_125_samples_per_required_signal",
+    "normalization": "model_pipeline_only; payloads stay in physical units"
+  },
   "signals": {
     "required": [
       {
@@ -54,6 +64,7 @@
     "telemetryEndpoint": "/api/v1/telemetry/windows",
     "inferenceEndpoint": "/predict",
     "timestampFormat": "ISO-8601 UTC",
+    "windowEndRule": "windowEnd must equal windowStart + 2500ms",
     "samplesObjectKeys": [
       "accX",
       "accY",
@@ -62,6 +73,14 @@
       "gyroY",
       "gyroZ"
     ]
+  },
+  "validation": {
+    "requiredSampleCount": 125,
+    "requiredSampleRateHz": 50,
+    "allowedSampleRateToleranceHz": 0,
+    "rejectNaNOrInfinite": true,
+    "rejectMissingRequiredSignals": true,
+    "contextRequired": false
   },
   "compatibility": {
     "training": "ML feature generation must use the same duration, sample rate, overlap and signal keys.",
