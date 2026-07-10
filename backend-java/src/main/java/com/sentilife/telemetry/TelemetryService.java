@@ -1,5 +1,6 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.alerts.AlertService;
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.ConsentRepository;
@@ -32,13 +33,16 @@ public class TelemetryService {
     private final TelemetryWindowRepository repository;
     private final InferenceClient inferenceClient;
     private final ConsentRepository consentRepository;
+    private final AlertService alertService;
 
     public TelemetryService(TelemetryWindowRepository repository,
                             InferenceClient inferenceClient,
-                            ConsentRepository consentRepository) {
+                            ConsentRepository consentRepository,
+                            AlertService alertService) {
         this.repository        = repository;
         this.inferenceClient   = inferenceClient;
         this.consentRepository = consentRepository;
+        this.alertService      = alertService;
     }
 
     @Transactional
@@ -82,7 +86,12 @@ public class TelemetryService {
         if (prediction.fallDetected()) {
             log.warn("FALL DETECTED — person={} confidence={} window={}",
                     request.monitoredPersonId(), prediction.confidence(), window.getId());
-            // TODO SL-34: publish alert when the alerts module is implemented
+            alertService.createAlert(
+                    request.monitoredPersonId(),
+                    prediction.confidence(),
+                    prediction.modelVersion(),
+                    window.getId()
+            );
         }
 
         return new TelemetryDtos.WindowResponse(window.getId(), prediction);

@@ -84,7 +84,7 @@
 ### Stream BE-B (eventos, alertas, push)
 
 - [ ] **T2.7** `BE-B` — RabbitMQ: exchanges/colas de spec §5.3; worker de inferencia; decidir camino crítico síncrono vs. cola con la medición de T1.8. *(ADR-02, RF-14)*
-- [ ] **T2.8** `BE-B` — Alertas: persistencia, `GET /alerts`, `PATCH /alerts/{id}` → `feedback_labels` (spec §6.5). *(RF-14, RF-16, RF-17)*
+- [x] **T2.8** `BE-B` — Alertas: persistencia, `GET /alerts`, `PATCH /alerts/{id}` → `feedback_labels` (spec §6.5). *(RF-14, RF-16, RF-17)*
 - [ ] **T2.9** `BE-B` — **Push FCM**: `POST /devices/push-token`, servicio notificador (Firebase Admin SDK) consumiendo `alert.created`, payload spec §6.4, eventos de estado (monitorización on/off, consentimiento revocado). *(RF-27…RF-30, ADR-07)* (T2.8)
 - [ ] **T2.10** `BE-B` — Admin: `GET /admin/history`, `GET /admin/export` (dataset etiquetado → `data/feedback/`), `GET/PATCH /admin/users`. *(RF-18, RF-19, RF-04, ML-09, ML-10)*
 
