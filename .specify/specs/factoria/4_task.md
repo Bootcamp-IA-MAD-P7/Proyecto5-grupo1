@@ -110,7 +110,7 @@
 ## Fase 3 — Nivel Avanzado (producción) 🟠
 
 - [ ] **T3.1** `BE-B` — `docker-compose.prod.yml` con el stack completo y puertos de `3_plan.md` §5. *(ML-11)*
-- [ ] **T3.2** `BE-A` — CI: `mvn test` en `backend-ci.yml`, imágenes Java+FastAPI a Docker Hub, deploy EC2, nuevos secrets (incl. `FIREBASE_SERVICE_ACCOUNT`). *(RNF-07)*
+- [x] **T3.2** `BE-A` — CI: `mvn test` en `backend-ci.yml`, imágenes Java+FastAPI a Docker Hub, deploy EC2, nuevos secrets (incl. `FIREBASE_SERVICE_ACCOUNT`). *(RNF-07)*
 - [ ] **T3.3** `BE-B` — Despliegue QA en EC2, Security Group (8005 público, resto interno). *(ML-13)*
 - [x] **T3.4** `BE-A`+`BE-B` — Suite de tests completa: Java (auth, consentimiento, permisos por rol, alertas, contrato de errores) y Python (preprocesado, métricas, contrato `/predict`). *(ML-14)*
 - [ ] **T3.5** `BE-B` — Dashboard Grafana definitivo: latencia extremo a extremo, latencia `/predict`, colas, errores, entregas push. *(RF-25, RNF-01/02)*
