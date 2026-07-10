@@ -1,5 +1,7 @@
 package com.sentilife.devices;
 
+import com.sentilife.config.BaseEntity;
+import com.sentilife.config.DomainConstants;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,11 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "push_tokens")
 @Getter @Setter @NoArgsConstructor
-public class PushToken {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class PushToken extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -27,10 +25,10 @@ public class PushToken {
     private String fcmToken;
 
     @Column(nullable = false)
-    private String platform;  // ANDROID | IOS
+    private String platform;
 
     @Column(nullable = false)
-    private String locale = "es";
+    private String locale = DomainConstants.DEFAULT_LOCALE;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();

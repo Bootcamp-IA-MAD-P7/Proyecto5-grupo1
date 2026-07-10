@@ -1,5 +1,6 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.config.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,11 +20,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "telemetry_windows")
 @Getter @Setter @NoArgsConstructor
-public class TelemetryWindow {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class TelemetryWindow extends BaseEntity {
 
     @Column(name = "monitored_person_id", nullable = false)
     private UUID monitoredPersonId;
@@ -40,7 +37,6 @@ public class TelemetryWindow {
     @Column(name = "sample_rate_hz", nullable = false)
     private Integer sampleRateHz;
 
-    // Señales serializadas como JSONB
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "samples_json", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> samplesJson;
@@ -49,7 +45,6 @@ public class TelemetryWindow {
     @Column(name = "context_json", columnDefinition = "jsonb")
     private Map<String, Object> contextJson;
 
-    // Resultado de inferencia (se rellena tras llamar a FastAPI)
     @Column(name = "fall_detected")
     private Boolean fallDetected;
 
@@ -61,7 +56,4 @@ public class TelemetryWindow {
 
     @Column(name = "latency_ms")
     private Integer latencyMs;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt = Instant.now();
 }
