@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /**
- * Controlador de vinculación de dispositivos — spec §6.4.
+ * Device pairing controller — spec §6.4.
  *
- * POST /api/v1/devices/pair        — público (usa pairingCode)
- * POST /api/v1/devices/push-token  — autenticado (cuidador registra su token FCM)
+ * POST /api/v1/devices/pair        — public (uses pairingCode)
+ * POST /api/v1/devices/push-token  — authenticated (caregiver registers FCM token)
  */
 @RestController
 @RequestMapping("/api/v1/devices")
@@ -23,26 +23,24 @@ public class DeviceController {
     }
 
     /**
-     * Vincula el dispositivo del monitoreado usando el pairingCode.
-     * Público — no requiere JWT.
+     * Pairs the monitored person's device using the pairingCode.
+     * Public — no JWT required.
      */
     @PostMapping("/pair")
     public ResponseEntity<DeviceDtos.PairResponse> pair(
             @Valid @RequestBody DeviceDtos.PairRequest request) {
-
         return ResponseEntity.ok(service.pair(request));
     }
 
     /**
-     * Registra o actualiza el token FCM del cuidador.
-     * Autenticado — requiere JWT (Fase 2).
-     * Por ahora acepta userId como path variable hasta tener JWT completo.
+     * Registers or updates the caregiver's FCM token.
+     * Authenticated — requires JWT (Phase 2).
+     * Temporarily accepts userId as a request header until JWT is complete.
      */
     @PostMapping("/push-token")
     public ResponseEntity<Void> registerPushToken(
             @RequestHeader("X-User-Id") UUID userId,
             @Valid @RequestBody DeviceDtos.PushTokenRequest request) {
-
         service.registerPushToken(userId, request);
         return ResponseEntity.noContent().build();
     }

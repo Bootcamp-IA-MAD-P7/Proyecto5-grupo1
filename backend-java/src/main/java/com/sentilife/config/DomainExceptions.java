@@ -4,18 +4,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Excepciones del dominio SentiLife.
+ * Domain exceptions for SentiLife.
  *
- * La clase base SentiLifeException centraliza el patrón constructor + factory.
- * Cada subclase solo declara su HttpStatus — cero código duplicado.
+ * The base class SentiLifeException centralizes the constructor + factory pattern.
+ * Each subclass only declares its HttpStatus — zero duplicated code.
  *
- * Uso: throw NotFoundException.of("Persona no encontrada");
+ * Usage: throw NotFoundException.of("Person not found");
  */
 public class DomainExceptions {
 
     private DomainExceptions() {}
 
-    /** Clase base — centraliza el patrón factory `of()` */
+    /** Base class — centralizes the factory pattern */
     public abstract static class SentiLifeException extends ResponseStatusException {
         protected SentiLifeException(HttpStatus status, String message) {
             super(status, message);

@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Cliente HTTP hacia el servicio de inferencia FastAPI.
- * Solo el backend Java llama a este servicio — nunca el exterior.
+ * HTTP client for the FastAPI inference service.
+ * Only the Java backend calls this service — never exposed externally.
  *
- * Contrato de spec §6.8:
+ * Contract spec §6.8:
  *   POST /predict → { fallDetected, confidence, modelVersion, latencyMs }
  */
 @Component
@@ -31,8 +31,8 @@ public class InferenceClient {
     }
 
     /**
-     * Llama a FastAPI /predict con los datos de la ventana.
-     * Si falla, devuelve una predicción de fallback (no bloquea la ingesta).
+     * Calls FastAPI /predict with the window data.
+     * On failure, returns a fallback prediction so ingestion is not blocked.
      */
     public TelemetryDtos.PredictionResult predict(
             UUID windowId,
@@ -43,11 +43,11 @@ public class InferenceClient {
 
         try {
             var request = Map.of(
-                "windowId",          windowId.toString(),
-                "monitoredId",       monitoredPersonId.toString(),
-                "sampleRateHz",      sampleRateHz,
-                "samples",           samples,
-                "subjectFeatures",   subjectFeatures != null ? subjectFeatures : Map.of()
+                "windowId",        windowId.toString(),
+                "monitoredId",     monitoredPersonId.toString(),
+                "sampleRateHz",    sampleRateHz,
+                "samples",         samples,
+                "subjectFeatures", subjectFeatures != null ? subjectFeatures : Map.of()
             );
 
             long start = System.currentTimeMillis();

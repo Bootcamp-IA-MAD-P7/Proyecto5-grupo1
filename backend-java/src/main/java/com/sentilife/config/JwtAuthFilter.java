@@ -1,6 +1,5 @@
 package com.sentilife.config;
 
-import com.sentilife.config.DomainConstants;
 import com.sentilife.users.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,14 +15,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Filtro JWT — se ejecuta una vez por request.
+ * JWT filter — runs once per request.
  *
- * Flujo:
- *   1. Lee el header Authorization: Bearer <token>
- *   2. Valida el token con JwtService
- *   3. Carga el usuario de la BD
- *   4. Pone la autenticación en el SecurityContext
- *      → Spring Security sabe quién es el usuario en el resto del request
+ * Flow:
+ *   1. Read Authorization: Bearer <token> header
+ *   2. Validate the token with JwtService
+ *   3. Load the user from the database
+ *   4. Set the authentication in the SecurityContext
+ *      → Spring Security knows who the user is for the rest of the request
  */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -44,7 +43,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
-        // Si no hay header o no empieza por "Bearer ", dejamos pasar sin autenticar
+        // No header or does not start with "Bearer " — pass through unauthenticated
         if (authHeader == null || !authHeader.startsWith(DomainConstants.BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
@@ -57,7 +56,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Solo los access tokens autentican requests normales
+        // Only access tokens authenticate regular requests
         if (!DomainConstants.TOKEN_ACCESS.equals(jwtService.extractType(token))) {
             filterChain.doFilter(request, response);
             return;
@@ -65,7 +64,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         final String email = jwtService.extractEmail(token);
 
-        // Si ya hay autenticación en el contexto, no la sobreescribimos
+        // Do not overwrite an existing authentication in the context
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             userRepository.findByEmail(email).ifPresent(user -> {
                 var authToken = new UsernamePasswordAuthenticationToken(

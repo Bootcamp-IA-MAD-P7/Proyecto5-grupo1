@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import java.util.UUID;
 
 /**
- * DTOs de autenticación — contratos exactos de spec §6.1.
+ * Authentication DTOs — exact contracts from spec §6.1.
  */
 public class AuthDtos {
 
@@ -15,9 +15,9 @@ public class AuthDtos {
 
     public record RegisterRequest(
         @Email @NotBlank String email,
-        @NotBlank String password,  // mín 8 chars, validación en servicio
+        @NotBlank String password,  // min 8 chars, validated in service
         @NotBlank String fullName,
-        @Pattern(regexp = "MONITORED|CAREGIVER") String role,  // IT_ADMIN no se registra públicamente
+        @Pattern(regexp = "MONITORED|CAREGIVER") String role,  // IT_ADMIN is not publicly registered
         String locale
     ) {}
 
@@ -34,7 +34,7 @@ public class AuthDtos {
         @NotBlank String refreshToken
     ) {}
 
-    // ── Respuestas comunes ───────────────────────────────────────────────────
+    // ── Shared responses ─────────────────────────────────────────────────────
 
     public record UserInfo(
         UUID id,
@@ -47,7 +47,7 @@ public class AuthDtos {
     public record AuthResponse(
         String accessToken,
         String refreshToken,
-        int expiresIn,      // segundos hasta expiración del access token
+        int expiresIn,      // seconds until access token expiration
         UserInfo user
     ) {}
 }

@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Ventana de sensores enviada por el móvil.
- * Fallback ADR-03: se persiste en PostgreSQL hasta integrar InfluxDB.
+ * Sensor window sent by the mobile device.
+ * ADR-03 fallback: persisted in PostgreSQL until InfluxDB is integrated.
  */
 @Entity
 @Table(name = "telemetry_windows")

@@ -12,11 +12,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Configuración de seguridad.
+ * Security configuration.
  *
- * - Stateless: no hay sesión HTTP, cada request se autentica con JWT.
- * - JwtAuthFilter se ejecuta antes del filtro de autenticación de Spring.
- * - Endpoints públicos: actuator/health, auth/*, devices/pair, telemetría (temp).
+ * - Stateless: no HTTP session, every request is authenticated with JWT.
+ * - JwtAuthFilter runs before Spring's authentication filter.
+ * - Public endpoints: actuator/health, auth/*, devices/pair, telemetry (temporary).
  */
 @Configuration
 @EnableWebSecurity
@@ -35,26 +35,26 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Actuator — público
+                // Actuator — public
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
-                // Auth — público
+                // Auth — public
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                // Vinculación de dispositivo — público (usa pairingCode)
+                // Device pairing — public (uses pairingCode)
                 .requestMatchers("/api/v1/devices/pair").permitAll()
-                // Telemetría — temporal hasta completar JWT en dispositivos (Fase 2)
+                // Telemetry — open until device JWT is implemented (Phase 2)
                 .requestMatchers("/api/v1/telemetry/**").permitAll()
-                // Todo lo demás requiere JWT válido
+                // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )
-            // Añadir el filtro JWT antes del filtro de autenticación de Spring
+            // Add JWT filter before Spring's authentication filter
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * BCrypt con coste 12 — estándar para contraseñas en producción.
+     * BCrypt with cost 12 — production standard for password hashing.
      */
     @Bean
     public PasswordEncoder passwordEncoder() {

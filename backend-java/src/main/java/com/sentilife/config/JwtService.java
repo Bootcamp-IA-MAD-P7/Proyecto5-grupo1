@@ -1,6 +1,5 @@
 package com.sentilife.config;
 
-import com.sentilife.config.DomainConstants;
 import com.sentilife.users.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -14,26 +13,26 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * Genera y valida tokens JWT.
+ * Generates and validates JWT tokens.
  *
- * Access token  — corto (15 min) — para autenticar cada request.
- * Refresh token — largo (7 días) — para obtener un nuevo access token sin relogin.
+ * Access token  — short-lived (15 min) — authenticates each request.
+ * Refresh token — long-lived (7 days)  — used to get a new access token without re-login.
  *
- * Ambos llevan como subject el email del usuario y un claim "role".
- * El tipo ("ACCESS" | "REFRESH") va en el claim "type" para distinguirlos.
+ * Both tokens carry the user's email as subject and a "role" claim.
+ * The "type" claim ("ACCESS" | "REFRESH") distinguishes them.
  */
 @Service
 public class JwtService {
 
     private final SecretKey signingKey;
-    private final long accessTokenExpiration;   // segundos
-    private final long refreshTokenExpiration;  // segundos
+    private final long accessTokenExpiration;   // seconds
+    private final long refreshTokenExpiration;  // seconds
 
     public JwtService(
             @Value("${sentilife.jwt.secret}") String secret,
             @Value("${sentilife.jwt.access-token-expiration}") long accessExpiration,
             @Value("${sentilife.jwt.refresh-token-expiration}") long refreshExpiration) {
-        this.signingKey           = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.signingKey             = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration  = accessExpiration;
         this.refreshTokenExpiration = refreshExpiration;
     }
@@ -61,7 +60,7 @@ public class JwtService {
                 .compact();
     }
 
-    /** Extrae el email (subject) del token. Lanza excepción si el token es inválido. */
+    /** Extracts the email (subject) from the token. Throws if the token is invalid. */
     public String extractEmail(String token) {
         return parseClaims(token).getSubject();
     }

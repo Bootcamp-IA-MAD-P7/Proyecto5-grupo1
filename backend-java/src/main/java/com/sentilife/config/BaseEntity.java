@@ -9,10 +9,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Clase base para todas las entidades.
- * Aporta id (UUID) y createdAt (auditoría automática).
+ * Base class for all JPA entities.
+ * Provides id (UUID) and createdAt (automatic auditing).
  *
- * Todas las entidades extienden esta clase — evita duplicar estos campos.
+ * All entities extend this class to avoid field duplication.
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

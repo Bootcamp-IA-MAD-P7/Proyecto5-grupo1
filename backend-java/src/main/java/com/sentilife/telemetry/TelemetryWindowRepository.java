@@ -8,13 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data genera la implementación automáticamente.
- * Solo declaramos las consultas que necesitamos.
+ * Spring Data generates the implementation automatically.
+ * Only the queries we need are declared here.
  */
 public interface TelemetryWindowRepository extends JpaRepository<TelemetryWindow, UUID> {
 
     /**
-     * Última ventana de una persona — usada por GET /telemetry/status/{id}
+     * Last window for a person — used by GET /telemetry/status/{id}
      */
     @Query("SELECT t FROM TelemetryWindow t WHERE t.monitoredPersonId = :personId " +
            "ORDER BY t.windowStart DESC LIMIT 1")

@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /**
- * Controlador HTTP de telemetría — spec §6.3.
+ * Telemetry HTTP controller — spec §6.3.
  *
- * POST /api/v1/telemetry/windows  — ingesta de ventana + predicción
- * GET  /api/v1/telemetry/status/{monitoredPersonId} — estado del monitoreado
+ * POST /api/v1/telemetry/windows              — ingest window + prediction
+ * GET  /api/v1/telemetry/status/{personId}    — monitored person status
  */
 @RestController
 @RequestMapping("/api/v1/telemetry")
@@ -23,26 +23,23 @@ public class TelemetryController {
     }
 
     /**
-     * Recibe una ventana de sensores, la persiste y devuelve la predicción.
-     * 200 OK con { windowId, prediction }
-     * 403 si no hay consentimiento activo (implementado en Fase 2)
+     * Receives a sensor window, persists it and returns the prediction.
+     * 200 OK with { windowId, prediction }
+     * 403 if no active consent (implemented in Phase 2)
      */
     @PostMapping("/windows")
     public ResponseEntity<TelemetryDtos.WindowResponse> ingestWindow(
             @Valid @RequestBody TelemetryDtos.WindowRequest request) {
-
-        TelemetryDtos.WindowResponse response = service.ingest(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.ingest(request));
     }
 
     /**
-     * Estado de monitorización de una persona — para el perfil CAREGIVER.
-     * Devuelve la última ventana y predicción.
+     * Monitoring status of a person — used by the CAREGIVER profile.
+     * Returns the last window and prediction.
      */
     @GetMapping("/status/{monitoredPersonId}")
     public ResponseEntity<TelemetryDtos.MonitoringStatus> getStatus(
             @PathVariable UUID monitoredPersonId) {
-
         return ResponseEntity.ok(service.getStatus(monitoredPersonId));
     }
 }

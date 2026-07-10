@@ -11,17 +11,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Lógica de negocio para la ingesta de telemetría.
+ * Business logic for telemetry ingestion.
  *
- * Flujo (spec §6.3, ADR-02 camino crítico síncrono):
- *   1. Valida que la ventana tiene datos mínimos
- *   2. Persiste la ventana en PostgreSQL (fallback ADR-03)
- *   3. Llama síncronamente a FastAPI para obtener la predicción
- *   4. Actualiza la ventana con el resultado
- *   5. Devuelve la predicción al controlador
+ * Flow (spec §6.3, ADR-02 synchronous critical path):
+ *   1. Persist the window in PostgreSQL (ADR-03 fallback)
+ *   2. Call FastAPI synchronously to get the prediction
+ *   3. Update the window with the result
+ *   4. Return the prediction to the controller
  *
- * Nota: la validación de consentimiento se añade en Fase 2
- * cuando esté implementado el módulo de consent.
+ * Note: consent validation will be added in Phase 2
+ * once the consent module is implemented.
  */
 @Service
 public class TelemetryService {
@@ -33,7 +32,7 @@ public class TelemetryService {
 
     public TelemetryService(TelemetryWindowRepository repository,
                             InferenceClient inferenceClient) {
-        this.repository = repository;
+        this.repository      = repository;
         this.inferenceClient = inferenceClient;
     }
 
@@ -42,7 +41,7 @@ public class TelemetryService {
         log.debug("Ingesting window for person={} device={}",
                 request.monitoredPersonId(), request.deviceId());
 
-        // 1. Persistir la ventana
+        // 1. Persist the window
         TelemetryWindow window = new TelemetryWindow();
         window.setMonitoredPersonId(request.monitoredPersonId());
         window.setDeviceId(request.deviceId());
@@ -53,7 +52,7 @@ public class TelemetryService {
         window.setContextJson(request.context());
         window = repository.save(window);
 
-        // 2. Llamar a FastAPI (síncrono — camino crítico ADR-02)
+        // 2. Call FastAPI synchronously — critical path ADR-02
         TelemetryDtos.PredictionResult prediction = inferenceClient.predict(
                 window.getId(),
                 request.monitoredPersonId(),
@@ -62,7 +61,7 @@ public class TelemetryService {
                 buildSubjectFeatures(request.context())
         );
 
-        // 3. Actualizar la ventana con el resultado
+        // 3. Update the window with the prediction result
         window.setFallDetected(prediction.fallDetected());
         window.setConfidence(BigDecimal.valueOf(prediction.confidence()));
         window.setModelVersion(prediction.modelVersion());
@@ -72,7 +71,7 @@ public class TelemetryService {
         if (prediction.fallDetected()) {
             log.warn("FALL DETECTED — person={} confidence={} window={}",
                     request.monitoredPersonId(), prediction.confidence(), window.getId());
-            // TODO SL-34: publicar alerta cuando esté implementado el módulo de alertas
+            // TODO SL-34: publish alert when the alerts module is implemented
         }
 
         return new TelemetryDtos.WindowResponse(window.getId(), prediction);
@@ -96,8 +95,7 @@ public class TelemetryService {
     }
 
     private Map<String, Object> buildSubjectFeatures(Map<String, Object> context) {
-        // En Fase 2, aquí se enriquece con los datos de la persona monitorizada
-        // (edad, sexo, peso, altura) consultando monitored_persons
+        // Phase 2: enrich with monitored person's data (age, sex, weight, height)
         return context != null ? context : Map.of();
     }
 }

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 /**
- * DTOs de vinculación de dispositivo y push tokens — spec §6.4.
+ * Device pairing and push token DTOs — spec §6.4.
  */
 public class DeviceDtos {
 
@@ -20,7 +20,7 @@ public class DeviceDtos {
 
     public record PairResponse(
         UUID monitoredPersonId,
-        String deviceToken           // JWT de dispositivo para POST /telemetry/windows
+        String deviceToken           // JWT device token for POST /telemetry/windows
     ) {}
 
     // ── POST /devices/push-token ──────────────────────────────────────────────

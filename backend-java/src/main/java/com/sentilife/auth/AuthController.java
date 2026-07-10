@@ -6,12 +6,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Endpoints de autenticación — spec §6.1.
- * Todos son públicos (no requieren JWT).
+ * Authentication endpoints — spec §6.1.
+ * All endpoints are public (no JWT required).
  *
  * POST /api/v1/auth/register  — 201 + tokens
  * POST /api/v1/auth/login     — 200 + tokens
- * POST /api/v1/auth/refresh   — 200 + tokens nuevos
+ * POST /api/v1/auth/refresh   — 200 + new tokens
  */
 @RestController
 @RequestMapping("/api/v1/auth")

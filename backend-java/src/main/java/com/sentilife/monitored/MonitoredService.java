@@ -12,6 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Business logic for monitored persons CRUD and GDPR consent management.
+ *
+ * Each CAREGIVER can only view and modify their own monitored persons.
+ * The pairingCode is generated on creation — 6-char alphanumeric prefixed with "SL-".
+ */
 @Service
 public class MonitoredService {
 
@@ -53,6 +59,7 @@ public class MonitoredService {
     @Transactional
     public void delete(UUID caregiverId, UUID personId) {
         MonitoredPerson person = findOwned(caregiverId, personId);
+        // GDPR suppression: delete consents before deleting the person
         consentRepository.deleteByMonitoredPersonId(personId);
         repository.delete(person);
     }
@@ -62,6 +69,7 @@ public class MonitoredService {
                                                        MonitoredDtos.ConsentRequest request) {
         findOwned(caregiverId, personId);
 
+        // Revoke any existing active consent before creating a new one
         consentRepository.findByMonitoredPersonIdAndStatus(personId, DomainConstants.CONSENT_ACTIVE)
                 .ifPresent(c -> {
                     c.setStatus(DomainConstants.CONSENT_REVOKED);
@@ -82,7 +90,7 @@ public class MonitoredService {
 
         Consent consent = consentRepository
                 .findByMonitoredPersonIdAndStatus(personId, DomainConstants.CONSENT_ACTIVE)
-                .orElseThrow(() -> DomainExceptions.NotFoundException.of("No hay consentimiento activo"));
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of("No active consent found"));
 
         consent.setStatus(DomainConstants.CONSENT_REVOKED);
         consent.setRevokedAt(Instant.now());
@@ -93,9 +101,9 @@ public class MonitoredService {
 
     private MonitoredPerson findOwned(UUID caregiverId, UUID personId) {
         MonitoredPerson person = repository.findById(personId)
-                .orElseThrow(() -> DomainExceptions.NotFoundException.of("Persona no encontrada"));
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of("Person not found"));
         if (!person.getCaregiverId().equals(caregiverId)) {
-            throw DomainExceptions.ForbiddenException.of("No tienes acceso a esta persona");
+            throw DomainExceptions.ForbiddenException.of("Access denied to this person");
         }
         return person;
     }
@@ -113,7 +121,8 @@ public class MonitoredService {
         String consentStatus = consentRepository
                 .existsByMonitoredPersonIdAndStatus(person.getId(), DomainConstants.CONSENT_ACTIVE)
                 ? DomainConstants.CONSENT_ACTIVE : DomainConstants.CONSENT_PENDING;
-        return MonitoredDtos.MonitoredResponse.from(person, consentStatus, "INACTIVE");
+        return MonitoredDtos.MonitoredResponse.from(person, consentStatus,
+                DomainConstants.MONITORING_INACTIVE);
     }
 
     private MonitoredDtos.ConsentResponse toConsentResponse(Consent c) {

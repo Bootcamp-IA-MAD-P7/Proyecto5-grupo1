@@ -9,6 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Business logic for device pairing and push token management.
+ *
+ * pair: finds the person by pairingCode, registers the device and
+ *       returns a device token for use in POST /telemetry/windows.
+ *
+ * registerPushToken: registers or updates the caregiver's FCM token.
+ *                    Idempotent: same userId + deviceId updates the token.
+ */
 @Service
 public class DeviceService {
 
@@ -28,7 +37,7 @@ public class DeviceService {
     public DeviceDtos.PairResponse pair(DeviceDtos.PairRequest request) {
         var person = monitoredPersonRepo.findByPairingCode(request.pairingCode())
                 .orElseThrow(() -> DomainExceptions.NotFoundException.of(
-                        "Código de vinculación inválido o expirado"));
+                        "Invalid or expired pairing code"));
 
         var device = pairedDeviceRepo
                 .findByMonitoredPersonIdAndDeviceId(person.getId(), request.deviceId())
@@ -40,11 +49,11 @@ public class DeviceService {
         device.setActive(true);
         pairedDeviceRepo.save(device);
 
-        // Invalidar pairingCode — uso único
+        // Invalidate pairingCode — single use only
         person.setPairingCode(null);
         monitoredPersonRepo.save(person);
 
-        // TODO Fase 2: JWT de dispositivo real
+        // TODO Phase 2: issue a real device JWT with Spring Security
         return new DeviceDtos.PairResponse(person.getId(), person.getId().toString());
     }
 

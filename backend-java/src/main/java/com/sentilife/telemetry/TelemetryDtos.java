@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * DTOs de telemetría — contratos exactos de spec §6.3.
+ * Telemetry DTOs — exact contracts from spec §6.3.
  */
 public class TelemetryDtos {
 
@@ -22,10 +22,10 @@ public class TelemetryDtos {
         @NotNull Instant windowEnd,
         @NotNull @Positive Integer sampleRateHz,
         @NotNull Map<String, Object> samples,   // accX, accY, accZ, gyroX, gyroY, gyroZ
-        Map<String, Object> context             // heartRate, roomTemp, roomLight (opcional)
+        Map<String, Object> context             // heartRate, roomTemp, roomLight (optional)
     ) {}
 
-    // ── Response: predicción en línea ─────────────────────────────────────────
+    // ── Response: inline prediction ───────────────────────────────────────────
 
     public record PredictionResult(
         boolean fallDetected,

@@ -13,16 +13,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /**
- * CRUD de personas monitorizadas — spec §6.2.
- * Requiere rol CAREGIVER (Spring Security valida el JWT).
+ * Monitored persons CRUD controller — spec §6.2.
+ * Requires CAREGIVER role (Spring Security validates the JWT).
  *
- * POST   /api/v1/monitored-persons           — crear persona
- * GET    /api/v1/monitored-persons           — listar mis personas (paginado)
- * GET    /api/v1/monitored-persons/{id}      — detalle
- * PUT    /api/v1/monitored-persons/{id}      — actualizar
- * DELETE /api/v1/monitored-persons/{id}      — eliminar + supresión GDPR
- * POST   /api/v1/monitored-persons/{id}/consent   — aceptar consentimiento
- * DELETE /api/v1/monitored-persons/{id}/consent   — revocar consentimiento
+ * POST   /api/v1/monitored-persons           — create person
+ * GET    /api/v1/monitored-persons           — list my persons (paginated)
+ * GET    /api/v1/monitored-persons/{id}      — detail
+ * PUT    /api/v1/monitored-persons/{id}      — update
+ * DELETE /api/v1/monitored-persons/{id}      — delete + GDPR suppression
+ * POST   /api/v1/monitored-persons/{id}/consent   — accept consent
+ * DELETE /api/v1/monitored-persons/{id}/consent   — revoke consent
  */
 @RestController
 @RequestMapping("/api/v1/monitored-persons")
