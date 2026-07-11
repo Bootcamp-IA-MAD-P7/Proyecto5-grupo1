@@ -38,11 +38,11 @@ public class TelemetryWindow extends BaseEntity {
     private Integer sampleRateHz;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "samples_json", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "samples_json", nullable = false)
     private Map<String, Object> samplesJson;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "context_json", columnDefinition = "jsonb")
+    @Column(name = "context_json")
     private Map<String, Object> contextJson;
 
     @Column(name = "fall_detected")

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -23,8 +25,12 @@ import static org.mockito.Mockito.*;
  *
  * We construct AuthService manually (not @InjectMocks) because it
  * has a @Value int parameter that Mockito can't inject.
+ *
+ * Lenient strictness: setUp() prepares common stubs (JWT generation)
+ * that not every test path reaches — that's intentional, not a bug.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AuthServiceTest {
 
     @Mock UserRepository userRepository;
