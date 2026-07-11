@@ -3,6 +3,7 @@ package com.sentilife.notifications;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,8 +16,12 @@ import org.springframework.context.annotation.Configuration;
  *
  * Per ADR-02: RabbitMQ is used only for alert.created → push notifier.
  * The prediction critical path remains synchronous HTTP.
+ *
+ * This config is disabled when spring.rabbitmq.listener.simple.auto-startup=false
+ * (test profile), avoiding connection attempts to a non-existent broker.
  */
 @Configuration
+@ConditionalOnProperty(name = "spring.rabbitmq.listener.simple.auto-startup", havingValue = "true", matchIfMissing = true)
 public class RabbitConfig {
 
     public static final String ALERTS_EXCHANGE = "sentilife.alerts";

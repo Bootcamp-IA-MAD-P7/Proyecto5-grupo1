@@ -3,6 +3,7 @@ package com.sentilife.notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,8 +15,11 @@ import org.springframework.stereotype.Component;
  * This runs asynchronously — the telemetry response has already
  * been returned to the caller. Push delivery is best-effort;
  * the caregiver can always poll GET /alerts as fallback.
+ *
+ * Disabled in test profile (no RabbitMQ broker).
  */
 @Component
+@ConditionalOnProperty(name = "spring.rabbitmq.listener.simple.auto-startup", havingValue = "true", matchIfMissing = true)
 public class AlertPushListener {
 
     private static final Logger log = LoggerFactory.getLogger(AlertPushListener.class);

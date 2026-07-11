@@ -7,7 +7,6 @@ import com.sentilife.users.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +20,9 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for AuthService.
  * Uses Mockito — no Spring context needed, runs fast.
+ *
+ * We construct AuthService manually (not @InjectMocks) because it
+ * has a @Value int parameter that Mockito can't inject.
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -29,12 +31,15 @@ class AuthServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock JwtService jwtService;
 
-    @InjectMocks AuthService authService;
+    AuthService authService;
 
     private User mockUser;
 
     @BeforeEach
     void setUp() {
+        // Manual construction: 4th arg is accessTokenExpiration (seconds)
+        authService = new AuthService(userRepository, passwordEncoder, jwtService, 900);
+
         mockUser = new User();
         mockUser.setEmail("ana@test.com");
         mockUser.setPasswordHash("hashed");

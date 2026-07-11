@@ -3,6 +3,7 @@ package com.sentilife.notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -13,6 +14,9 @@ import java.util.UUID;
  * Called by AlertService after persisting a new alert.
  * The message is consumed asynchronously by AlertPushListener
  * to send FCM push notifications.
+ *
+ * If RabbitTemplate is not available (e.g., in tests without
+ * a broker), publishing is silently skipped.
  */
 @Component
 public class AlertEventPublisher {
@@ -21,7 +25,7 @@ public class AlertEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
 
-    public AlertEventPublisher(RabbitTemplate rabbitTemplate) {
+    public AlertEventPublisher(@Autowired(required = false) RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
 
@@ -31,6 +35,11 @@ public class AlertEventPublisher {
      */
     public void publishAlertCreated(UUID alertId, UUID monitoredPersonId,
                                     double confidence, String modelVersion) {
+        if (rabbitTemplate == null) {
+            log.debug("[Events] RabbitMQ not available — skipping alert.created for alertId={}", alertId);
+            return;
+        }
+
         var event = new AlertCreatedEvent(alertId, monitoredPersonId, confidence, modelVersion);
         try {
             rabbitTemplate.convertAndSend(
