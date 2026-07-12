@@ -1,15 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:proyecto_flutter/models/alert.dart';
-import 'package:proyecto_flutter/models/monitored_person.dart';
-import 'package:proyecto_flutter/models/retrain_status.dart';
-import 'package:proyecto_flutter/models/user.dart';
-import 'package:proyecto_flutter/services/admin_service.dart';
-import 'package:proyecto_flutter/services/alerts_service.dart';
-import 'package:proyecto_flutter/services/auth_service.dart';
-import 'package:proyecto_flutter/services/devices_service.dart';
-import 'package:proyecto_flutter/services/exceptions.dart';
-import 'package:proyecto_flutter/services/monitored_service.dart';
-import 'package:proyecto_flutter/services/telemetry_service.dart';
+import 'package:sentilife/config/window_contract.dart';
+import 'package:sentilife/models/alert.dart';
+import 'package:sentilife/models/monitored_person.dart';
+import 'package:sentilife/models/retrain_status.dart';
+import 'package:sentilife/models/user.dart';
+import 'package:sentilife/services/admin_service.dart';
+import 'package:sentilife/services/alerts_service.dart';
+import 'package:sentilife/services/auth_service.dart';
+import 'package:sentilife/services/devices_service.dart';
+import 'package:sentilife/services/exceptions.dart';
+import 'package:sentilife/services/monitored_service.dart';
+import 'package:sentilife/services/telemetry_service.dart';
 
 void main() {
   // ── AuthService ────────────────────────────────────────────────────────────
@@ -191,21 +192,25 @@ void main() {
   // ── TelemetryService ───────────────────────────────────────────────────────
   group('TelemetryService (mock)', () {
     final service = TelemetryService();
+    final windowEnd = DateTime.now();
+    final windowStart = windowEnd.subtract(
+      const Duration(milliseconds: WindowContract.durationMs),
+    );
 
     test('sendWindow sin caída devuelve fallDetected false', () async {
       final result = await service.sendWindow(
         monitoredPersonId: 'uuid-person-001',
         deviceId: 'android-test-001',
-        windowStart: DateTime.now().subtract(const Duration(seconds: 3)),
-        windowEnd: DateTime.now(),
-        sampleRateHz: 50,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        sampleRateHz: WindowContract.sampleRateHz,
         samples: {
-          'accX': List.filled(150, 0.1),
-          'accY': List.filled(150, 0.2),
-          'accZ': List.filled(150, 9.8),
-          'gyroX': List.filled(150, 0.5),
-          'gyroY': List.filled(150, 0.3),
-          'gyroZ': List.filled(150, 0.1),
+          'accX': List.filled(WindowContract.samplesPerSignal, 0.1),
+          'accY': List.filled(WindowContract.samplesPerSignal, 0.2),
+          'accZ': List.filled(WindowContract.samplesPerSignal, 9.8),
+          'gyroX': List.filled(WindowContract.samplesPerSignal, 0.5),
+          'gyroY': List.filled(WindowContract.samplesPerSignal, 0.3),
+          'gyroZ': List.filled(WindowContract.samplesPerSignal, 0.1),
         },
       );
       expect(result.fallDetected, isFalse);
@@ -217,16 +222,17 @@ void main() {
       final result = await service.sendWindow(
         monitoredPersonId: 'uuid-person-001',
         deviceId: 'android-test-001',
-        windowStart: DateTime.now().subtract(const Duration(seconds: 3)),
-        windowEnd: DateTime.now(),
-        sampleRateHz: 50,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        sampleRateHz: WindowContract.sampleRateHz,
         samples: {
-          'accX': List.filled(150, 20.0), // > 15 m/s² → caída
-          'accY': List.filled(150, 20.0),
-          'accZ': List.filled(150, 20.0),
-          'gyroX': List.filled(150, 0.0),
-          'gyroY': List.filled(150, 0.0),
-          'gyroZ': List.filled(150, 0.0),
+          // > 15 m/s² → caída
+          'accX': List.filled(WindowContract.samplesPerSignal, 20.0),
+          'accY': List.filled(WindowContract.samplesPerSignal, 20.0),
+          'accZ': List.filled(WindowContract.samplesPerSignal, 20.0),
+          'gyroX': List.filled(WindowContract.samplesPerSignal, 0.0),
+          'gyroY': List.filled(WindowContract.samplesPerSignal, 0.0),
+          'gyroZ': List.filled(WindowContract.samplesPerSignal, 0.0),
         },
       );
       expect(result.fallDetected, isTrue);
@@ -237,16 +243,17 @@ void main() {
       final result = await service.sendWindow(
         monitoredPersonId: 'uuid-person-001',
         deviceId: 'android-test-001',
-        windowStart: DateTime.now().subtract(const Duration(seconds: 3)),
-        windowEnd: DateTime.now(),
-        sampleRateHz: 50,
+        windowStart: windowStart,
+        windowEnd: windowEnd,
+        sampleRateHz: WindowContract.sampleRateHz,
         samples: {
-          'accX': List.filled(150, 0.1),
-          'accY': List.filled(150, 0.1),
-          'accZ': List.filled(150, 9.8),
-          'gyroX': List.filled(150, 400.0), // > 300 °/s → caída
-          'gyroY': List.filled(150, 0.0),
-          'gyroZ': List.filled(150, 0.0),
+          'accX': List.filled(WindowContract.samplesPerSignal, 0.1),
+          'accY': List.filled(WindowContract.samplesPerSignal, 0.1),
+          'accZ': List.filled(WindowContract.samplesPerSignal, 9.8),
+          // > 300 °/s → caída
+          'gyroX': List.filled(WindowContract.samplesPerSignal, 400.0),
+          'gyroY': List.filled(WindowContract.samplesPerSignal, 0.0),
+          'gyroZ': List.filled(WindowContract.samplesPerSignal, 0.0),
         },
       );
       expect(result.fallDetected, isTrue);

@@ -154,7 +154,7 @@ def build_dataset(root: Path) -> pd.DataFrame:
                 continue
             feats = summarize_trial(trial_df)
         except Exception as e:
-            print(f"  ⚠️  Error leyendo {path.name}: {e}")
+            print(f"  WARN Error leyendo {path.name}: {e}")
             skipped += 1
             continue
 
@@ -166,7 +166,7 @@ def build_dataset(root: Path) -> pd.DataFrame:
             print(f"  ...{i}/{len(trial_files)} procesados")
 
     if skipped:
-        print(f"  ⚠️  {skipped} archivos se omitieron por errores de lectura/vacíos")
+        print(f"  WARN {skipped} archivos se omitieron por errores de lectura/vacíos")
 
     if not rows:
         raise RuntimeError(
@@ -197,7 +197,7 @@ def main():
 
     n_falls = df["fall_event"].sum()
     n_total = len(df)
-    print(f"\n✅ Dataset generado: {n_total} ensayos totales")
+    print(f"\nOK Dataset generado: {n_total} ensayos totales")
     print(f"   Caídas: {n_falls}  |  No caídas: {n_total - n_falls}  |  "
           f"Ratio: {(n_total - n_falls) / max(n_falls, 1):.1f}")
     print(f"   Sujetos: {df['subject_id'].nunique()} "

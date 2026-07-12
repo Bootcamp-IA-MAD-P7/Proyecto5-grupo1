@@ -1,11 +1,56 @@
-# Fall-Sentinel (Proyecto5 — Grupo 1)
+# SentiLife (Proyecto5 — Grupo 1)
 
-Sistema de detección de caídas mediante Machine Learning: app móvil Flutter + API FastAPI.
+Plataforma de monitorización y mejora de la calidad de vida asistida por
+Inteligencia Artificial. Su núcleo MVP detecta caídas en tiempo real a partir de
+telemetría IMU y avisa a la persona cuidadora.
 
 Proyecto del **Bootcamp de Inteligencia Artificial de Factoría F5 Madrid** (Grupo 1).  
 Objetivo: alcanzar el **nivel Experto** según `.specify/memory/constitucion_factoria.md`.
 
-**Stack local:** Flutter · FastAPI · PostgreSQL (Docker) · scikit-learn / XGBoost
+**Stack disponible actualmente:** Flutter · FastAPI · PostgreSQL (Docker) · scikit-learn / XGBoost
+
+**Arquitectura objetivo:** Flutter · Spring Boot · FastAPI · PostgreSQL · RabbitMQ ·
+Prometheus · Grafana. La telemetría se persiste en PostgreSQL durante el sprint;
+InfluxDB queda como evolución post-entrega según ADR-03.
+
+---
+
+## Arquitectura
+
+```text
+┌──────────────────────── Flutter (SentiLife) ────────────────────────┐
+│ MONITORED · CAREGIVER · IT_ADMIN                                   │
+└──────────────────────────────┬─────────────────────────────────────┘
+                               │ HTTPS + JWT
+                    ┌──────────▼──────────┐
+                    │ Backend Spring Boot │
+                    │ negocio y seguridad │
+                    └───┬───────────┬─────┘
+                        │           │ HTTP síncrono
+              ┌─────────▼───┐   ┌───▼────────────────┐
+              │ PostgreSQL  │   │ FastAPI            │
+              │ negocio +   │   │ inferencia ML      │
+              │ telemetría  │   │ modelo versionado  │
+              └─────────────┘   └────────────────────┘
+                        │
+                  RabbitMQ
+              alertas y notificaciones
+
+       Prometheus recopila métricas · Grafana las visualiza
+```
+
+- **Flutter** captura sensores, construye ventanas y ofrece las interfaces para
+  los tres perfiles.
+- **Spring Boot** es la única puerta de entrada: autentica, aplica roles y
+  consentimiento, persiste datos y coordina alertas.
+- **FastAPI** queda aislado como servicio interno de inferencia; Flutter no lo
+  invoca directamente en producción.
+- **RabbitMQ** desacopla alertas y notificaciones. La predicción usa HTTP
+  síncrono para proteger el objetivo de latencia.
+- **Prometheus y Grafana** proporcionan métricas y observabilidad del pipeline.
+
+El diseño completo y sus decisiones están en
+[3_plan.md](.specify/specs/factoria/3_plan.md).
 
 ---
 
@@ -105,7 +150,7 @@ Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend
 
 ## Frontend — estructura detallada
 
-App **Fall Detector Tester** (`com.jzelada.proyecto_flutter`). Monitoriza IMU + contexto y consulta la API de predicción.
+App **SentiLife** (`com.sentilife.app`). Monitoriza IMU + contexto y consulta la API de predicción.
 
 ```
 Frontend/
@@ -270,7 +315,8 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 | Avanzado | ~40% | Tests ampliados, telemetría DB, CI estable |
 | Experto | ~5% | LSTM/CNN, MLOps, drift, A/B testing |
 
-> SDD formal (`.specify/specs/factoria/1_intent.md` → `4_task.md`) cuando datasets estén cerrados.
+> El SDD formal ya está definido y enlazado en la sección
+> [Documentación](#documentación).
 
 ---
 
@@ -288,25 +334,24 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 ### 1. Backend + PostgreSQL (Docker)
 
 ```bash
-make up          # cp .env + docker compose + verify automático
-make verify      # re-comprobar /health, /predict, Postgres
+make up          # cp .env + docker compose; espera y verifica todos los health checks
+make verify      # re-comprobar contenedores y /health de la API
 make logs        # si algo falla
 ```
 
 Requisitos: Docker Compose v2. La API queda en **http://localhost:8000** (Swagger: `/docs`).
 
-### 2. Flutter en tu móvil (misma WiFi)
+### 2. Flutter contra la infraestructura local
 
 ```bash
-# Sustituye por la IP de tu PC en la red local
+# Emulador Android (usa 10.0.2.2 por defecto)
+make flutter-local
+
+# Móvil físico en la misma WiFi: sustituye por la IP LAN de tu PC
 make flutter-local API_HOST=192.168.1.100
 ```
 
-El build **debug** permite HTTP a la API local. Emulador Android:
-
-```bash
-cd Frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
-```
+`make flutter-local` comprueba antes que el stack esté sano. El build **debug** permite HTTP a la API local.
 
 ### 3. Backend sin Docker (opcional)
 
@@ -328,10 +373,13 @@ Detalle DB: [db/README.md](db/README.md)
 | Recurso | Ubicación |
 |---|---|
 | Daily standups | [docs/daily/](docs/daily/) |
-| Metodología SDD (intent → spec → plan → task) | `.specify/specs/factoria/1_intent.md` … `4_task.md` |
-| CI/CD y arquitectura | `.specify/specs/factoria/3_plan.md` |
-| Roadmap + backlog Jira (orden de ejecución) | `.specify/specs/factoria/5_roadmap.md` |
-| Constitución Factoría | `.specify/memory/constitucion_factoria.md` |
+| 1. Intención: visión y alcance | [1_intent.md](.specify/specs/factoria/1_intent.md) |
+| 2. Especificación: requisitos y contratos | [2_spec.md](.specify/specs/factoria/2_spec.md) |
+| 3. Plan: arquitectura, ADR y CI/CD | [3_plan.md](.specify/specs/factoria/3_plan.md) |
+| 4. Tareas: backlog ejecutable | [4_task.md](.specify/specs/factoria/4_task.md) |
+| Roadmap y tablero de estado | [5_roadmap.md](.specify/specs/factoria/5_roadmap.md) |
+| Contrato SL-14 de ventana | [window_contract.md](contracts/window_contract.md) |
+| Constitución Factoría | [constitucion_factoria.md](.specify/memory/constitucion_factoria.md) |
 
 ---
 

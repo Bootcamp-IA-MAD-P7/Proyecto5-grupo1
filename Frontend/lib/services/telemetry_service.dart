@@ -1,10 +1,7 @@
 import 'dart:convert';
-import 'dart:convert';
-import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
-import 'exceptions.dart';
 import 'exceptions.dart';
 
 /// Resultado de clasificación de una ventana (spec §6.3)

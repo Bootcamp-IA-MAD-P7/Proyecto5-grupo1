@@ -74,7 +74,11 @@
 
 ### ADR-05 — Ventanas de telemetría
 
-- Ventana deslizante de **2–3 s con solape del 50%** a la frecuencia de muestreo alineada con SisFall (200 Hz nativo; submuestreo del móvil documentado en el EDA). Los valores exactos se fijan en el EDA (T2 de `4_task.md`) y son **la misma definición en entrenamiento e inferencia** — divergencia aquí es el bug más caro del proyecto.
+- **Contrato SL-14/T1.2 cerrado:** la fuente versionada es `contracts/window_contract.json` y la guía humana vive en `contracts/window_contract.md`.
+- Ventana deslizante de **2.5 s a 50 Hz**, **50% de solape**, salto de **1.25 s** y **125 muestras por señal obligatoria** (`accX/Y/Z`, `gyroX/Y/Z`).
+- SisFall se remuestrea de **200 Hz nativo a 50 Hz** con interpolación lineal; Flutter debe emitir o normalizar las ventanas a la misma frecuencia antes de enviarlas.
+- Las muestras viajan en unidades físicas (`m/s²` y `°/s`) y conservan la gravedad. Cualquier normalización pertenece al pipeline ML y debe ser idéntica en entrenamiento e inferencia.
+- Una ventana sin señales obligatorias, con menos/más de 125 muestras sin remuestreo/recorte, o con `NaN`/infinitos es inválida. Divergir de este contrato entre entrenamiento, inferencia y app es el bug más caro del proyecto.
 
 ### ADR-06 — Migración desde el estado actual
 

@@ -15,6 +15,7 @@ Backend/
 │   ├── train_model.py
 │   ├── diagnostico.py
 │   ├── build_sisfall_dataset.py
+│   ├── build_sisfall_window_features.py
 │   ├── model.pkl            # Modelo activo (migrar a artifacts/ + registry/)
 │   ├── model_ablation.pkl
 │   ├── registry/            # Metadata de versiones de modelo (nivel Experto)
@@ -48,7 +49,10 @@ Ver [data/README.md](data/README.md). **Política:** crudos y procesados en git.
 | ~~Kaggle~~ | — | Dado de baja (constitución §6) |
 
 ```bash
-# Regenerar DS-01 desde crudos
+# Regenerar DS-01 desde crudos con ventanas SL-14 + features estadisticas
+python ml/build_sisfall_window_features.py --root data/raw/sisfall --out data/processed/sisfall/sisfall_windows_features.csv.gz --manifest data/processed/sisfall/feature_manifest.json
+
+# Legacy: una fila por ensayo completo, usado por el EDA inicial
 python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall/sisfall_dataset.csv
 ```
 
@@ -56,6 +60,7 @@ python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/
 
 ```bash
 python notebooks/eda_sisfall.py
+python ml/build_sisfall_window_features.py
 python ml/train_model.py
 python ml/diagnostico.py
 ```
@@ -65,6 +70,18 @@ python ml/diagnostico.py
 ```bash
 uvicorn api.main:app --reload --port 8000
 ```
+
+FastAPI es ahora un servicio interno de inferencia. Expone:
+
+- `POST /predict`
+- `GET /health`
+- `GET /metrics`
+- `GET /model/info`
+- `POST /model/reload`
+
+Los endpoints `/app/*` se conservan temporalmente por compatibilidad, marcados
+como obsoletos en OpenAPI y mediante cabeceras HTTP. Su migración a Java está
+pospuesta según ADR-06.
 
 ## Variables de entorno
 

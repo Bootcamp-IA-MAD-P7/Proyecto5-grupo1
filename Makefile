@@ -7,8 +7,7 @@ env:
 	@echo ".env listo"
 
 up: env
-	docker compose up --build -d
-	@sleep 10
+	docker compose up --build -d --wait
 	@$(MAKE) verify
 
 down:
@@ -24,7 +23,7 @@ logs:
 verify:
 	bash scripts/verify-local.sh
 
-flutter-local:
+flutter-local: verify
 	bash scripts/run-flutter-local.sh
 
 # Atajo: usa DEVICE del .env o variable de entorno

@@ -23,8 +23,8 @@ Diagnóstico rápido para entender el rendimiento del modelo guardado:
      la población que más importa para un sistema real.
 
 Uso (desde la raíz de Backend/):
-    python ml/diagnostico.py --data data/processed/sisfall/sisfall_dataset.csv --model ml/model.pkl
-    python ml/diagnostico.py --data data/processed/sisfall/sisfall_dataset.csv --model ml/model_ablation.pkl
+    python ml/diagnostico.py --data data/processed/sisfall/sisfall_windows_features.csv.gz --model ml/model.pkl
+    python ml/diagnostico.py --data data/processed/sisfall/sisfall_windows_features.csv.gz --model ml/model_ablation.pkl
 """
 
 import argparse
@@ -45,7 +45,22 @@ AGE_COL = "age_group"
 # igual que en train_model.py: age_group fuera del modelo por el sesgo del
 # dataset (14/15 adultos mayores sin ningún ensayo de caída)
 CATEGORICAL_FEATURES = []
-NON_FEATURE_COLS = {TARGET, GROUP_COL, "activity_code", "trial", "age_group"}
+NON_FEATURE_COLS = {
+    TARGET,
+    GROUP_COL,
+    "activity_code",
+    "trial",
+    "age_group",
+    "source_file",
+    "window_id",
+    "window_index",
+    "window_start_ms",
+    "window_end_ms",
+    "source_start_sample",
+    "source_end_sample",
+    "sample_rate_hz",
+    "samples_per_signal",
+}
 
 RANDOM_STATE = 42
 
@@ -134,7 +149,7 @@ def run_loso(data_path: str, payload: dict):
     model_name = payload["model_name"]
 
     if payload.get("dropped_shortcut_features"):
-        print(f"⚠️  Ablation: LOSO entrenado SIN acc1_magnitude_max / gyro_magnitude_max")
+        print("Ablation: LOSO entrenado sin features de magnitud maxima")
     print(f"Modelo a replicar en cada fold: {model_name}")
 
     X = df[features]
@@ -217,7 +232,7 @@ def run_loso(data_path: str, payload: dict):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/processed/sisfall/sisfall_dataset.csv")
+    parser.add_argument("--data", default="data/processed/sisfall/sisfall_windows_features.csv.gz")
     parser.add_argument("--model", default="ml/model.pkl")
     args = parser.parse_args()
 

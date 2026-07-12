@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/update_service.dart';
 
 /// Diálogo de actualización disponible.
@@ -39,10 +40,7 @@ class UpdateDialog extends StatelessWidget {
       ),
       builder: (_) => ListenableBuilder(
         listenable: service,
-        builder: (_, _) => UpdateDialog(
-          service: service,
-          mandatory: mandatory,
-        ),
+        builder: (_, _) => UpdateDialog(service: service, mandatory: mandatory),
       ),
     );
   }
@@ -51,6 +49,7 @@ class UpdateDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final remote = service.remoteVersion;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Padding(
@@ -94,14 +93,14 @@ class UpdateDialog extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Actualización disponible',
+                        l10n.updateAvailable,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       if (remote != null)
                         Text(
-                          'Versión ${remote.versionName}',
+                          l10n.version(remote.versionName),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -115,19 +114,17 @@ class UpdateDialog extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Release notes
-            if (remote?.releaseNotes != null && remote!.releaseNotes!.isNotEmpty) ...[
+            if (remote?.releaseNotes != null &&
+                remote!.releaseNotes!.isNotEmpty) ...[
               Text(
-                'Novedades',
+                l10n.whatsNew,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                remote.releaseNotes!,
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text(remote.releaseNotes!, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 16),
             ],
 
@@ -145,6 +142,8 @@ class UpdateDialog extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, ThemeData theme) {
+    final l10n = context.l10n;
+
     switch (service.status) {
       case UpdateStatus.downloading:
         return Column(
@@ -154,7 +153,7 @@ class UpdateDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Descargando…',
+                  l10n.downloading,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -189,18 +188,12 @@ class UpdateDialog extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
             const SizedBox(width: 12),
-            Text(
-              'Abriendo el instalador…',
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(l10n.openingInstaller, style: theme.textTheme.bodyMedium),
           ],
         );
 
       case UpdateStatus.error:
-        return _ErrorBanner(
-          message: service.errorMessage ?? 'Error desconocido.',
-          errorType: service.errorType,
-        );
+        return _ErrorBanner(errorType: service.errorType);
 
       default:
         // idle / updateAvailable / upToDate
@@ -209,6 +202,7 @@ class UpdateDialog extends StatelessWidget {
   }
 
   Widget _buildActions(BuildContext context, ThemeData theme) {
+    final l10n = context.l10n;
     final isDownloading = service.status == UpdateStatus.downloading;
     final isInstalling = service.status == UpdateStatus.installing;
     final isError = service.status == UpdateStatus.error;
@@ -230,13 +224,15 @@ class UpdateDialog extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
             ),
-            child: const Text('Cancelar descarga'),
+            child: Text(l10n.cancelDownload),
           )
         else
           FilledButton.icon(
             onPressed: () => _onUpdatePressed(context),
-            icon: Icon(isError ? Icons.refresh_rounded : Icons.download_rounded),
-            label: Text(isError ? 'Reintentar' : 'Actualizar ahora'),
+            icon: Icon(
+              isError ? Icons.refresh_rounded : Icons.download_rounded,
+            ),
+            label: Text(isError ? l10n.retry : l10n.updateNow),
           ),
 
         // Botón secundario: Más tarde (solo si no es obligatoria)
@@ -244,7 +240,7 @@ class UpdateDialog extends StatelessWidget {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Más tarde'),
+            child: Text(l10n.later),
           ),
         ],
       ],
@@ -266,22 +262,18 @@ class UpdateDialog extends StatelessWidget {
   }
 
   static void _showSignatureMismatchDialog(BuildContext context) {
+    final l10n = context.l10n;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.warning_amber_rounded, size: 40),
-        title: const Text('Firma incompatible'),
-        content: const Text(
-          'El APK descargado está firmado con una clave diferente a la versión '
-          'instalada. Esto impide actualizar directamente.\n\n'
-          'Para solucionar el problema:\n'
-          '1. Desinstala la app manualmente.\n'
-          '2. Vuelve a abrir este enlace de descarga e instala la nueva versión.',
-        ),
+        title: Text(l10n.incompatibleSignature),
+        content: Text(l10n.incompatibleSignatureDescription),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Entendido'),
+            child: Text(l10n.understood),
           ),
         ],
       ),
@@ -291,14 +283,14 @@ class UpdateDialog extends StatelessWidget {
 
 /// Banner de error con icono y mensaje descriptivo.
 class _ErrorBanner extends StatelessWidget {
-  final String message;
   final UpdateErrorType? errorType;
 
-  const _ErrorBanner({required this.message, this.errorType});
+  const _ErrorBanner({this.errorType});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -317,7 +309,7 @@ class _ErrorBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              message,
+              _messageForError(l10n),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onErrorContainer,
               ),
@@ -344,6 +336,25 @@ class _ErrorBanner extends StatelessWidget {
         return Icons.cloud_off_rounded;
       default:
         return Icons.error_outline_rounded;
+    }
+  }
+
+  String _messageForError(AppLocalizations l10n) {
+    switch (errorType) {
+      case UpdateErrorType.noInternet:
+        return l10n.noInternetError;
+      case UpdateErrorType.timeout:
+        return l10n.timeoutError;
+      case UpdateErrorType.noInstallPermission:
+        return l10n.installPermissionError;
+      case UpdateErrorType.insufficientStorage:
+        return l10n.insufficientStorageError;
+      case UpdateErrorType.signatureMismatch:
+        return l10n.signatureMismatchError;
+      case UpdateErrorType.downloadInterrupted:
+        return l10n.downloadInterruptedError;
+      default:
+        return l10n.unknownError;
     }
   }
 }
