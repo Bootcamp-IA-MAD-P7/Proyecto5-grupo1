@@ -336,3 +336,45 @@ When a CANDIDATE model exists in the registry, ~20% of prediction traffic is tag
 Query: `sum by (model_status) (rate(ab_testing_predictions_total[5m]))`
 
 This shows the traffic split in real time.
+
+
+---
+
+## Grafana Dashboard (SL-47)
+
+The definitive dashboard at `observability/grafana/dashboards/sentilife-pipeline.json` includes:
+
+| Panel | What it shows |
+|---|---|
+| Service Health | UP/DOWN status for all services |
+| Request Rate | Requests per second per endpoint |
+| Response Time p95 | 95th percentile latency per endpoint |
+| Inference Latency | p50/p95/p99 for `/predict` |
+| Predictions by Result | Falls vs ADL vs Errors counters |
+| A/B Traffic Split | Pie chart: ACTIVE vs CANDIDATE model |
+| Alerts per Minute | Rate of fall alerts created |
+| RabbitMQ Throughput | Messages published/delivered per second |
+| E2E Latency Gauge | Telemetry ingestion p95 with thresholds (green <2s, yellow <5s, red >5s) |
+| Model Registry | Current model versions and their traffic |
+| JVM Memory | Heap usage for the Java backend |
+
+Access at: http://localhost:3000 (admin/admin) → Dashboards → SentiLife
+
+---
+
+## A/B Testing (SL-57)
+
+Routes ~20% of prediction traffic to a CANDIDATE model when one exists in the registry.
+
+**How it works:**
+1. `ABTestingService.decide()` rolls a random number on each prediction
+2. 80% → ACTIVE model, 20% → CANDIDATE model
+3. Prometheus counters track `ab_testing_predictions_total{model_status="ACTIVE|CANDIDATE"}`
+4. Grafana pie chart shows the split in real time
+
+**Metrics visible in Grafana:**
+- Traffic split ratio (should be ~80/20)
+- Per-model prediction counts
+- Once feedback is collected, recall per version can be computed
+
+**To test:** Register a CANDIDATE model via `POST /api/v1/admin/models`, then send telemetry — Grafana will show the split.

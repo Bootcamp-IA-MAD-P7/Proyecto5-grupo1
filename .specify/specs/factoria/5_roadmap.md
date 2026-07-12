@@ -192,7 +192,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-56 | Pantalla MLOps IT | FE-B | SHOULD | lun 13 | SL-55 | 🔲 |
 | SL-57 | A/B testing ~20% (🔴) | BE-B | MUST | mar 14 | SL-54 | ✅ |
 | SL-58 | Data drift + panel Grafana (🔴) | ML | MUST | mar 14 | SL-55 | 🔲 |
-| SL-47 | Dashboard Grafana definitivo (🟠) | BE-B | MUST | mar 14 | SL-45 | 🔲 |
+| SL-47 | Dashboard Grafana definitivo (🟠) | BE-B | MUST | mar 14 | SL-45 | ✅ |
 | SL-51 | T3/T4.INT demo QA + video respaldo | ALL | MUST | mar 14 | SL-45…SL-58 | 🔲 |
 | SL-59 | Informe final + 2 presentaciones | ALL | MUST | mié 15 | SL-51 | 🔲 |
 | SL-60 | DEMO FINAL | ALL | MUST | mié 15 | todo | 🔲 |
