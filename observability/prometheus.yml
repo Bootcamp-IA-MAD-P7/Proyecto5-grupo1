@@ -1,0 +1,36 @@
+# Prometheus configuration — SentiLife stack
+# Scrape targets: Java backend actuator + FastAPI metrics + RabbitMQ
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ── Java Backend (Spring Boot Actuator) ──────────────────────
+  - job_name: 'sentilife-java'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend-java:8080']
+        labels:
+          service: 'backend-java'
+
+  # ── FastAPI Inference Service ────────────────────────────────
+  - job_name: 'sentilife-inference'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api:8000']
+        labels:
+          service: 'inference'
+
+  # ── RabbitMQ (built-in Prometheus plugin) ────────────────────
+  - job_name: 'rabbitmq'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          service: 'rabbitmq'
+
+  # ── Prometheus self-monitoring ───────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

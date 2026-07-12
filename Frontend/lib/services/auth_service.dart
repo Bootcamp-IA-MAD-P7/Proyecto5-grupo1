@@ -10,7 +10,7 @@ import 'exceptions.dart';
 /// exactamente los contratos de spec §6.1. Cuando el backend Java esté listo,
 /// basta con poner [_useMock] = false.
 class AuthService {
-  static const bool _useMock = true;
+  static const bool _useMock = false;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/auth';
 
   // ── Mock data ──────────────────────────────────────────────────────────────
@@ -88,7 +88,8 @@ class AuthService {
       }),
     );
     _checkStatus(res);
-    return User.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    return User.fromJson(json['user'] as Map<String, dynamic>);
   }
 
   /// POST /login

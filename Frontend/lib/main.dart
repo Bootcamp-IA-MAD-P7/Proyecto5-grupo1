@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'l10n/generated/app_localizations.dart';
+import 'models/user.dart';
 import 'screens/app_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_session.dart';
+import 'services/session_manager.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
 
@@ -82,6 +84,24 @@ class _AppRootState extends State<_AppRoot> {
 
   void _onAuthChanged() => setState(() {});
 
+  /// Called by LoginScreen after successful login.
+  /// Bridges SessionManager (used by login_screen.dart) → AuthSession
+  /// so AppShell and role-based screens work without changes.
+  void _onLoginSuccess() {
+    final sm = SessionManager();
+    if (sm.currentUser != null) {
+      widget.authSession.setSession(AuthTokens(
+        accessToken: sm.accessToken ?? '',
+        refreshToken: sm.refreshToken ?? '',
+        expiresIn: 3600,
+        user: sm.currentUser!,
+      ));
+      // Sync locale from user preference
+      final userLocale = sm.currentUser!.locale;
+      widget.onLocaleChanged(Locale(userLocale));
+    }
+  }
+
   Future<void> _checkUpdate() async {
     await _updateService.checkForUpdate();
     if (!mounted) return;
@@ -102,9 +122,6 @@ class _AppRootState extends State<_AppRoot> {
         onLocaleChanged: widget.onLocaleChanged,
       );
     }
-    return LoginScreen(
-      session: widget.authSession,
-      onLocaleChanged: widget.onLocaleChanged,
-    );
+    return LoginScreen(onLoginSuccess: _onLoginSuccess);
   }
 }

@@ -1,0 +1,132 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Service Health",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "mappings": [{"type": "value", "options": {"1": {"text": "UP", "color": "green"}, "0": {"text": "DOWN", "color": "red"}}}] }
+      },
+      "targets": [{ "expr": "up", "legendFormat": "{{job}}" }]
+    },
+    {
+      "title": "Java Backend — Request Rate (req/s)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"sentilife-java\"}[1m])) by (uri)", "legendFormat": "{{uri}}" }
+      ]
+    },
+    {
+      "title": "Java Backend — Response Time p95 (ms)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"sentilife-java\"}[5m])) by (le, uri))", "legendFormat": "{{uri}}" }
+      ]
+    },
+    {
+      "title": "Inference — /predict Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 11 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(prediction_latency_seconds_bucket{job=\"sentilife-inference\"}[5m]))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, rate(prediction_latency_seconds_bucket{job=\"sentilife-inference\"}[5m]))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, rate(prediction_latency_seconds_bucket{job=\"sentilife-inference\"}[5m]))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "title": "Predictions — Total by Result",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 11 },
+      "targets": [
+        { "expr": "predictions_fall{job=\"sentilife-inference\"}", "legendFormat": "Falls" },
+        { "expr": "predictions_no_fall{job=\"sentilife-inference\"}", "legendFormat": "ADL (no fall)" },
+        { "expr": "prediction_errors{job=\"sentilife-inference\"}", "legendFormat": "Errors" }
+      ]
+    },
+    {
+      "title": "A/B Testing — Traffic Split by Model",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 18 },
+      "targets": [
+        { "expr": "ab_testing_predictions_total", "legendFormat": "{{model_status}}" }
+      ]
+    },
+    {
+      "title": "Alerts — Created per Minute",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 18 },
+      "targets": [
+        { "expr": "rate(http_server_requests_seconds_count{job=\"sentilife-java\", uri=\"/api/v1/alerts\", method=\"POST\"}[1m])", "legendFormat": "alerts/min" }
+      ]
+    },
+    {
+      "title": "RabbitMQ — Messages Published/s",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 18 },
+      "targets": [
+        { "expr": "rate(rabbitmq_channel_messages_published_total[1m])", "legendFormat": "published/s" },
+        { "expr": "rate(rabbitmq_channel_messages_delivered_total[1m])", "legendFormat": "delivered/s" }
+      ]
+    },
+    {
+      "title": "End-to-End Latency — Telemetry Ingestion p95",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 25 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "steps": [{"value": 0, "color": "green"}, {"value": 2, "color": "yellow"}, {"value": 5, "color": "red"}] }
+        }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"sentilife-java\", uri=\"/api/v1/telemetry/windows\"}[5m])) by (le))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "title": "Model Registry — Current Versions",
+      "type": "table",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 25 },
+      "targets": [
+        { "expr": "ab_testing_predictions_total", "legendFormat": "{{model_status}}", "format": "table", "instant": true }
+      ]
+    },
+    {
+      "title": "JVM Memory — Java Backend",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 25 },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{job=\"sentilife-java\", area=\"heap\"}", "legendFormat": "Heap used" },
+        { "expr": "jvm_memory_committed_bytes{job=\"sentilife-java\", area=\"heap\"}", "legendFormat": "Heap committed" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["sentilife", "pipeline", "observability"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "SentiLife — Pipeline & MLOps Dashboard",
+  "uid": "sentilife-pipeline",
+  "version": 2
+}
