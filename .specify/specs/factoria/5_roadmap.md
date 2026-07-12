@@ -188,7 +188,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-36 | Export dataset etiquetado (🟡) | BE-B/FE | MUST | dom 12 | SL-34 | ✅ |
 | SL-42 | Cierre Optuna + informe v2 (🟡) | ML | MUST | dom 12 | SL-41 | 🔲 |
 | SL-45 | Deploy QA EC2 (🟠) | BE-B | MUST | lun 13 | SL-44 | 🔲 |
-| SL-55 | Retrain + auto-reemplazo por métricas (🔴) | BE-B+ML | MUST | lun 13 | SL-36, SL-54 | 🔲 |
+| SL-55 | Retrain + auto-reemplazo por métricas (🔴) | BE-B+ML | MUST | lun 13 | SL-36, SL-54 | ✅ |
 | SL-56 | Pantalla MLOps IT | FE-B | SHOULD | lun 13 | SL-55 | 🔲 |
 | SL-57 | A/B testing ~20% (🔴) | BE-B | MUST | mar 14 | SL-54 | 🔲 |
 | SL-58 | Data drift + panel Grafana (🔴) | ML | MUST | mar 14 | SL-55 | 🔲 |

@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
  * GET   /api/v1/admin/export           — labelled dataset as CSV
  * GET   /api/v1/admin/users            — list all users
  * PATCH /api/v1/admin/users/{id}       — activate / deactivate user
- * POST  /api/v1/admin/retrain          — trigger retraining (Phase 4)
- * GET   /api/v1/admin/retrain/status   — retraining status (Phase 4)
+ *
+ * Retrain endpoints moved to RetrainController (SL-55).
+ * Model registry endpoints in RegistryController (SL-54).
  */
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -75,20 +76,6 @@ public class AdminController {
             @PathVariable UUID id,
             @Valid @RequestBody AdminDtos.UserStatusRequest request) {
         return ResponseEntity.ok(service.setUserActive(id, request));
-    }
-
-    /**
-     * Retraining endpoints — implemented in Phase 4 (SL-55).
-     * Returns 501 Not Implemented until then.
-     */
-    @PostMapping("/retrain")
-    public ResponseEntity<Void> triggerRetrain() {
-        return ResponseEntity.status(501).build();
-    }
-
-    @GetMapping("/retrain/status")
-    public ResponseEntity<AdminDtos.RetrainStatus> retrainStatus() {
-        return ResponseEntity.status(501).build();
     }
 
     // ── CSV helper ────────────────────────────────────────────────────────────
