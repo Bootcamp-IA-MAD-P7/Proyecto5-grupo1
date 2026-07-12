@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from ml.build_sisfall_window_features import (
+from ml.pipeline.build_sisfall_window_features import (
     _window_starts_seconds,
     build_window_features,
     extract_contract_window,
     statistical_features,
 )
-from ml.window_contract import WINDOW_CONTRACT
+from ml.pipeline.window_contract import WINDOW_CONTRACT
 
 
 def synthetic_trial(seconds=3.75):

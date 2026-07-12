@@ -5,7 +5,7 @@ Usa el resultado de compare_ensembles.json para elegir el algoritmo base
 y optimiza hiperparámetros maximizando PR-AUC en validation (split por sujeto).
 
 Salida:
-  - ml/model_tuned.pkl
+  - ml/models/model_tuned.pkl
   - ml/artifacts/optuna_study.json
   - Actualiza ml/registry/registry.json (CANDIDATE)
 """
@@ -27,7 +27,7 @@ from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 
-from train_model import (
+from ml.training.train_model import (
     GROUP_COL,
     RANDOM_STATE,
     TARGET,
@@ -40,7 +40,7 @@ from train_model import (
 ARTIFACTS_DIR = Path("ml/artifacts")
 COMPARISON_PATH = ARTIFACTS_DIR / "ensemble_comparison.json"
 STUDY_PATH = ARTIFACTS_DIR / "optuna_study.json"
-TUNED_MODEL_PATH = Path("ml/model_tuned.pkl")
+TUNED_MODEL_PATH = Path("ml/models/model_tuned.pkl")
 REGISTRY_PATH = Path("ml/registry/registry.json")
 
 
@@ -164,7 +164,7 @@ def main() -> None:
         "models": [
             {
                 "id": "xgboost-v1.0.0",
-                "path": "ml/model.pkl",
+                "path": "ml/models/model.pkl",
                 "algorithm": "XGBoost",
                 "status": "ACTIVE",
                 "metrics": {"pr_auc_test": 0.901, "recall_fall_test": 0.832},

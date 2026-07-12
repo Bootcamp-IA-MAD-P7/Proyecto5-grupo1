@@ -34,7 +34,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fallsentinel}:${POSTGRES_PASSWORD:-fallsentinel123}@db:5432/${POSTGRES_DB:-fallsentinel}
-      MODEL_PATH: ${MODEL_PATH:-ml/model.pkl}
+      MODEL_PATH: ${MODEL_PATH:-ml/models/model.pkl}
     volumes:
       - ./Backend:/app
     depends_on:

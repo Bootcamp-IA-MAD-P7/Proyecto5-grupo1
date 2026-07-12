@@ -34,7 +34,7 @@ from sklearn.model_selection import (
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 
-from train_model import (
+from ml.training.train_model import (
     CATEGORICAL_FEATURES,
     GROUP_COL,
     NON_FEATURE_COLS,
@@ -48,6 +48,20 @@ from train_model import (
 
 ARTIFACTS_DIR = Path("ml/artifacts")
 OUTPUT_PATH = ARTIFACTS_DIR / "ensemble_comparison.json"
+
+
+def _sanitize_for_json(obj):
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_for_json(v) for v in obj]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    return obj
 
 
 def _make_models(ratio: float) -> dict[str, Pipeline]:
@@ -204,7 +218,7 @@ def main() -> None:
             "cv_pr_auc_mean": round(cv_scores.mean(), 4),
             "cv_pr_auc_std": round(cv_scores.std(), 4),
             "overfitting_gap_pp": overfit_gap,
-            "overfitting_ok": overfit_gap < 5.0,
+            "overfitting_ok": bool(overfit_gap < 5.0),
         }
         results.append(entry)
         print(f"  Test PR-AUC: {test_metrics['pr_auc_test']:.3f}")
@@ -241,7 +255,10 @@ def main() -> None:
     }
 
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    OUTPUT_PATH.write_text(
+        json.dumps(_sanitize_for_json(report), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
     print(f"\n✅ Comparativa guardada en {OUTPUT_PATH}")
     print(f"   Mejor modelo: {best['model']} PR-AUC LOSO={best.get('pr_auc_loso')}")
 

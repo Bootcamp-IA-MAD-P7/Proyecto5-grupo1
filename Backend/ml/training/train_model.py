@@ -19,9 +19,9 @@ Diferencias clave respecto al pipeline con datos sintéticos:
     robusto (ver diagnostico.py, sección de feature importance).
 
 Uso (desde la raíz de Backend/):
-    python ml/train_model.py --data data/processed/sisfall/sisfall_windows_features.csv.gz
-    python ml/train_model.py --data data/processed/sisfall/sisfall_windows_features.csv.gz --drop-shortcut-features
-Genera: ml/model.pkl (baseline) o ml/model_ablation.pkl (con el flag activado).
+    python -m ml.training.train_model --data data/processed/sisfall/sisfall_windows_features.csv.gz
+    python -m ml.training.train_model --data data/processed/sisfall/sisfall_windows_features.csv.gz --drop-shortcut-features
+Genera: ml/models/model.pkl (baseline) o ml/models/model_ablation.pkl (con el flag activado).
 """
 
 import argparse
@@ -41,8 +41,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
 
-MODEL_PATH = "ml/model.pkl"
-ABLATION_MODEL_PATH = "ml/model_ablation.pkl"
+MODEL_PATH = "ml/models/model.pkl"
+ABLATION_MODEL_PATH = "ml/models/model_ablation.pkl"
 TARGET = "fall_event"
 GROUP_COL = "subject_id"
 # age_group se deja fuera del modelo a propósito: en SisFall, 14 de 15

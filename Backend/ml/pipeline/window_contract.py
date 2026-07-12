@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 CONTRACT_PATH = (
-    Path(__file__).resolve().parents[2] / "contracts" / "window_contract.json"
+    Path(__file__).resolve().parents[3] / "contracts" / "window_contract.json"
 )
 
 

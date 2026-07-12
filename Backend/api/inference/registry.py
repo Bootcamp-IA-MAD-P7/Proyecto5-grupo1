@@ -47,7 +47,7 @@ class ModelRegistry:
                 "models": [
                     {
                         "id": "xgboost-v1.0.0",
-                        "path": "ml/model.pkl",
+                        "path": "ml/models/model.pkl",
                         "algorithm": "XGBoost",
                         "status": "ACTIVE",
                         "metrics": {},

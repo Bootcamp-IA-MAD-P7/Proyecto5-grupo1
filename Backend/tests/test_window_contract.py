@@ -1,4 +1,4 @@
-from ml.window_contract import WINDOW_CONTRACT
+from ml.pipeline.window_contract import WINDOW_CONTRACT
 
 
 def test_window_contract_values_match_sl14():

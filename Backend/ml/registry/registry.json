@@ -3,15 +3,33 @@
   "models": [
     {
       "id": "xgboost-v1.0.0",
-      "path": "ml/model.pkl",
+      "path": "ml/models/model.pkl",
       "algorithm": "XGBoost",
       "status": "ACTIVE",
       "metrics": {
         "pr_auc_test": 0.901,
-        "recall_fall_test": 0.832,
-        "pr_auc_loso": 0.925
+        "recall_fall_test": 0.832
       },
       "trainedAt": "2026-07-12"
+    },
+    {
+      "id": "tuned-v1.0.0",
+      "path": "ml/models/model_tuned.pkl",
+      "algorithm": "XGBoost",
+      "status": "CANDIDATE",
+      "metrics": {
+        "pr_auc_test": 0.9161,
+        "test_f1_fall": 0.8231,
+        "cv_pr_auc": 0.9298
+      },
+      "trainedAt": "2026-07-12",
+      "optuna_params": {
+        "n_estimators": 221,
+        "max_depth": 8,
+        "learning_rate": 0.050301088221746504,
+        "subsample": 0.6686658877124959,
+        "colsample_bytree": 0.8902685543665002
+      }
     }
   ]
 }
