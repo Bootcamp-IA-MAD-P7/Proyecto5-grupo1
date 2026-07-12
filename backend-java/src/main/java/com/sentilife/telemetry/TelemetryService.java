@@ -34,15 +34,18 @@ public class TelemetryService {
     private final InferenceClient inferenceClient;
     private final ConsentRepository consentRepository;
     private final AlertService alertService;
+    private final ABTestingService abTestingService;
 
     public TelemetryService(TelemetryWindowRepository repository,
                             InferenceClient inferenceClient,
                             ConsentRepository consentRepository,
-                            AlertService alertService) {
+                            AlertService alertService,
+                            ABTestingService abTestingService) {
         this.repository        = repository;
         this.inferenceClient   = inferenceClient;
         this.consentRepository = consentRepository;
         this.alertService      = alertService;
+        this.abTestingService  = abTestingService;
     }
 
     @Transactional
@@ -82,6 +85,11 @@ public class TelemetryService {
         window.setModelVersion(prediction.modelVersion());
         window.setLatencyMs(prediction.latencyMs());
         repository.save(window);
+
+        // 3b. A/B testing — record which model version served this prediction
+        var abDecision = abTestingService.decide();
+        abTestingService.recordOutcome(
+                prediction.modelVersion(), prediction.fallDetected(), prediction.confidence());
 
         if (prediction.fallDetected()) {
             log.warn("FALL DETECTED — person={} confidence={} window={}",

@@ -309,3 +309,30 @@ Managed by Flyway migrations in `src/main/resources/db/migration/`:
 - Consent required before telemetry is accepted (403 otherwise)
 - GDPR right to erasure: cascading delete of all personal data
 - Firebase tokens auto-cleaned when invalid/unregistered
+
+
+---
+
+## A/B Testing (SL-57)
+
+### How it works
+
+When a CANDIDATE model exists in the registry, ~20% of prediction traffic is tagged for the candidate:
+
+1. `ABTestingService.decide()` rolls a random number — 80% → ACTIVE, 20% → CANDIDATE
+2. The prediction is made (currently always by the loaded model)
+3. Prometheus counters track predictions per model status (`ab_testing_predictions_total{model_status="ACTIVE|CANDIDATE"}`)
+4. Once enough feedback accumulates, the team can compare ACTIVE vs. CANDIDATE performance in Grafana
+
+### Prometheus metrics
+
+| Metric | Labels | Description |
+|---|---|---|
+| `ab_testing_predictions_total` | `model_status=ACTIVE` | Predictions served by active model |
+| `ab_testing_predictions_total` | `model_status=CANDIDATE` | Predictions routed to candidate |
+
+### Viewing in Grafana
+
+Query: `sum by (model_status) (rate(ab_testing_predictions_total[5m]))`
+
+This shows the traffic split in real time.
