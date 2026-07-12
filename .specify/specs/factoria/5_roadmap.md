@@ -19,7 +19,7 @@
 | ALL | Kickoff + contratos congelados | SL-1 / T0.1 |
 | ALL | README SentiLife + arquitectura | SL-4 / T0.3 |
 | ALL | Makefile + scripts verify-local | SL-12 / T0.11 |
-| BE-A | **Estructura `backend-java/`** (Spring Boot 3, JWT, BCrypt) | SL-2 / T0.4 |
+| BE-A | **Estructura `backend/`** (Spring Boot 3, JWT, BCrypt) | SL-2 / T0.4 |
 | BE-B | **Flyway** V1 (esquema), V2 (seed IT_ADMIN), V3 (created_at) | SL-3 / T0.5 |
 | BE-B | **Compose completo** (Java+RabbitMQ+Prometheus+Grafana) | SL-5 / T0.6 |
 | BE-B | **Observability** (`prometheus.yml` + Grafana dashboard provisionado) | SL-7b / T0.7 |
@@ -100,7 +100,7 @@
 - [ ] Métricas del modelo nuevo ≥ modelo anterior en test (recall_fall y PR-AUC)
 - [ ] `model.pkl` regenerado y commitado (o en artefacto CI)
 
-### BE Java (solo PRs con cambios en `backend-java/`)
+### BE Java (solo PRs con cambios en `backend/`)
 - [ ] `mvn test` pasa localmente
 - [ ] `/actuator/health` responde en Docker
 - [ ] `docker compose up` levanta sin errores el stack completo
@@ -143,7 +143,7 @@
 | Quién | Tareas | Entregable al final del día |
 |---|---|---|
 | **Todos (30 min)** | SL-1 kickoff: aprobar este roadmap, congelar contratos, repartir streams | Acta en `docs/daily/` |
-| BE-A | SL-2 estructura `backend-java/` (Initializr, Dockerfile) | `/actuator/health` UP en Docker |
+| BE-A | SL-2 estructura `backend/` (Initializr, Dockerfile) | `/actuator/health` UP en Docker |
 | BE-B | SL-5 compose (+Java, +RabbitMQ, +Prometheus, +Grafana) · SL-7 FastAPI solo inferencia | `docker compose up` todo verde |
 | FE-A | SL-8 renombrado SentiLife → SL-9 i18n base (es) | APK "SentiLife" |
 | FE-B | SL-10 **mock de contratos** | FE desbloqueado al 100% |
@@ -256,7 +256,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-10 | Mock de contratos completo | FE-B | MUST | mié 8 | SL-1 | ✅ |
 | SL-12 | Flujo local Makefile + health checks | ALL | MUST | mié 8 | SL-5 | ✅ (parcial, sin Java) |
 | SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | ✅ |
-| SL-2 | Estructura backend-java (Spring Boot 3) | BE-A | MUST | mié 8 | SL-1 | ⏳ **en PR** `feature/backend` |
+| SL-2 | Estructura backend (Spring Boot 3) | BE-A | MUST | mié 8 | SL-1 | ⏳ **en PR** `feature/backend` |
 | SL-5 | Compose completo (+Java/RabbitMQ/Prom/Grafana) | BE-B | MUST | mié 8 | SL-2 | ⏳ **en PR** `feature/backend` |
 | SL-14 | Contrato de ventana v1.0.0 | ML | MUST | jue 9 | SL-13 | ✅ |
 | SL-16 | Pipeline de features (56.313 ventanas, 116 feat) | ML | MUST | jue 9 | SL-14 | ✅ |

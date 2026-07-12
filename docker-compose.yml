@@ -46,11 +46,11 @@ services:
     restart: unless-stopped
 
   # ── Backend Java (Spring Boot 3) ──────────────────────────────
-  backend-java:
+  backend:
     build:
-      context: ./backend-java
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: sentilife-backend-java
+    container_name: sentilife-backend
     ports:
       - "${JAVA_PORT:-8080}:8080"
     env_file:
@@ -104,7 +104,7 @@ services:
     image: prom/prometheus:v2.53.0
     container_name: sentilife-prometheus
     volumes:
-      - ./backend-java/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./backend/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -115,7 +115,7 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     depends_on:
-      backend-java:
+      backend:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
@@ -134,8 +134,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - ./backend-java/observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./backend-java/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./backend/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "${GRAFANA_PORT:-3000}:3000"

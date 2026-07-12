@@ -10,9 +10,9 @@ scrape_configs:
   - job_name: 'sentilife-java'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['backend-java:8080']
+      - targets: ['backend:8080']
         labels:
-          service: 'backend-java'
+          service: 'backend'
 
   # ── FastAPI Inference Service ────────────────────────────────
   - job_name: 'sentilife-inference'

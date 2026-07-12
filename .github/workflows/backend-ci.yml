@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: backend-java
+        working-directory: backend
 
     steps:
       - name: Checkout code
@@ -36,7 +36,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-test-reports
-          path: backend-java/target/surefire-reports/
+          path: backend/target/surefire-reports/
 
   # ── Python inference service tests (FastAPI) ───────────────────────────────
   test-python:
@@ -90,7 +90,7 @@ jobs:
           docker build \
             -t ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest \
             -t ${{ secrets.DOCKER_USERNAME }}/sentilife-java:${{ github.sha }} \
-            ./backend-java
+            ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-java:${{ github.sha }}
 
@@ -122,32 +122,38 @@ jobs:
           chmod 600 ~/.ssh/ec2_key.pem
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Upload compose and observability configs
+      - name: Upload compose and configs to EC2
         run: |
           # Create required directories on EC2
           ssh -i ~/.ssh/ec2_key.pem \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/sentilife/backend-java/observability/grafana/provisioning/dashboards \
-                       ~/sentilife/backend-java/observability/grafana/provisioning/datasources \
-                       ~/sentilife/backend-java/observability/grafana/dashboards"
+            "mkdir -p ~/sentilife/backend/observability/grafana/provisioning/dashboards \
+                       ~/sentilife/backend/observability/grafana/provisioning/datasources \
+                       ~/sentilife/backend/observability/grafana/dashboards \
+                       ~/sentilife/db/init"
 
           # Upload compose file
           scp -i ~/.ssh/ec2_key.pem \
             docker-compose.prod.yml \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/docker-compose.prod.yml
 
-          # Upload observability configs (Prometheus + Grafana provisioning)
+          # Upload DB init scripts (Flyway handles schema, these are extras)
           scp -i ~/.ssh/ec2_key.pem \
-            backend-java/observability/prometheus.yml \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend-java/observability/prometheus.yml
+            db/init/01_schema.sql \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/db/init/01_schema.sql
+
+          # Upload observability configs (Prometheus + Grafana)
+          scp -i ~/.ssh/ec2_key.pem \
+            backend/observability/prometheus.yml \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/observability/prometheus.yml
 
           scp -i ~/.ssh/ec2_key.pem -r \
-            backend-java/observability/grafana/provisioning \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend-java/observability/grafana/
+            backend/observability/grafana/provisioning \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/observability/grafana/
 
           scp -i ~/.ssh/ec2_key.pem -r \
-            backend-java/observability/grafana/dashboards \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend-java/observability/grafana/
+            backend/observability/grafana/dashboards \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/observability/grafana/
 
       - name: Deploy on EC2
         run: |
@@ -164,6 +170,10 @@ jobs:
 
             cd ~/sentilife
             DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+            POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+            POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
+            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             sleep 25

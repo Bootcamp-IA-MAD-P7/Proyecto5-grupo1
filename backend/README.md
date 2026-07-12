@@ -16,7 +16,7 @@ Backend de negocio con Spring Boot 3 + Java 21. Gestiona autenticación, usuario
 ```bash
 # Desde la raíz del repo
 cp .env.example .env
-docker compose up backend-java
+docker compose up backend
 ```
 
 El servicio queda en **http://localhost:8080**
@@ -27,7 +27,7 @@ El servicio queda en **http://localhost:8080**
 ### Local (sin Docker)
 
 ```bash
-cd backend-java
+cd backend
 mvn clean install
 mvn spring-boot:run
 ```
@@ -45,7 +45,7 @@ Los tests usan H2 en memoria (perfil `test`), no requieren PostgreSQL.
 ## Estructura
 
 ```
-backend-java/
+backend/
 ├── src/main/java/com/sentilife/
 │   ├── SentiLifeApplication.java   # Entrada
 │   ├── config/                     # Security, RabbitMQ, etc.
