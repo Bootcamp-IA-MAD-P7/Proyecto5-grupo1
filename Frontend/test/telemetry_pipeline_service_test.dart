@@ -157,7 +157,7 @@ void main() {
 
         await expectation;
         expect(pipeline.isRunning, isTrue);
-        expect(telemetryService.sendCount, 2);
+        expect(telemetryService.sendCount, 3);
       },
     );
 
@@ -279,6 +279,191 @@ void main() {
       expect(windowBuilder.addCount, 0);
       expect(sensorCaptureService.hasListener, isFalse);
     });
+
+    test('failed send enqueues the window without losing it', () async {
+      final sensorCaptureService = _FakeSensorCaptureService();
+      final window = _window(startSecond: 1);
+      final windowBuilder = _FakeSlidingWindowBuilder()..outputs.add(window);
+      final telemetryService = _FakeTelemetryService()
+        ..responses.add(Exception('offline'));
+      final pipeline = TelemetryPipelineService(
+        sensorCaptureService: sensorCaptureService,
+        windowBuilder: windowBuilder,
+        telemetryService: telemetryService,
+      );
+
+      await pipeline.startMonitoring(
+        monitoredPersonId: 'person-1',
+        deviceId: 'device-1',
+      );
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(telemetryService.sendCount, 1);
+      _expectSentWindows(telemetryService.sentWindows, [window]);
+    });
+
+    test(
+      'a later window retries pending queue before sending the new one',
+      () async {
+        final sensorCaptureService = _FakeSensorCaptureService();
+        final firstWindow = _window(startSecond: 1);
+        final secondWindow = _window(startSecond: 2);
+        final windowBuilder = _FakeSlidingWindowBuilder()
+          ..outputs.add(firstWindow)
+          ..outputs.add(secondWindow);
+        final firstRetryPrediction = _prediction(windowId: 'first-retry');
+        final secondPrediction = _prediction(windowId: 'second');
+        final telemetryService = _FakeTelemetryService()
+          ..responses.add(Exception('offline'))
+          ..responses.add(firstRetryPrediction)
+          ..responses.add(secondPrediction);
+        final pipeline = TelemetryPipelineService(
+          sensorCaptureService: sensorCaptureService,
+          windowBuilder: windowBuilder,
+          telemetryService: telemetryService,
+        );
+
+        final expectation = expectLater(
+          pipeline.predictions,
+          emitsInOrder([same(firstRetryPrediction), same(secondPrediction)]),
+        );
+
+        await pipeline.startMonitoring(
+          monitoredPersonId: 'person-1',
+          deviceId: 'device-1',
+        );
+        sensorCaptureService.emit(_snapshot());
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        sensorCaptureService.emit(_snapshot());
+
+        await expectation;
+        _expectSentWindows(telemetryService.sentWindows, [
+          firstWindow,
+          firstWindow,
+          secondWindow,
+        ]);
+      },
+    );
+
+    test('pending windows are retried in FIFO order', () async {
+      final sensorCaptureService = _FakeSensorCaptureService();
+      final firstWindow = _window(startSecond: 1);
+      final secondWindow = _window(startSecond: 2);
+      final thirdWindow = _window(startSecond: 3);
+      final windowBuilder = _FakeSlidingWindowBuilder()
+        ..outputs.add(firstWindow)
+        ..outputs.add(secondWindow)
+        ..outputs.add(thirdWindow);
+      final telemetryService = _FakeTelemetryService()
+        ..responses.add(Exception('offline'))
+        ..responses.add(_prediction(windowId: 'first'))
+        ..responses.add(_prediction(windowId: 'second'))
+        ..responses.add(_prediction(windowId: 'third'));
+      final pipeline = TelemetryPipelineService(
+        sensorCaptureService: sensorCaptureService,
+        windowBuilder: windowBuilder,
+        telemetryService: telemetryService,
+      );
+
+      await pipeline.startMonitoring(
+        monitoredPersonId: 'person-1',
+        deviceId: 'device-1',
+      );
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      _expectSentWindows(telemetryService.sentWindows, [
+        firstWindow,
+        firstWindow,
+        secondWindow,
+        thirdWindow,
+      ]);
+    });
+
+    test('windows are not sent concurrently', () async {
+      final sensorCaptureService = _FakeSensorCaptureService();
+      final firstWindow = _window(startSecond: 1);
+      final secondWindow = _window(startSecond: 2);
+      final firstResponse = Completer<WindowPrediction>();
+      final windowBuilder = _FakeSlidingWindowBuilder()
+        ..outputs.add(firstWindow)
+        ..outputs.add(secondWindow);
+      final telemetryService = _FakeTelemetryService()
+        ..responses.add(firstResponse)
+        ..responses.add(_prediction(windowId: 'second'));
+      final pipeline = TelemetryPipelineService(
+        sensorCaptureService: sensorCaptureService,
+        windowBuilder: windowBuilder,
+        telemetryService: telemetryService,
+      );
+
+      await pipeline.startMonitoring(
+        monitoredPersonId: 'person-1',
+        deviceId: 'device-1',
+      );
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(telemetryService.sendCount, 1);
+      expect(telemetryService.maxConcurrentSends, 1);
+
+      firstResponse.complete(_prediction(windowId: 'first'));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(telemetryService.sendCount, 2);
+      expect(telemetryService.maxConcurrentSends, 1);
+      _expectSentWindows(telemetryService.sentWindows, [
+        firstWindow,
+        secondWindow,
+      ]);
+    });
+
+    test('a failed retry keeps the window at the front of the queue', () async {
+      final sensorCaptureService = _FakeSensorCaptureService();
+      final firstWindow = _window(startSecond: 1);
+      final secondWindow = _window(startSecond: 2);
+      final windowBuilder = _FakeSlidingWindowBuilder()
+        ..outputs.add(firstWindow)
+        ..outputs.add(secondWindow);
+      final telemetryService = _FakeTelemetryService()
+        ..responses.add(Exception('offline'))
+        ..responses.add(Exception('still offline'));
+      final pipeline = TelemetryPipelineService(
+        sensorCaptureService: sensorCaptureService,
+        windowBuilder: windowBuilder,
+        telemetryService: telemetryService,
+      );
+
+      await pipeline.startMonitoring(
+        monitoredPersonId: 'person-1',
+        deviceId: 'device-1',
+      );
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      sensorCaptureService.emit(_snapshot());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(telemetryService.sendCount, 2);
+      _expectSentWindows(telemetryService.sentWindows, [
+        firstWindow,
+        firstWindow,
+      ]);
+    });
   });
 }
 
@@ -356,7 +541,10 @@ class _FakeSlidingWindowBuilder implements SlidingWindowBuilder {
 
 class _FakeTelemetryService implements TelemetryService {
   final Queue<Object> responses = Queue<Object>();
+  final List<TelemetryWindow> sentWindows = [];
   int sendCount = 0;
+  int currentConcurrentSends = 0;
+  int maxConcurrentSends = 0;
   String? lastMonitoredPersonId;
   String? lastDeviceId;
   TelemetryWindow? lastWindow;
@@ -372,6 +560,10 @@ class _FakeTelemetryService implements TelemetryService {
     Map<String, double>? context,
   }) async {
     sendCount++;
+    currentConcurrentSends++;
+    if (currentConcurrentSends > maxConcurrentSends) {
+      maxConcurrentSends = currentConcurrentSends;
+    }
     lastMonitoredPersonId = monitoredPersonId;
     lastDeviceId = deviceId;
     lastWindow = TelemetryWindow(
@@ -381,14 +573,22 @@ class _FakeTelemetryService implements TelemetryService {
       samples: samples,
       context: context,
     );
+    sentWindows.add(lastWindow!);
 
-    final response = responses.isEmpty
-        ? _prediction()
-        : responses.removeFirst();
-    if (response is Exception) {
-      throw response;
+    try {
+      final response = responses.isEmpty
+          ? _prediction()
+          : responses.removeFirst();
+      if (response is Exception) {
+        throw response;
+      }
+      if (response is Completer<WindowPrediction>) {
+        return await response.future;
+      }
+      return response as WindowPrediction;
+    } finally {
+      currentConcurrentSends--;
     }
-    return response as WindowPrediction;
   }
 
   @override
@@ -411,8 +611,8 @@ SensorSnapshot _snapshot() {
   );
 }
 
-TelemetryWindow _window() {
-  final windowStart = DateTime.utc(2026, 1, 1, 12);
+TelemetryWindow _window({int startSecond = 0}) {
+  final windowStart = DateTime.utc(2026, 1, 1, 12, 0, startSecond);
   final samples = List<double>.filled(125, 1);
   return TelemetryWindow(
     windowStart: windowStart,
@@ -429,12 +629,30 @@ TelemetryWindow _window() {
   );
 }
 
-WindowPrediction _prediction({double confidence = 0.8}) {
+WindowPrediction _prediction({
+  String windowId = 'window-1',
+  double confidence = 0.8,
+}) {
   return WindowPrediction(
-    windowId: 'window-1',
+    windowId: windowId,
     fallDetected: false,
     confidence: confidence,
     modelVersion: 'test-model',
     latencyMs: 12,
   );
+}
+
+void _expectSentWindows(
+  List<TelemetryWindow> actual,
+  List<TelemetryWindow> expected,
+) {
+  expect(actual, hasLength(expected.length));
+
+  for (var index = 0; index < expected.length; index++) {
+    expect(actual[index].windowStart, expected[index].windowStart);
+    expect(actual[index].windowEnd, expected[index].windowEnd);
+    expect(actual[index].sampleRateHz, expected[index].sampleRateHz);
+    expect(actual[index].samples, equals(expected[index].samples));
+    expect(actual[index].context, equals(expected[index].context));
+  }
 }
