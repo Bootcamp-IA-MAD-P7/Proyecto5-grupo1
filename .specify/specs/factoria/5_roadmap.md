@@ -8,7 +8,7 @@
 
 ---
 
-## 0. ESTADO ACTUAL — DOM 12 (sincronizado 12/07/2026)
+## 0. ESTADO ACTUAL — DOM 12 TARDE (sincronizado 12/07/2026)
 
 > Esta sección es la fuente de verdad de situación para todos los agentes. Actualizar aquí **antes** de cualquier PR.
 
@@ -21,57 +21,56 @@
 | ALL | Makefile + scripts verify-local | SL-12 / T0.11 |
 | BE-B | FastAPI reducido a inferencia pura | SL-7 / T0.8 |
 | BE-B | **Modelo real XGBoost en `/predict`** (features.py + model.py) | SL-20 / T1.7 |
+| BE-B | **Registry modelos + hot-reload** (`ml/registry/`, `ml/models/`) | SL-54 / T4.3 |
+| BE-B | Export dataset etiquetado (`data/feedback/`) | SL-36 / T2.10 |
 | FE-A | Renombrado SentiLife | SL-8 / T0.2 |
 | FE-A | i18n base español | SL-9 / T0.9 |
 | FE-A | **Captura sensores + ventanas (125 muestras@50Hz)** | SL-23 / T1.10 |
+| FE-A | Pantalla MONITORED v1 | SL-24 / T1.11 |
+| FE-A | Modal consentimiento + transparencia | SL-37, SL-38 / T2.12, T2.13 |
 | FE-B | Mock de contratos completo (auth/personas/telemetría/alertas) | SL-10 / T0.10 |
+| FE-B | Navegación 3 perfiles + CAREGIVER + IT_ADMIN + alertas | SL-11, SL-31, SL-32, SL-40 / T2.11, T2.14, T2.15, T2.17 |
 | ML | EDA SisFall completo (sesgo edad/sexo documentado) | SL-13 / T1.1 |
-| ML | Contrato de ventana v1.0.0 publicado | SL-14 / T1.2 |
+| ML | Contrato de ventana v1.0.0 (`contracts/window_contract.json`) | SL-14 / T1.2 |
 | ML | Pipeline features (56.313 ventanas, 116 features) | SL-16 / T1.3 |
-| ML | **Baseline GroupKFold / LOSO sin fuga de sujetos** | SL-17 / T1.4 |
-| ML | **XGBoost: PR-AUC=0.901, recall=83.2%, overfitting<3%** | SL-18 / T1.5 |
-| ML | **Informe técnico v1** (`Backend/docs/informe_tecnico_v1.md`) | — / T1.6 |
+| ML | Baseline GroupKFold / LOSO sin fuga de sujetos | SL-17 / T1.4 |
+| ML | XGBoost: PR-AUC=0.901, recall=83.2%, overfitting<3% | SL-18 / T1.5 |
+| ML | Informe técnico v1 | — / T1.6 |
+| ML | **Ensembles RF+GB+XGBoost** (LOSO XGBoost **0.925**) | SL-41 / T2.1 |
+| ML | **Optuna** (test PR-AUC **0.916**, `model_tuned.pkl` CANDIDATE) | SL-42 / T2.2 |
+| ML | Carpeta `ml/` reorganizada: `pipeline/`, `training/`, `evaluation/`, `feedback/`, `models/` | — |
 
-### ⚠ Bloqueado — BE Java no está en el repo
+### ⏳ En PR — BE Java (subido, pendiente tu aprobación/merge)
 
-> El equipo BE-A/BE-B Java está trabajando en local pero **no ha hecho push**. Hasta que suban el código, todas las tareas que dependen de Java quedan en ⚠.
+> El equipo Java subió `feature/backend` a GitHub. **No mergeado aún en `dev`** — lo revisas y apruebas tú.
 
-| SL | Tarea bloqueada | Desbloquea |
+| SL | Contenido del PR | Desbloquea al mergear |
 |---|---|---|
-| SL-2 | Estructura backend-java (Spring Boot 3) | todo el BE Java |
+| SL-2 | Estructura `backend-java/` (Spring Boot 3) | todo el BE Java |
 | SL-3 | Flyway + seed | SL-21, SL-26 |
 | SL-5 | Compose completo (+Java+RabbitMQ+Grafana) | T0.INT |
-| SL-15 / T0.INT | Fundaciones integradas | Fase 1 completa |
 | SL-21 | POST /telemetry/windows Java | T1.8, T1.INT |
 | SL-22 | /devices/pair Java | T1.9 |
-| SL-25 / T1.INT | Integración real app→Java→FastAPI | Fase 2 |
-| SL-26 | Auth JWT | SL-27, SL-28, SL-30 |
+| SL-26 | Auth JWT + login real Flutter | SL-27, SL-28, SL-30 |
 | SL-27 | CRUD personas | SL-28, SL-31 |
 | SL-28 | Consentimiento + 403 | SL-34, SL-43 |
 | SL-34 | Alertas + feedback_labels | SL-35, SL-36, SL-55 |
 | SL-44 | CI mvn test | SL-45, SL-46 |
-| SL-45 / T3.3 | Deploy QA EC2 | T3.INT, T4.INT |
+| SL-47 | Dashboard Grafana definitivo | T3.5 |
+| SL-57 | A/B testing ~20% CANDIDATE | T4.6 |
 
-### 🔲 Pendiente (sin bloqueo Java — ejecutable HOY)
+### 🔲 Pendiente (sin bloqueo — próximo: lun 13)
 
-| SL | Tarea | Stream | Día plan | Impacto |
-|---|---|---|---|---|
-| SL-41 / T2.1 | Ensembles RF+GB+XGBoost GroupKFold/LOSO | ML | dom 12 | 🟡 Nivel Medio |
-| SL-42 / T2.2 | Optuna + informe v2 | ML | dom 12 | 🟡 Nivel Medio |
-| SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 | 🔴 Nivel Experto |
-| SL-54 / T4.3 | Registry modelos + hot-reload FastAPI | BE-B | dom 12 | 🔴 Base retrain |
-| SL-55 / T4.4 | Retrain + auto-reemplazo por métricas | BE-B+ML | lun 13 | 🔴 Experto core |
-| SL-57 / T4.6 | A/B testing ~20% tráfico CANDIDATE | BE-B | mar 14 | 🔴 Experto |
-| SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 | 🔴 Experto |
-| SL-47 / T3.5 | Dashboard Grafana definitivo | BE-B | mar 14 | 🟠 Avanzado |
-| SL-24 / T1.11 | Pantalla MONITORED v1 Flutter | FE-A | dom 12 | 🟢 Esencial FE |
-| SL-11 | Navegación 3 perfiles Flutter | FE-B | dom 12 | 🟡 Medio FE |
-| SL-31 / T2.14 | Perfil CAREGIVER Flutter | FE-B | dom 12 | 🟡 Medio FE |
-| SL-40 / T2.17 | Perfil IT_ADMIN Flutter | FE-B | lun 13 | 🟡 Medio FE |
-| SL-36 / T2.10 | Export dataset etiquetado (admin API mock) | BE-B | dom 12 | 🟡 Medio |
-| SL-56 / T4.5 | Pantalla MLOps IT Flutter | FE-B | lun 13 | 🔴 SHOULD |
-| SL-51 / T3.INT | Demo QA + video respaldo | ALL | mar 14 | Entrega |
-| SL-59 / T4.8 | Informe final + presentaciones | ALL | mié 15 | Entrega |
+| SL | Tarea | Stream | Día plan |
+|---|---|---|---|
+| SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 |
+| SL-55 / T4.4 | Retrain + auto-reemplazo por métricas | BE-B+ML | lun 13 |
+| SL-56 / T4.5 | Pantalla MLOps IT Flutter | FE-B | lun 13 |
+| SL-57 / T4.6 | A/B testing (si no viene del PR Java) | BE-B | mar 14 |
+| SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 |
+| SL-39 / T2.16 | Push Flutter (FCM) | FE-B | post-merge Java |
+| SL-51 / T3.INT | Demo QA + video respaldo | ALL | mar 14 |
+| SL-59 / T4.8 | Informe final + presentaciones | ALL | mié 15 |
 
 ---
 
@@ -257,13 +256,13 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-10 | Mock de contratos completo | FE-B | MUST | mié 8 | SL-1 | ✅ |
 | SL-12 | Flujo local Makefile + health checks | ALL | MUST | mié 8 | SL-5 | ✅ (parcial, sin Java) |
 | SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | ✅ |
-| SL-2 | Estructura backend-java (Spring Boot 3) | BE-A | MUST | mié 8 | SL-1 | ⚠ en local, sin push |
-| SL-5 | Compose completo (+Java/RabbitMQ/Prom/Grafana) | BE-B | MUST | mié 8 | SL-2 | ⚠ bloqueado SL-2 |
+| SL-2 | Estructura backend-java (Spring Boot 3) | BE-A | MUST | mié 8 | SL-1 | ⏳ **en PR** `feature/backend` |
+| SL-5 | Compose completo (+Java/RabbitMQ/Prom/Grafana) | BE-B | MUST | mié 8 | SL-2 | ⏳ **en PR** `feature/backend` |
 | SL-14 | Contrato de ventana v1.0.0 | ML | MUST | jue 9 | SL-13 | ✅ |
 | SL-16 | Pipeline de features (56.313 ventanas, 116 feat) | ML | MUST | jue 9 | SL-14 | ✅ |
 | SL-23 | Sensores + ventanas Flutter (cola offline) | FE-A | MUST | jue 9 | SL-10 | ✅ |
-| SL-3 | Flyway + seed (+`telemetry_windows`) | BE-A | MUST | jue 9 | SL-2 | ⚠ bloqueado SL-2 |
-| SL-21 | POST /telemetry/windows (síncrono, Postgres) | BE-B | MUST | jue 9 | SL-3 | ⚠ bloqueado SL-3 |
+| SL-3 | Flyway + seed (+`telemetry_windows`) | BE-A | MUST | jue 9 | SL-2 | ⏳ **en PR** |
+| SL-21 | POST /telemetry/windows (síncrono, Postgres) | BE-B | MUST | jue 9 | SL-3 | ⏳ **en PR** |
 | SL-11 | Navegación 3 perfiles Flutter | FE-B | MUST | jue 9 | SL-10 | ✅ |
 | SL-31 | Perfil CAREGIVER Flutter | FE-B | MUST | jue 9 | SL-11 | ✅ |
 | SL-15 | T0.INT fundaciones | ALL | MUST | jue 9 | SL-2…SL-11 | ⚠ bloqueado SL-2 |
@@ -274,31 +273,31 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-37 | Modal consentimiento Flutter | FE-A | MUST | vie 10 | SL-24 | ✅ |
 | SL-32 | Alertas + feedback UI Flutter | FE-B | MUST | vie 10 | SL-31 | ✅ |
 | SL-40 | Perfil IT_ADMIN Flutter | FE-B | SHOULD | vie 10 | SL-32 | ✅ |
-| SL-26 | Auth JWT completa | BE-A | MUST | vie 10 | SL-3 | ⚠ bloqueado SL-3 |
-| SL-27 | CRUD personas | BE-A | MUST | vie 10 | SL-26 | ⚠ bloqueado SL-26 |
-| SL-22 | /devices/pair Java | BE-B | MUST | vie 10 | SL-3 | ⚠ bloqueado SL-3 |
-| SL-25 | T1.INT núcleo real (app→Java→FastAPI) | ALL | MUST | vie 10 | SL-20, SL-26 | ⚠ bloqueado SL-26 |
+| SL-26 | Auth JWT completa | BE-A | MUST | vie 10 | SL-3 | ⏳ **en PR** |
+| SL-27 | CRUD personas | BE-A | MUST | vie 10 | SL-26 | ⏳ **en PR** |
+| SL-22 | /devices/pair Java | BE-B | MUST | vie 10 | SL-3 | ⏳ **en PR** |
+| SL-25 | T1.INT núcleo real (app→Java→FastAPI) | ALL | MUST | vie 10 | SL-20, SL-26 | ⏳ post-merge PR |
 | SL-41 | Ensembles RF+GB+XGBoost GroupKFold/LOSO (🟡) | ML | MUST | dom 12 | SL-18 | ✅ |
 | SL-42 | Optuna + informe v2 (🟡) | ML | MUST | dom 12 | SL-41 | ✅ |
 | SL-54 | Registry modelos + hot-reload FastAPI (🔴) | BE-B | MUST | dom 12 | SL-20 | ✅ |
 | SL-36 | Export dataset etiquetado — script Python (🟡) | BE-B | MUST | dom 12 | SL-20 | ✅ (sin Java) |
-| SL-28 | Consentimiento + 403 | BE-A | MUST | sáb 11 | SL-27 | ⚠ bloqueado SL-27 |
-| SL-48 | Supresión GDPR | BE-A | MUST | sáb 11 | SL-28 | ⚠ bloqueado SL-28 |
-| SL-34 | Alertas + feedback_labels (🟡) | BE-B | MUST | sáb 11 | SL-21 | ⚠ bloqueado SL-21 |
-| SL-35 | Push FCM backend | BE-B | SHOULD | sáb 11 | SL-34 | ⚠ bloqueado SL-34 |
-| SL-30 | Login real por rol Flutter | FE-A | MUST | sáb 11 | SL-26 | ⚠ bloqueado SL-26 |
+| SL-28 | Consentimiento + 403 | BE-A | MUST | sáb 11 | SL-27 | ⏳ **en PR** |
+| SL-48 | Supresión GDPR | BE-A | MUST | sáb 11 | SL-28 | ⏳ **en PR** |
+| SL-34 | Alertas + feedback_labels (🟡) | BE-B | MUST | sáb 11 | SL-21 | ⏳ **en PR** |
+| SL-35 | Push FCM backend | BE-B | SHOULD | sáb 11 | SL-34 | ⏳ **en PR** |
+| SL-30 | Login real por rol Flutter | FE-A | MUST | sáb 11 | SL-26 | ⏳ **en PR** |
 | SL-38 | Modal transparencia Flutter | FE-A | SHOULD | sáb 11 | SL-37 | ✅ |
 | SL-39 | Push Flutter | FE-B | SHOULD | sáb 11 | SL-32 | 🔲 |
 | SL-43 | T2.INT MVP completo local | ALL | MUST | sáb 11 | SL-28…SL-39 | ⚠ bloqueado SL-28 |
-| SL-44 | CI mvn test | BE-A | MUST | dom 12 | SL-26 | ⚠ bloqueado SL-26 |
-| SL-46 | Tests Java (auth/roles/consent) (🟠) | BE-A | MUST | dom 12 | SL-43 | ⚠ bloqueado SL-43 |
+| SL-44 | CI mvn test | BE-A | MUST | dom 12 | SL-26 | ⏳ **en PR** |
+| SL-46 | Tests Java (auth/roles/consent) (🟠) | BE-A | MUST | dom 12 | SL-43 | ⏳ post-merge |
+| SL-47 | Dashboard Grafana definitivo (🟠) | BE-B | MUST | mar 14 | SL-20 | ⏳ **en PR** (parcial) |
 | SL-53 | CNN 1D/LSTM vs. ensemble (🔴) | ML | MUST | lun 13 | SL-41 | 🔲 **LUN** |
 | SL-55 | Retrain + auto-reemplazo por métricas (🔴) | BE-B+ML | MUST | lun 13 | SL-54, SL-36 | 🔲 **LUN** |
 | SL-56 | Pantalla MLOps IT Flutter (SHOULD) | FE-B | SHOULD | lun 13 | SL-55 | 🔲 |
 | SL-45 | Deploy QA EC2 (🟠) | BE-B | MUST | lun 13 | SL-44 | ⚠ bloqueado SL-44 |
-| SL-57 | A/B testing ~20% tráfico CANDIDATE (🔴) | BE-B | MUST | mar 14 | SL-54 | 🔲 |
+| SL-57 | A/B testing ~20% tráfico CANDIDATE (🔴) | BE-B | MUST | mar 14 | SL-54 | ⏳ **en PR** |
 | SL-58 | Data drift + panel Grafana (🔴) | ML | MUST | mar 14 | SL-55 | 🔲 |
-| SL-47 | Dashboard Grafana definitivo (🟠) | BE-B | MUST | mar 14 | SL-20 | 🔲 |
 | SL-51 | T3/T4.INT demo QA + video respaldo | ALL | MUST | mar 14 | SL-45, SL-55…SL-58 | ⚠ parcial (local si SL-45 falla) |
 | SL-59 | Informe final + 2 presentaciones | ALL | MUST | mié 15 | SL-51 | 🔲 |
 | SL-60 | DEMO FINAL | ALL | MUST | mié 15 | todo | 🔲 |
@@ -320,7 +319,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 
 | Campo | Valor |
 |---|---|
-| Estado | v4.0 — sincronizado dom 12/07, gate de PR añadido, estados reales |
+| Estado | v4.1 — dom 12 tarde: ML/FE cerrados, Java en PR `feature/backend` |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 12/07/2026 |
 | Próxima revisión obligatoria | Al completar cada SL — actualizar §0 y §4 antes del PR |

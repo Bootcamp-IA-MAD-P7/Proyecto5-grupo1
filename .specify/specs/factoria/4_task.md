@@ -73,8 +73,8 @@
 
 ### ML
 
-- [x] **T2.1** `ML` — Comparativa ensembles (RF vs. GB vs. XGBoost) con GroupKFold/LOSO. *(ML-06, ML-07)* — `ml/compare_ensembles.py` → `ml/artifacts/ensemble_comparison.json`
-- [x] **T2.2** `ML` — Optuna sobre el mejor candidato; informe v2. *(ML-08)* — `ml/optuna_tune.py` → `ml/model_tuned.pkl` + `Backend/docs/informe_tecnico_v2.md`
+- [x] **T2.1** `ML` — Comparativa ensembles (RF vs. GB vs. XGBoost) con GroupKFold/LOSO. *(ML-06, ML-07)* — `ml/training/compare_ensembles.py` → `ml/artifacts/ensemble_comparison.json` (XGBoost LOSO **0.925**)
+- [x] **T2.2** `ML` — Optuna sobre el mejor candidato; informe v2. *(ML-08)* — `ml/training/optuna_tune.py` → `ml/models/model_tuned.pkl` (test PR-AUC **0.916**) + `Backend/docs/informe_tecnico_v2.md`
 
 ### Stream BE-A (auth y negocio)
 
@@ -88,7 +88,7 @@
 - [ ] **T2.7** `BE-B` — RabbitMQ: exchanges/colas de spec §5.3; worker de inferencia; decidir camino crítico síncrono vs. cola con la medición de T1.8. *(ADR-02, RF-14)*
 - [ ] **T2.8** `BE-B` — Alertas: persistencia, `GET /alerts`, `PATCH /alerts/{id}` → `feedback_labels` (spec §6.5). *(RF-14, RF-16, RF-17)*
 - [ ] **T2.9** `BE-B` — **Push FCM**: `POST /devices/push-token`, servicio notificador (Firebase Admin SDK) consumiendo `alert.created`, payload spec §6.4, eventos de estado (monitorización on/off, consentimiento revocado). *(RF-27…RF-30, ADR-07)* (T2.8)
-- [x] **T2.10** `BE-B` — Admin: export dataset etiquetado → `data/feedback/` (script `ml/export_feedback_dataset.py`). *(RF-18, RF-19, ML-09)*
+- [x] **T2.10** `BE-B` — Admin: export dataset etiquetado → `data/feedback/` (script `ml/feedback/export_feedback_dataset.py`). *(RF-18, RF-19, ML-09)*
 
 ### Stream FE-A (monitored)
 
@@ -127,7 +127,7 @@
 
 - [ ] **T4.1** `ML` — MobiAct (si llegó): validación, EDA comparativo, `processed/combined/`. Si no: cerrar Plan B documentado. *(3_plan.md §4)*
 - [ ] **T4.2** `ML` — CNN 1D / LSTM sobre ventanas crudas vs. mejor ensemble, mismo split por sujeto. *(ML-15)*
-- [x] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + FastAPI carga ACTIVE y expone `/model/reload` + `/model/registry`. *(ML-16, ADR-09)*
+- [x] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + modelos en `ml/models/` + FastAPI carga ACTIVE y expone `/model/reload` + `/model/registry`. *(ML-16, ADR-09)*
 - [ ] **T4.4** `BE-B`+`ML` — **Reentrenamiento con datos reales** (patrón proyecto 4): `POST /admin/retrain` → job con fases `drift → training → reload` y estado consultable `GET /admin/retrain/status` (spec §6.6); decisión por recall de caídas con guardas de overfitting y split por sujeto. *(RF-33, ML-19, ADR-09)* (T2.10, T4.3)
 - [ ] **T4.5** `FE-B` — Pantalla IT de MLOps: botón de reentrenamiento, polling de estado con fases y mensaje de decisión, historial de versiones de modelo. *(RF-33)* (T4.4)
 - [ ] **T4.6** `BE-B` — A/B testing: ~20% del tráfico al `CANDIDATE`, métricas por versión en Prometheus/Grafana. *(ML-17)* (T4.3)
@@ -141,10 +141,10 @@
 
 | Nivel bootcamp | Fases | Estado | Notas |
 |---|---|---|---|
-| 🟢 Esencial | 0–1 | ⏳ **ML+FE completos · BE Java bloqueado** | ML ✅ · FastAPI ✅ · Flutter sensores+MONITORED ✅ · Java sin push |
-| 🟡 Medio | 2 | ⏳ **ML+FE mock completos** | Ensembles+Optuna ✅ · pantallas login/caregiver/IT ✅ · BE Java bloqueado |
-| 🟠 Avanzado | 3 | 🔲 bloqueado parcial | Depende de Java BE (deploy, CI, GDPR) |
-| 🔴 Experto | 4 | ⏳ en curso | SL-54 registry ✅ · CNN/retrain/drift lun-mar |
+| 🟢 Esencial | 0–1 | ⏳ **ML+FE completos · BE Java en PR** | ML ✅ · FastAPI ✅ · Flutter sensores+MONITORED ✅ · Java en `feature/backend` (pendiente merge) |
+| 🟡 Medio | 2 | ✅ **ML+FE mock completos** | Ensembles+Optuna ✅ · pantallas login/caregiver/IT ✅ · BE Java en PR |
+| 🟠 Avanzado | 3 | 🔲 bloqueado parcial | Depende de merge Java (deploy, CI, GDPR) |
+| 🔴 Experto | 4 | ⏳ en curso | Registry ✅ · CNN/retrain/drift **lun 13** |
 
 ## Matriz rápida de paralelismo (Fase 2, la más cargada)
 
@@ -161,7 +161,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.4 — sincronizado dom 12/07, gate de PR añadido |
+| Estado | v0.5 — sincronizado dom 12/07 tarde, ml/ reorganizado, Java en PR |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 12/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |
