@@ -118,9 +118,22 @@ class ModelInfo(BaseModel):
 
 
 class ReloadResponse(BaseModel):
-    status: Literal["unchanged"]
+    status: Literal["reloaded", "unchanged"]
     modelVersion: str
     detail: str
+
+
+class RegistryModel(BaseModel):
+    id: str
+    algorithm: str
+    status: str
+    metrics: dict[str, float]
+    trainedAt: str | None = None
+
+
+class RegistryResponse(BaseModel):
+    active: str
+    models: list[RegistryModel]
 
 
 def _build_model_info() -> ModelInfo:
@@ -215,12 +228,25 @@ def reload_model():
     try:
         new_version = ml_model.reload()
         return ReloadResponse(
-            status="unchanged",
+            status="reloaded",
             modelVersion=new_version,
-            detail="Model reloaded from disk.",
+            detail="ACTIVE model reloaded from registry.",
         )
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Could not reload model: {exc}") from exc
+
+
+@app.get("/model/registry", response_model=RegistryResponse, tags=["model"])
+def model_registry():
+    try:
+        entries = ml_model.list_registry()
+        active = next((e["id"] for e in entries if e["status"] == "ACTIVE"), entries[0]["id"])
+        return RegistryResponse(
+            active=active,
+            models=[RegistryModel(**e) for e in entries],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["inference"])

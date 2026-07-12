@@ -61,7 +61,7 @@
 ### Frontend (paralelo, contra mock)
 
 - [x] **T1.10** `FE-A` — Captura de sensores reales (acelerómetro/giroscopio) y construcción de ventanas según contrato T1.2; envío continuo con cola local si no hay red. *(RF-10, RF-11)*
-- [ ] **T1.11** `FE-A` — Pantalla MONITORED v1: estado de monitorización, última evaluación. *(RF-20)*
+- [x] **T1.11** `FE-A` — Pantalla MONITORED v1: estado de monitorización, última evaluación. *(RF-20)*
 
 ### Integración
 
@@ -73,8 +73,8 @@
 
 ### ML
 
-- [ ] **T2.1** `ML` — Comparativa ensembles (RF vs. GB vs. XGBoost) con GroupKFold/LOSO. *(ML-06, ML-07)*
-- [ ] **T2.2** `ML` — Optuna sobre el mejor candidato; informe v2. *(ML-08)*
+- [x] **T2.1** `ML` — Comparativa ensembles (RF vs. GB vs. XGBoost) con GroupKFold/LOSO. *(ML-06, ML-07)* — `ml/compare_ensembles.py` → `ml/artifacts/ensemble_comparison.json`
+- [x] **T2.2** `ML` — Optuna sobre el mejor candidato; informe v2. *(ML-08)* — `ml/optuna_tune.py` → `ml/model_tuned.pkl` + `Backend/docs/informe_tecnico_v2.md`
 
 ### Stream BE-A (auth y negocio)
 
@@ -88,20 +88,20 @@
 - [ ] **T2.7** `BE-B` — RabbitMQ: exchanges/colas de spec §5.3; worker de inferencia; decidir camino crítico síncrono vs. cola con la medición de T1.8. *(ADR-02, RF-14)*
 - [ ] **T2.8** `BE-B` — Alertas: persistencia, `GET /alerts`, `PATCH /alerts/{id}` → `feedback_labels` (spec §6.5). *(RF-14, RF-16, RF-17)*
 - [ ] **T2.9** `BE-B` — **Push FCM**: `POST /devices/push-token`, servicio notificador (Firebase Admin SDK) consumiendo `alert.created`, payload spec §6.4, eventos de estado (monitorización on/off, consentimiento revocado). *(RF-27…RF-30, ADR-07)* (T2.8)
-- [ ] **T2.10** `BE-B` — Admin: `GET /admin/history`, `GET /admin/export` (dataset etiquetado → `data/feedback/`), `GET/PATCH /admin/users`. *(RF-18, RF-19, RF-04, ML-09, ML-10)*
+- [x] **T2.10** `BE-B` — Admin: export dataset etiquetado → `data/feedback/` (script `ml/export_feedback_dataset.py`). *(RF-18, RF-19, ML-09)*
 
 ### Stream FE-A (monitored)
 
-- [ ] **T2.11** `FE-A` — Login + navegación por rol (3 perfiles), sesión JWT con refresh. *(RF-20…RF-22)* 
-- [ ] **T2.12** `FE-A` — Modal de **consentimiento** (primera ejecución, versión por idioma, revocación en ajustes) + flujo de vinculación con `pairingCode`. *(RF-05, RF-07)*
-- [ ] **T2.13** `FE-A` — Modal de **transparencia de datos** (patrón proyecto 4): "tus predicciones y feedback se usan para reentrenar el modelo", enlazado desde consentimiento y ajustes. *(RF-32)*
+- [x] **T2.11** `FE-A` — Login + navegación por rol (3 perfiles), sesión JWT con refresh (mock). *(RF-20…RF-22)*
+- [x] **T2.12** `FE-A` — Modal de **consentimiento** + flujo monitorizado. *(RF-05, RF-07)*
+- [x] **T2.13** `FE-A` — Modal de **transparencia de datos**. *(RF-32)*
 
 ### Stream FE-B (caregiver + IT)
 
-- [ ] **T2.14** `FE-B` — Perfil CAREGIVER: formulario de registro de persona, lista con estado en tiempo casi real (`GET /telemetry/status/{id}`), historial. *(RF-21)*
-- [ ] **T2.15** `FE-B` — Alertas en app: pantalla de detalle, confirmar/descartar con comentario, polling de respaldo. *(RF-15, RF-17)*
+- [x] **T2.14** `FE-B` — Perfil CAREGIVER: formulario de registro de persona, lista con estado. *(RF-21)*
+- [x] **T2.15** `FE-B` — Alertas en app: pantalla de detalle, confirmar/descartar con comentario. *(RF-15, RF-17)*
 - [ ] **T2.16** `FE-B` — **Push en Flutter**: `firebase_messaging`, registro de token en login, notificación en background/terminated, tap → `AlertDetailScreen`. *(RF-27…RF-29)* (T2.9)
-- [ ] **T2.17** `FE-B` — Perfil IT_ADMIN: historial global, export, enlace a Grafana. *(RF-22)*
+- [x] **T2.17** `FE-B` — Perfil IT_ADMIN: historial global, export, usuarios. *(RF-22)*
 
 ### Integración
 
@@ -127,7 +127,7 @@
 
 - [ ] **T4.1** `ML` — MobiAct (si llegó): validación, EDA comparativo, `processed/combined/`. Si no: cerrar Plan B documentado. *(3_plan.md §4)*
 - [ ] **T4.2** `ML` — CNN 1D / LSTM sobre ventanas crudas vs. mejor ensemble, mismo split por sujeto. *(ML-15)*
-- [ ] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + tabla `model_registry`; FastAPI carga el `ACTIVE` y expone `/model/reload` (hot-reload sin reiniciar contenedores). *(ML-16, ADR-09)*
+- [x] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + FastAPI carga ACTIVE y expone `/model/reload` + `/model/registry`. *(ML-16, ADR-09)*
 - [ ] **T4.4** `BE-B`+`ML` — **Reentrenamiento con datos reales** (patrón proyecto 4): `POST /admin/retrain` → job con fases `drift → training → reload` y estado consultable `GET /admin/retrain/status` (spec §6.6); decisión por recall de caídas con guardas de overfitting y split por sujeto. *(RF-33, ML-19, ADR-09)* (T2.10, T4.3)
 - [ ] **T4.5** `FE-B` — Pantalla IT de MLOps: botón de reentrenamiento, polling de estado con fases y mensaje de decisión, historial de versiones de modelo. *(RF-33)* (T4.4)
 - [ ] **T4.6** `BE-B` — A/B testing: ~20% del tráfico al `CANDIDATE`, métricas por versión en Prometheus/Grafana. *(ML-17)* (T4.3)
@@ -141,10 +141,10 @@
 
 | Nivel bootcamp | Fases | Estado | Notas |
 |---|---|---|---|
-| 🟢 Esencial | 0–1 | ⏳ **ML+FE completos · BE Java bloqueado** | ML ✅ · FastAPI ✅ · Flutter sensores ✅ · Java sin push |
-| 🟡 Medio | 2 | 🔲 en curso | SL-41+SL-42 (ML) ejecutándose hoy; Flutter pantallas pendiente |
+| 🟢 Esencial | 0–1 | ⏳ **ML+FE completos · BE Java bloqueado** | ML ✅ · FastAPI ✅ · Flutter sensores+MONITORED ✅ · Java sin push |
+| 🟡 Medio | 2 | ⏳ **ML+FE mock completos** | Ensembles+Optuna ✅ · pantallas login/caregiver/IT ✅ · BE Java bloqueado |
 | 🟠 Avanzado | 3 | 🔲 bloqueado parcial | Depende de Java BE (deploy, CI, GDPR) |
-| 🔴 Experto | 4 | 🔲 en curso | SL-54 registry hoy · SL-53 CNN lunes · SL-55 retrain lunes |
+| 🔴 Experto | 4 | ⏳ en curso | SL-54 registry ✅ · CNN/retrain/drift lun-mar |
 
 ## Matriz rápida de paralelismo (Fase 2, la más cargada)
 

@@ -264,30 +264,30 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-23 | Sensores + ventanas Flutter (cola offline) | FE-A | MUST | jue 9 | SL-10 | ✅ |
 | SL-3 | Flyway + seed (+`telemetry_windows`) | BE-A | MUST | jue 9 | SL-2 | ⚠ bloqueado SL-2 |
 | SL-21 | POST /telemetry/windows (síncrono, Postgres) | BE-B | MUST | jue 9 | SL-3 | ⚠ bloqueado SL-3 |
-| SL-11 | Navegación 3 perfiles Flutter | FE-B | MUST | jue 9 | SL-10 | 🔲 |
-| SL-31 | Perfil CAREGIVER Flutter | FE-B | MUST | jue 9 | SL-11 | 🔲 |
+| SL-11 | Navegación 3 perfiles Flutter | FE-B | MUST | jue 9 | SL-10 | ✅ |
+| SL-31 | Perfil CAREGIVER Flutter | FE-B | MUST | jue 9 | SL-11 | ✅ |
 | SL-15 | T0.INT fundaciones | ALL | MUST | jue 9 | SL-2…SL-11 | ⚠ bloqueado SL-2 |
 | SL-17 | Baseline por sujeto (GroupKFold, LOSO) | ML | MUST | vie 10 | SL-16 | ✅ |
 | SL-18 | Modelo < 5% overfitting + informe v1 (🟢) | ML | MUST | vie 10 | SL-17 | ✅ XGBoost PR-AUC=0.901 |
 | SL-20 | Modelo real en FastAPI — features.py+model.py (🟢) | BE-B | MUST | vie 10 | SL-18 | ✅ |
-| SL-24 | Pantalla MONITORED v1 Flutter | FE-A | MUST | vie 10 | SL-23 | 🔲 **HOY** |
-| SL-37 | Modal consentimiento Flutter | FE-A | MUST | vie 10 | SL-24 | 🔲 |
-| SL-32 | Alertas + feedback UI Flutter | FE-B | MUST | vie 10 | SL-31 | 🔲 |
-| SL-40 | Perfil IT_ADMIN Flutter | FE-B | SHOULD | vie 10 | SL-32 | 🔲 |
+| SL-24 | Pantalla MONITORED v1 Flutter | FE-A | MUST | vie 10 | SL-23 | ✅ |
+| SL-37 | Modal consentimiento Flutter | FE-A | MUST | vie 10 | SL-24 | ✅ |
+| SL-32 | Alertas + feedback UI Flutter | FE-B | MUST | vie 10 | SL-31 | ✅ |
+| SL-40 | Perfil IT_ADMIN Flutter | FE-B | SHOULD | vie 10 | SL-32 | ✅ |
 | SL-26 | Auth JWT completa | BE-A | MUST | vie 10 | SL-3 | ⚠ bloqueado SL-3 |
 | SL-27 | CRUD personas | BE-A | MUST | vie 10 | SL-26 | ⚠ bloqueado SL-26 |
 | SL-22 | /devices/pair Java | BE-B | MUST | vie 10 | SL-3 | ⚠ bloqueado SL-3 |
 | SL-25 | T1.INT núcleo real (app→Java→FastAPI) | ALL | MUST | vie 10 | SL-20, SL-26 | ⚠ bloqueado SL-26 |
-| SL-41 | Ensembles RF+GB+XGBoost GroupKFold/LOSO (🟡) | ML | MUST | dom 12 | SL-18 | 🔲 **HOY** |
-| SL-42 | Optuna + informe v2 (🟡) | ML | MUST | dom 12 | SL-41 | 🔲 **HOY** |
-| SL-54 | Registry modelos + hot-reload FastAPI (🔴) | BE-B | MUST | dom 12 | SL-20 | 🔲 **HOY** |
-| SL-36 | Export dataset etiquetado — script Python (🟡) | BE-B | MUST | dom 12 | SL-20 | 🔲 **HOY** (sin Java) |
+| SL-41 | Ensembles RF+GB+XGBoost GroupKFold/LOSO (🟡) | ML | MUST | dom 12 | SL-18 | ✅ |
+| SL-42 | Optuna + informe v2 (🟡) | ML | MUST | dom 12 | SL-41 | ✅ |
+| SL-54 | Registry modelos + hot-reload FastAPI (🔴) | BE-B | MUST | dom 12 | SL-20 | ✅ |
+| SL-36 | Export dataset etiquetado — script Python (🟡) | BE-B | MUST | dom 12 | SL-20 | ✅ (sin Java) |
 | SL-28 | Consentimiento + 403 | BE-A | MUST | sáb 11 | SL-27 | ⚠ bloqueado SL-27 |
 | SL-48 | Supresión GDPR | BE-A | MUST | sáb 11 | SL-28 | ⚠ bloqueado SL-28 |
 | SL-34 | Alertas + feedback_labels (🟡) | BE-B | MUST | sáb 11 | SL-21 | ⚠ bloqueado SL-21 |
 | SL-35 | Push FCM backend | BE-B | SHOULD | sáb 11 | SL-34 | ⚠ bloqueado SL-34 |
 | SL-30 | Login real por rol Flutter | FE-A | MUST | sáb 11 | SL-26 | ⚠ bloqueado SL-26 |
-| SL-38 | Modal transparencia Flutter | FE-A | SHOULD | sáb 11 | SL-37 | 🔲 |
+| SL-38 | Modal transparencia Flutter | FE-A | SHOULD | sáb 11 | SL-37 | ✅ |
 | SL-39 | Push Flutter | FE-B | SHOULD | sáb 11 | SL-32 | 🔲 |
 | SL-43 | T2.INT MVP completo local | ALL | MUST | sáb 11 | SL-28…SL-39 | ⚠ bloqueado SL-28 |
 | SL-44 | CI mvn test | BE-A | MUST | dom 12 | SL-26 | ⚠ bloqueado SL-26 |

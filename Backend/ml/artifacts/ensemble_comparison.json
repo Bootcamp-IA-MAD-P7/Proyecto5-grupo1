@@ -1,0 +1,49 @@
+{
+  "task": "SL-41 / T2.1",
+  "dataset": "data/processed/sisfall/sisfall_windows_features.csv.gz",
+  "n_windows": 56313,
+  "n_subjects": 38,
+  "split": "GroupShuffleSplit 70/15/15 + StratifiedGroupKFold(5) + LOSO en ganador",
+  "method": "Reproducido con ml/train_model.py (RF/XGBoost) + ml/compare_ensembles.py (GB)",
+  "models": [
+    {
+      "model": "Random Forest",
+      "cv_pr_auc_mean": 0.901,
+      "cv_pr_auc_std": 0.027,
+      "pr_auc_test": 0.88,
+      "f1_fall_test": 0.77,
+      "recall_fall_test": 0.728,
+      "overfitting_gap_pp": 2.1,
+      "overfitting_ok": true,
+      "threshold": 0.51
+    },
+    {
+      "model": "Gradient Boosting",
+      "cv_pr_auc_mean": 0.895,
+      "cv_pr_auc_std": 0.028,
+      "pr_auc_test": 0.888,
+      "f1_fall_test": 0.79,
+      "recall_fall_test": 0.75,
+      "overfitting_gap_pp": 0.7,
+      "overfitting_ok": true,
+      "threshold": 0.53,
+      "note": "sklearn GB n_estimators=80; comparable a RF"
+    },
+    {
+      "model": "XGBoost",
+      "cv_pr_auc_mean": 0.923,
+      "cv_pr_auc_std": 0.023,
+      "pr_auc_test": 0.901,
+      "f1_fall_test": 0.814,
+      "recall_fall_test": 0.832,
+      "pr_auc_loso": 0.925,
+      "f1_fall_loso": 0.832,
+      "overfitting_gap_pp": 2.2,
+      "overfitting_ok": true,
+      "threshold": 0.57
+    }
+  ],
+  "best_model_loso": "XGBoost",
+  "best_pr_auc_loso": 0.925,
+  "conclusion": "XGBoost gana en test y LOSO con overfitting < 3pp. Seleccionado para Optuna (SL-42)."
+}

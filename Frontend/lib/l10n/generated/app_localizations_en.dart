@@ -160,4 +160,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get understood => 'Got it';
+  @override
+  String get loginTitle => 'Sign in';
+  @override
+  String get email => 'Email';
+  @override
+  String get password => 'Password';
+  @override
+  String get login => 'Sign in';
+  @override
+  String get logout => 'Sign out';
+  @override
+  String get demoAccounts => 'Demo accounts';
+  @override
+  String get roleCaregiver => 'Caregiver';
+  @override
+  String get roleMonitored => 'Monitored person';
+  @override
+  String get roleItAdmin => 'IT Admin';
+  @override
+  String get monitoredTitle => 'My monitoring';
+  @override
+  String get caregiverTitle => 'Caregiver dashboard';
+  @override
+  String get itAdminTitle => 'IT administration';
+  @override
+  String get persons => 'Persons';
+  @override
+  String get alerts => 'Alerts';
+  @override
+  String get history => 'History';
+  @override
+  String get export => 'Export';
+  @override
+  String get users => 'Users';
+  @override
+  String get lastEvaluation => 'Last evaluation';
+  @override
+  String get noEvaluationYet => 'No evaluations yet';
+  @override
+  String lastWindowAt(String timestamp) => 'Last window: $timestamp';
+  @override
+  String get modelVersion => 'Model version';
+  @override
+  String get noPersonsYet => 'No persons registered';
+  @override
+  String get addPerson => 'Register person';
+  @override
+  String get fullName => 'Full name';
+  @override
+  String get birthDate => 'Birth date';
+  @override
+  String get sex => 'Sex';
+  @override
+  String get weightKg => 'Weight (kg)';
+  @override
+  String get heightCm => 'Height (cm)';
+  @override
+  String get emergencyContact => 'Emergency contact';
+  @override
+  String get save => 'Save';
+  @override
+  String get age => 'Age';
+  @override
+  String get consent => 'Consent';
+  @override
+  String get monitoringStatus => 'Monitoring status';
+  @override
+  String get noAlerts => 'No alerts';
+  @override
+  String get alertDetail => 'Alert detail';
+  @override
+  String get comment => 'Comment';
+  @override
+  String get confirmFall => 'Confirm fall';
+  @override
+  String get dismissAlert => 'Dismiss alert';
+  @override
+  String get status => 'Status';
+  @override
+  String get exportDescription => 'Export the labeled dataset with caregiver feedback to retrain the model.';
+  @override
+  String get exportDataset => 'Export dataset';
+  @override
+  String get exportReady => 'Export ready';
+  @override
+  String get consentTitle => 'Monitoring consent';
+  @override
+  String get consentBody => 'I authorize the use of my sensor data to detect falls and improve the SentiLife model. I can revoke this consent at any time from Settings.';
+  @override
+  String get acceptConsent => 'I accept';
+  @override
+  String get decline => 'Decline';
+  @override
+  String get dataTransparency => 'Data transparency';
+  @override
+  String get transparencyBody => 'Your predictions and feedback are used to retrain and improve the fall detection model. Data is processed securely and only with your active consent.';
+
 }

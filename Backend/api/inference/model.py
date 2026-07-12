@@ -1,26 +1,22 @@
 """Trained model loader and inference wrapper for the SentiLife fall detector.
 
-Loads ``ml/model.pkl`` at application startup (lazy on first call).
-Exposes a single ``predict()`` function used by the ``/predict`` endpoint.
+Loads the ACTIVE model from ``ml/registry/registry.json`` (SL-54 / T4.3).
+Supports hot-reload via ``/model/reload`` without restarting the service.
 """
 
 from __future__ import annotations
 
-import os
 import pickle
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from api.inference.features import extract_features
+from api.inference.registry import ModelRegistry
 
-_MODEL_PATH = Path(os.getenv("MODEL_PATH", "ml/model.pkl"))
-
-_TRAINED_AT = "2026-07-12"
-_MODEL_SCHEMA_VERSION = "xgboost-v1.0.0"
+_registry = ModelRegistry()
 
 
 @dataclass
@@ -29,36 +25,47 @@ class _ModelState:
     threshold: float = 0.5
     model_name: str = "unloaded"
     numeric_features: list[str] = field(default_factory=list)
-    version: str = _MODEL_SCHEMA_VERSION
+    version: str = "unloaded"
+    metrics: dict[str, float] = field(default_factory=dict)
+    model_path: Path | None = None
     loaded: bool = False
 
 
 _state = _ModelState()
 
 
-def _load() -> None:
-    """Load (or reload) the model from disk."""
+def _load_from_registry() -> None:
+    """Load (or reload) the ACTIVE model declared in the registry."""
     global _state
-    with open(_MODEL_PATH, "rb") as f:
+    _registry.reload()
+    entry = _registry.active_entry()
+    model_path = entry.path
+    if not model_path.is_absolute():
+        model_path = Path.cwd() / model_path
+
+    with open(model_path, "rb") as f:
         payload = pickle.load(f)
+
     _state = _ModelState(
         pipeline=payload["model"],
         threshold=float(payload["threshold"]),
-        model_name=payload["model_name"],
+        model_name=payload.get("model_name", entry.algorithm),
         numeric_features=payload["numeric_features"],
-        version=_MODEL_SCHEMA_VERSION,
+        version=entry.id,
+        metrics=entry.metrics,
+        model_path=model_path,
         loaded=True,
     )
 
 
 def ensure_loaded() -> None:
     if not _state.loaded:
-        _load()
+        _load_from_registry()
 
 
 def reload() -> str:
-    """Hot-reload the model from disk without restarting the service."""
-    _load()
+    """Hot-reload ACTIVE model from registry without restarting the service."""
+    _load_from_registry()
     return _state.version
 
 
@@ -73,13 +80,24 @@ def model_name() -> str:
 
 
 def metrics_info() -> dict[str, float]:
-    return {
-        "pr_auc_test": 0.901,
-        "f1_fall_test": 0.814,
-        "recall_fall_test": 0.832,
-        "pr_auc_loso": 0.925,
-        "threshold": _state.threshold,
-    }
+    ensure_loaded()
+    info = dict(_state.metrics)
+    info["threshold"] = _state.threshold
+    return info
+
+
+def list_registry() -> list[dict]:
+    _registry.reload()
+    return [
+        {
+            "id": m.id,
+            "algorithm": m.algorithm,
+            "status": m.status,
+            "metrics": m.metrics,
+            "trainedAt": m.trained_at,
+        }
+        for m in _registry.list_models()
+    ]
 
 
 def predict(
@@ -92,18 +110,11 @@ def predict(
 ) -> tuple[bool, float]:
     """Run inference on a single sensor window.
 
-    Units (must match the training contract in ``contracts/window_contract.json``):
-    - accX/Y/Z: m/s² (gravity component preserved, no high-pass filter)
-    - gyroX/Y/Z: **deg/s** — Flutter sensors_plus reports rad/s; the Flutter
-      side must multiply by (180/π) before sending windows.
+    Units (must match ``contracts/window_contract.json``):
+    - accX/Y/Z: m/s²
+    - gyroX/Y/Z: deg/s (Flutter must convert from rad/s)
 
-    Sensor orientation: SisFall was recorded with the sensor on the waist,
-    Y-axis aligned with gravity. In still standing the training data shows
-    ``accY_mean ≈ -8.5 m/s²``. The app must mount the sensor in a compatible
-    orientation or re-train with the real device orientation (T4.4).
-
-    Returns (fall_detected, confidence) where confidence is the raw
-    probability output of the model (not thresholded).
+    Returns (fall_detected, confidence) where confidence is raw probability.
     """
     ensure_loaded()
 

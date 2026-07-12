@@ -385,6 +385,55 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Entendido'**
   String get understood;
+  String get loginTitle;
+  String get email;
+  String get password;
+  String get login;
+  String get logout;
+  String get demoAccounts;
+  String get roleCaregiver;
+  String get roleMonitored;
+  String get roleItAdmin;
+  String get monitoredTitle;
+  String get caregiverTitle;
+  String get itAdminTitle;
+  String get persons;
+  String get alerts;
+  String get history;
+  String get export;
+  String get users;
+  String get lastEvaluation;
+  String get noEvaluationYet;
+  String lastWindowAt(String timestamp);
+  String get modelVersion;
+  String get noPersonsYet;
+  String get addPerson;
+  String get fullName;
+  String get birthDate;
+  String get sex;
+  String get weightKg;
+  String get heightCm;
+  String get emergencyContact;
+  String get save;
+  String get age;
+  String get consent;
+  String get monitoringStatus;
+  String get noAlerts;
+  String get alertDetail;
+  String get comment;
+  String get confirmFall;
+  String get dismissAlert;
+  String get status;
+  String get exportDescription;
+  String get exportDataset;
+  String get exportReady;
+  String get consentTitle;
+  String get consentBody;
+  String get acceptConsent;
+  String get decline;
+  String get dataTransparency;
+  String get transparencyBody;
+
 }
 
 class _AppLocalizationsDelegate
