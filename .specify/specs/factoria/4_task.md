@@ -23,13 +23,13 @@
 
 ### Estructura Java (no existe — tarea inicial de creación)
 
-- [ ] **T0.4** `BE-A` — **Crear desde cero la estructura `backend-java/`**: Spring Boot 3 + Java 21 (Spring Initializr: web, security, data-jpa, validation, actuator, postgresql), paquetes `com.sentilife.{auth,users,monitored,consent,telemetry,alerts,notifications,admin,ota,config}`, perfil `application-docker.yml`, Dockerfile multi-stage, `/actuator/health` respondiendo. *(ADR-01 — bloqueante para todo BE)*
-- [ ] **T0.5** `BE-B` — Migraciones de esquema (Flyway) con las tablas de spec §5.1 (incluidas `paired_devices` y `push_tokens`); seed de usuario `IT_ADMIN`.
+- [x] **T0.4** `BE-A` — **Crear desde cero la estructura `backend-java/`**: Spring Boot 3 + Java 21, paquetes `com.sentilife.{auth,users,monitored,consent,telemetry,alerts,notifications,admin,registry,config}`, perfil `application-docker.yml`, Dockerfile multi-stage, `/actuator/health`. *(ADR-01)*
+- [x] **T0.5** `BE-B` — Flyway V1 (esquema spec §5.1), V2 (seed IT_ADMIN), V3 (created_at columns).
 
 ### Infraestructura y compose (premisa: un solo `docker compose up`)
 
-- [ ] **T0.6** `BE-B` — Ampliar `docker-compose.yml` y `docker-compose.prod.yml` con: **backend-java**, RabbitMQ (management), InfluxDB 2.x, Prometheus, Grafana. Health checks en todos; variables nuevas en `.env.example` (`JWT_SECRET`, `INFLUX_TOKEN`, `RABBITMQ_PASSWORD`, `FIREBASE_SERVICE_ACCOUNT`). *(3_plan.md §5 premisa operativa)*
-- [ ] **T0.7** `BE-B` — Carpeta `observability/`: `prometheus.yml` (scrape Java actuator + FastAPI) y Grafana provisionado (datasource + dashboard esqueleto versionado). *(RF-24, RF-25)*
+- [x] **T0.6** `BE-B` — `docker-compose.yml` + `docker-compose.prod.yml` con backend-java, RabbitMQ, Prometheus, Grafana. Health checks y variables en `.env.example`. *(3_plan.md §5)*
+- [x] **T0.7** `BE-B` — `observability/`: `prometheus.yml` (scrape Java actuator + FastAPI) + Grafana provisionado (datasource + dashboard pipeline). *(RF-24, RF-25)*
 - [x] **T0.8** `BE-B` — Reducir FastAPI a servicio de inferencia: `/predict`, `/health`, `/metrics`, `/model/info`, `/model/reload`; `/app/*` marcado para migración. *(ADR-06)*
 - [x] **T0.9** `FE-A` — Base i18n en Flutter: `flutter_localizations` + ARB `es`/`en`, selector de idioma, migrar strings existentes. Desde aquí, prohibido hardcodear textos. *(RF-31, ADR-08)*
 - [x] **T0.10** `FE-B` — Actualizar el **mock de Flutter** para implementar exactamente los contratos de spec §6 (auth, personas, telemetría, alertas, admin) — es la herramienta que desacopla FE de BE. *(3_plan.md §6 regla 1)*
@@ -55,8 +55,8 @@
 ### Backend (paralelo a ML)
 
 - [x] **T1.7** `BE-B` — Integrar modelo en FastAPI: carga `model.pkl`, preprocesado idéntico al entrenamiento, respuesta spec §6.8. Eliminar `classify()` por umbrales. *(ML-04, RF-13)* (T1.2, T1.5)
-- [ ] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` v1 (sin consentimiento aún): valida payload → escribe InfluxDB → llama inferencia síncrona → devuelve predicción según spec §6.3. Medir latencia (histograma Prometheus). *(RF-12)* (T0.8)
-- [ ] **T1.9** `BE-A` — Java: vinculación de dispositivo `POST /api/v1/devices/pair` + `pairingCode` en personas (spec §6.4).
+- [x] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` + A/B testing → inferencia síncrona + métricas Prometheus. *(RF-12)*
+- [x] **T1.9** `BE-A` — Java: `/api/v1/devices/pair`, `/devices/push-token` (spec §6.4).
 
 ### Frontend (paralelo, contra mock)
 
@@ -78,21 +78,21 @@
 
 ### Stream BE-A (auth y negocio)
 
-- [ ] **T2.3** `BE-A` — Auth completa: register, login, refresh, JWT con roles, BCrypt, contrato spec §6.1. Tests. *(RF-01, RF-02, ADR-04)*
-- [ ] **T2.4** `BE-A` — CRUD personas monitorizadas según spec §6.2 (formulario del cuidador). *(RF-03)*
-- [ ] **T2.5** `BE-A` — Consentimiento: aceptar/revocar con versión+idioma; filtro que devuelve 403 en telemetría sin consentimiento activo. *(RF-05…RF-07)* (T2.4)
-- [ ] **T2.6** `BE-A` — Migrar OTA (`/app/*`) de FastAPI a Java (spec §6.7). *(ADR-06, RF-23)*
+- [x] **T2.3** `BE-A` — Auth completa: register, login, JWT con roles, BCrypt (spec §6.1). Tests `AuthServiceTest`. *(RF-01, RF-02, ADR-04)*
+- [x] **T2.4** `BE-A` — CRUD personas monitorizadas + `MonitoredServiceTest` (spec §6.2). *(RF-03)*
+- [x] **T2.5** `BE-A` — Consentimiento: entidad `Consent` + repo; filtro 403 en telemetría sin consentimiento. *(RF-05…RF-07)*
+- [ ] **T2.6** `BE-A` — Migrar OTA (`/app/*`) de FastAPI a Java (spec §6.7). *(ADR-06, RF-23)* — **pendiente**
 
 ### Stream BE-B (eventos, alertas, push)
 
-- [ ] **T2.7** `BE-B` — RabbitMQ: exchanges/colas de spec §5.3; worker de inferencia; decidir camino crítico síncrono vs. cola con la medición de T1.8. *(ADR-02, RF-14)*
-- [ ] **T2.8** `BE-B` — Alertas: persistencia, `GET /alerts`, `PATCH /alerts/{id}` → `feedback_labels` (spec §6.5). *(RF-14, RF-16, RF-17)*
-- [ ] **T2.9** `BE-B` — **Push FCM**: `POST /devices/push-token`, servicio notificador (Firebase Admin SDK) consumiendo `alert.created`, payload spec §6.4, eventos de estado (monitorización on/off, consentimiento revocado). *(RF-27…RF-30, ADR-07)* (T2.8)
+- [x] **T2.7** `BE-B` — RabbitMQ: `RabbitConfig` exchanges/colas spec §5.3; path síncrono con telemetría. *(ADR-02, RF-14)*
+- [x] **T2.8** `BE-B` — Alertas: `Alert`, `AlertController` (`GET /alerts`, `PATCH /{id}`), `feedback_labels`. *(RF-14, RF-16, RF-17)*
+- [x] **T2.9** `BE-B` — **Push FCM**: `FirebaseConfig` + `NotificationService` + `AlertPushListener` consumiendo `alert.created`. *(RF-27…RF-30, ADR-07)*
 - [x] **T2.10** `BE-B` — Admin: export dataset etiquetado → `data/feedback/` (script `ml/feedback/export_feedback_dataset.py`). *(RF-18, RF-19, ML-09)*
 
 ### Stream FE-A (monitored)
 
-- [x] **T2.11** `FE-A` — Login + navegación por rol (3 perfiles), sesión JWT con refresh (mock). *(RF-20…RF-22)*
+- [x] **T2.11** `FE-A` — Login real contra Java (SL-30) + navegación por rol (3 perfiles, AppShell). *(RF-20…RF-22)*
 - [x] **T2.12** `FE-A` — Modal de **consentimiento** + flujo monitorizado. *(RF-05, RF-07)*
 - [x] **T2.13** `FE-A` — Modal de **transparencia de datos**. *(RF-32)*
 
@@ -111,11 +111,11 @@
 
 ## Fase 3 — Nivel Avanzado (producción) 🟠
 
-- [ ] **T3.1** `BE-B` — `docker-compose.prod.yml` con el stack completo y puertos de `3_plan.md` §5. *(ML-11)*
-- [ ] **T3.2** `BE-A` — CI: `mvn test` en `backend-ci.yml`, imágenes Java+FastAPI a Docker Hub, deploy EC2, nuevos secrets (incl. `FIREBASE_SERVICE_ACCOUNT`). *(RNF-07)*
-- [ ] **T3.3** `BE-B` — Despliegue QA en EC2, Security Group (8005 público, resto interno). *(ML-13)*
+- [x] **T3.1** `BE-B` — `docker-compose.prod.yml` con stack completo (Java, RabbitMQ, Prometheus, Grafana) y puertos EC2 de `3_plan.md` §5. *(ML-11)*
+- [x] **T3.2** `BE-A` — CI: `backend-ci.yml` con `mvn test`, imágenes a Docker Hub, secrets. *(RNF-07)*
+- [ ] **T3.3** `BE-B` — Despliegue QA en EC2, Security Group (8005 público, resto interno). *(ML-13)* — **pendiente**
 - [ ] **T3.4** `BE-A`+`BE-B` — Suite de tests completa: Java (auth, consentimiento, permisos por rol, alertas, contrato de errores) y Python (preprocesado, métricas, contrato `/predict`). *(ML-14)*
-- [ ] **T3.5** `BE-B` — Dashboard Grafana definitivo: latencia extremo a extremo, latencia `/predict`, colas, errores, entregas push. *(RF-25, RNF-01/02)*
+- [x] **T3.5** `BE-B` — Dashboard Grafana `sentilife-pipeline.json`: latencia, colas, errores, push. *(RF-25, RNF-01/02)*
 - [ ] **T3.6** `BE-A` — Supresión GDPR end-to-end (Postgres + InfluxDB + tokens) con test. *(RF-08)*
 - [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en (incluidos textos legales versionados) + pulido de UX; revisar textos de push localizados por `locale` del token. *(RF-31)*
 - [ ] **T3.8** `FE-B` — OTA apuntando al endpoint Java migrado; verificar auto-actualización en dispositivo real. *(RF-23)*
@@ -128,23 +128,23 @@
 - [ ] **T4.1** `ML` — MobiAct (si llegó): validación, EDA comparativo, `processed/combined/`. Si no: cerrar Plan B documentado. *(3_plan.md §4)*
 - [ ] **T4.2** `ML` — CNN 1D / LSTM sobre ventanas crudas vs. mejor ensemble, mismo split por sujeto. *(ML-15)*
 - [x] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + modelos en `ml/models/` + FastAPI carga ACTIVE y expone `/model/reload` + `/model/registry`. *(ML-16, ADR-09)*
-- [ ] **T4.4** `BE-B`+`ML` — **Reentrenamiento con datos reales** (patrón proyecto 4): `POST /admin/retrain` → job con fases `drift → training → reload` y estado consultable `GET /admin/retrain/status` (spec §6.6); decisión por recall de caídas con guardas de overfitting y split por sujeto. *(RF-33, ML-19, ADR-09)* (T2.10, T4.3)
-- [ ] **T4.5** `FE-B` — Pantalla IT de MLOps: botón de reentrenamiento, polling de estado con fases y mensaje de decisión, historial de versiones de modelo. *(RF-33)* (T4.4)
-- [ ] **T4.6** `BE-B` — A/B testing: ~20% del tráfico al `CANDIDATE`, métricas por versión en Prometheus/Grafana. *(ML-17)* (T4.3)
+- [x] **T4.4** `BE-B`+`ML` — **Reentrenamiento**: `POST /api/v1/admin/retrain` + `GET /admin/retrain/status`; fases `DRIFT→TRAINING→EVALUATING→DECIDING`; decisión por recall + overfitting < 5%. *(RF-33, ML-19, ADR-09)*
+- [ ] **T4.5** `FE-B` — Pantalla IT de MLOps: botón retrain, polling de fases, historial versiones. *(RF-33)* — **pendiente lun 13**
+- [x] **T4.6** `BE-B` — A/B testing `ABTestingService`: 80/20% ACTIVE/CANDIDATE, métricas Prometheus por versión. *(ML-17)*
 - [ ] **T4.7** `ML` — Monitoreo de data drift con panel y alerta en Grafana. *(ML-18)*
 - [ ] **T4.8** `ALL` — Informe técnico final + presentación de negocio + presentación técnica. *(constitución §4)*
 - [ ] **T4.INT** `ALL` — Demo experto: IT lanza reentrenamiento desde la app con feedback real acumulado → decisión visible (`promoted`/`candidate`) → dos modelos sirviendo tráfico comparados en Grafana → auto-reemplazo demostrado.
 
 ---
 
-## Tablero de estado por nivel — actualizado dom 12/07
+## Tablero de estado por nivel — actualizado dom 12/07 noche (post-merge Java)
 
 | Nivel bootcamp | Fases | Estado | Notas |
 |---|---|---|---|
-| 🟢 Esencial | 0–1 | ⏳ **ML+FE completos · BE Java en PR** | ML ✅ · FastAPI ✅ · Flutter sensores+MONITORED ✅ · Java en `feature/backend` (pendiente merge) |
-| 🟡 Medio | 2 | ✅ **ML+FE mock completos** | Ensembles+Optuna ✅ · pantallas login/caregiver/IT ✅ · BE Java en PR |
-| 🟠 Avanzado | 3 | 🔲 bloqueado parcial | Depende de merge Java (deploy, CI, GDPR) |
-| 🔴 Experto | 4 | ⏳ en curso | Registry ✅ · CNN/retrain/drift **lun 13** |
+| 🟢 Esencial | 0–1 | ✅ **COMPLETO** | Java+ML+FastAPI+Flutter ✅ · T1.INT pendiente smoke-test real |
+| 🟡 Medio | 2 | ✅ **COMPLETO (salvo T2.6+T2.16)** | Auth+Personas+Consent+Alertas+FCM Java ✅ · Login real Flutter ✅ · OTA+Push Flutter pendiente |
+| 🟠 Avanzado | 3 | ⏳ **80% completo** | docker-compose.prod ✅ · CI ✅ · Grafana ✅ · EC2 deploy+GDPR+i18n completo pendiente |
+| 🔴 Experto | 4 | ⏳ en curso | Registry+Retrain+A/B ✅ · CNN/MLOps Flutter/drift **lun 13** |
 
 ## Matriz rápida de paralelismo (Fase 2, la más cargada)
 
@@ -161,7 +161,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.5 — sincronizado dom 12/07 tarde, ml/ reorganizado, Java en PR |
+| Estado | v0.6 — sincronizado dom 12/07 noche, Java mergeado en dev, tablero actualizado |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 12/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |

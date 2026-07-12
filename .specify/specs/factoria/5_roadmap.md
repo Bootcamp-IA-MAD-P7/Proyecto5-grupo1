@@ -8,28 +8,45 @@
 
 ---
 
-## 0. ESTADO ACTUAL — DOM 12 TARDE (sincronizado 12/07/2026)
+## 0. ESTADO ACTUAL — DOM 12 NOCHE — POST-MERGE JAVA (sincronizado 12/07/2026)
 
 > Esta sección es la fuente de verdad de situación para todos los agentes. Actualizar aquí **antes** de cualquier PR.
 
-### ✅ Completado (verificado en código)
+### ✅ Completado (verificado en código — en `dev`)
 
 | Stream | Completado | SL / Tarea |
 |---|---|---|
 | ALL | Kickoff + contratos congelados | SL-1 / T0.1 |
 | ALL | README SentiLife + arquitectura | SL-4 / T0.3 |
 | ALL | Makefile + scripts verify-local | SL-12 / T0.11 |
-| BE-B | FastAPI reducido a inferencia pura | SL-7 / T0.8 |
+| BE-A | **Estructura `backend-java/`** (Spring Boot 3, JWT, BCrypt) | SL-2 / T0.4 |
+| BE-B | **Flyway** V1 (esquema), V2 (seed IT_ADMIN), V3 (created_at) | SL-3 / T0.5 |
+| BE-B | **Compose completo** (Java+RabbitMQ+Prometheus+Grafana) | SL-5 / T0.6 |
+| BE-B | **Observability** (`prometheus.yml` + Grafana dashboard provisionado) | SL-7b / T0.7 |
+| BE-B | FastAPI reducido a inferencia pura + `/model/registry` (SL-54) | SL-7 / T0.8 |
 | BE-B | **Modelo real XGBoost en `/predict`** (features.py + model.py) | SL-20 / T1.7 |
 | BE-B | **Registry modelos + hot-reload** (`ml/registry/`, `ml/models/`) | SL-54 / T4.3 |
 | BE-B | Export dataset etiquetado (`data/feedback/`) | SL-36 / T2.10 |
+| BE-A | **Auth JWT**: register, login, roles, BCrypt + `AuthServiceTest` | SL-26 / T2.3 |
+| BE-A | **CRUD personas** + `MonitoredServiceTest` | SL-27 / T2.4 |
+| BE-A | **Consentimiento** + filtro 403 | SL-28 / T2.5 |
+| BE-B | **Telemetría Java**: `POST /api/v1/telemetry/windows` + A/B testing + Prometheus | SL-21 / T1.8 |
+| BE-B | **Devices**: `/devices/pair` + `/devices/push-token` | SL-22 / T1.9 |
+| BE-B | **RabbitMQ** exchanges/colas spec §5.3 | — / T2.7 |
+| BE-B | **Alertas**: `Alert`, CRUD, `feedback_labels` | SL-34 / T2.8 |
+| BE-B | **Push FCM**: `FirebaseConfig` + `NotificationService` + `AlertPushListener` | — / T2.9 |
+| BE-B | **CI** `backend-ci.yml`: `mvn test` + Docker Hub | SL-44 / T3.2 |
+| BE-B | **Grafana dashboard** `sentilife-pipeline.json` definitivo | SL-47 / T3.5 |
+| BE-B | **Retrain** `POST /admin/retrain` + `GET /admin/retrain/status` (fases DRIFT→PROMOTING) | SL-55 / T4.4 |
+| BE-B | **A/B testing** `ABTestingService` 80/20% ACTIVE/CANDIDATE + Prometheus | SL-57 / T4.6 |
 | FE-A | Renombrado SentiLife | SL-8 / T0.2 |
 | FE-A | i18n base español | SL-9 / T0.9 |
 | FE-A | **Captura sensores + ventanas (125 muestras@50Hz)** | SL-23 / T1.10 |
 | FE-A | Pantalla MONITORED v1 | SL-24 / T1.11 |
 | FE-A | Modal consentimiento + transparencia | SL-37, SL-38 / T2.12, T2.13 |
+| FE-A | **Login real contra Java** (SL-30) + SessionManager | SL-30 / T2.11 |
 | FE-B | Mock de contratos completo (auth/personas/telemetría/alertas) | SL-10 / T0.10 |
-| FE-B | Navegación 3 perfiles + CAREGIVER + IT_ADMIN + alertas | SL-11, SL-31, SL-32, SL-40 / T2.11, T2.14, T2.15, T2.17 |
+| FE-B | Navegación 3 perfiles + CAREGIVER + IT_ADMIN + alertas | SL-11, SL-31, SL-32, SL-40 / T2.14, T2.15, T2.17 |
 | ML | EDA SisFall completo (sesgo edad/sexo documentado) | SL-13 / T1.1 |
 | ML | Contrato de ventana v1.0.0 (`contracts/window_contract.json`) | SL-14 / T1.2 |
 | ML | Pipeline features (56.313 ventanas, 116 features) | SL-16 / T1.3 |
@@ -40,36 +57,19 @@
 | ML | **Optuna** (test PR-AUC **0.916**, `model_tuned.pkl` CANDIDATE) | SL-42 / T2.2 |
 | ML | Carpeta `ml/` reorganizada: `pipeline/`, `training/`, `evaluation/`, `feedback/`, `models/` | — |
 
-### ⏳ En PR — BE Java (subido, pendiente tu aprobación/merge)
-
-> El equipo Java subió `feature/backend` a GitHub. **No mergeado aún en `dev`** — lo revisas y apruebas tú.
-
-| SL | Contenido del PR | Desbloquea al mergear |
-|---|---|---|
-| SL-2 | Estructura `backend-java/` (Spring Boot 3) | todo el BE Java |
-| SL-3 | Flyway + seed | SL-21, SL-26 |
-| SL-5 | Compose completo (+Java+RabbitMQ+Grafana) | T0.INT |
-| SL-21 | POST /telemetry/windows Java | T1.8, T1.INT |
-| SL-22 | /devices/pair Java | T1.9 |
-| SL-26 | Auth JWT + login real Flutter | SL-27, SL-28, SL-30 |
-| SL-27 | CRUD personas | SL-28, SL-31 |
-| SL-28 | Consentimiento + 403 | SL-34, SL-43 |
-| SL-34 | Alertas + feedback_labels | SL-35, SL-36, SL-55 |
-| SL-44 | CI mvn test | SL-45, SL-46 |
-| SL-47 | Dashboard Grafana definitivo | T3.5 |
-| SL-57 | A/B testing ~20% CANDIDATE | T4.6 |
-
-### 🔲 Pendiente (sin bloqueo — próximo: lun 13)
+### 🔲 Pendiente — lun 13 + mar 14
 
 | SL | Tarea | Stream | Día plan |
 |---|---|---|---|
 | SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 |
-| SL-55 / T4.4 | Retrain + auto-reemplazo por métricas | BE-B+ML | lun 13 |
-| SL-56 / T4.5 | Pantalla MLOps IT Flutter | FE-B | lun 13 |
-| SL-57 / T4.6 | A/B testing (si no viene del PR Java) | BE-B | mar 14 |
+| SL-56 / T4.5 | Pantalla MLOps IT Flutter (retrain + polling + historial) | FE-B | lun 13 |
 | SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 |
-| SL-39 / T2.16 | Push Flutter (FCM) | FE-B | post-merge Java |
-| SL-51 / T3.INT | Demo QA + video respaldo | ALL | mar 14 |
+| SL-39 / T2.16 | Push Flutter (FCM — desbloqueado tras merge Java) | FE-B | lun 13 |
+| — / T3.3 | Despliegue QA en EC2 (Security Group 8005 público) | ALL | mar 14 |
+| — / T3.6 | GDPR supresión end-to-end (Postgres + tokens) | BE-A | mar 14 |
+| — / T3.7 | i18n completo es/en (textos legales, push localizados) | FE | mar 14 |
+| — / T2.6 | OTA migración FastAPI → Java | BE-A | mar 14 |
+| SL-51 / T3.INT | Smoke-test end-to-end: caída → push < 5 s | ALL | mar 14 |
 | SL-59 / T4.8 | Informe final + presentaciones | ALL | mié 15 |
 
 ---
