@@ -7,11 +7,9 @@ telemetría IMU y avisa a la persona cuidadora.
 Proyecto del **Bootcamp de Inteligencia Artificial de Factoría F5 Madrid** (Grupo 1).  
 Objetivo: alcanzar el **nivel Experto** según `.specify/memory/constitucion_factoria.md`.
 
-**Stack disponible actualmente:** Flutter · FastAPI · PostgreSQL (Docker) · scikit-learn / XGBoost
+**Stack actual:** Flutter · **Spring Boot 3 (Java 21)** · FastAPI (inferencia ML) · PostgreSQL · RabbitMQ · Prometheus · Grafana
 
-**Arquitectura objetivo:** Flutter · Spring Boot · FastAPI · PostgreSQL · RabbitMQ ·
-Prometheus · Grafana. La telemetría se persiste en PostgreSQL durante el sprint;
-InfluxDB queda como evolución post-entrega según ADR-03.
+**Arquitectura:** Flutter habla solo con el **backend Java** (API pública). El servicio **FastAPI/inference** es interno — Java lo invoca para clasificar ventanas IMU.
 
 ---
 
@@ -59,22 +57,25 @@ El diseño completo y sus decisiones están en
 | Comando | Qué hace |
 |---|---|
 | `cp .env.example .env` | Primera vez — crea variables locales |
-| `make up` | Levanta `fallsentinel-api` + `fallsentinel-db`, verifica endpoints |
-| `make verify` | Fail-fast: `/health`, `/predict`, Postgres |
-| `make logs` | Logs de API y DB |
+| `make up` | Levanta stack completo (Java + inference + DB + RabbitMQ + observabilidad) |
+| `make verify` | Fail-fast: health checks de todos los contenedores + Java + inference |
+| `make logs` | Logs de `backend`, `api` y `db` |
 | `make down` | Para contenedores |
-| `make reset-db` | Borra volumen Postgres (`down -v`) — tras cambiar password |
-| `make flutter-local API_HOST=192.168.x.x` | Flutter → API en tu IP LAN |
-| `make flutter-phone` | Igual + usa `DEVICE` del `.env` |
-| `make flutter-qa` | Flutter → API QA en EC2 (`cp .env.qa.example .env.qa`) |
-| `make test-backend` | pytest sin Docker |
+| `make reset-db` | Borra volumen Postgres (`down -v`) |
+| `make test` | Corre los 3 suites (Java + Python + Flutter), igual que CI |
+| `make test-java` / `test-python` / `test-flutter` | Suite individual |
+| `make flutter-local` | Flutter → Java API local (`:8080`) |
+| `make flutter-phone` | Igual + usa `API_HOST` y `DEVICE` del `.env` |
+| `make flutter-qa` | Flutter → Java API en EC2 (`:8005`) |
 
 ### Variables en `.env`
 
 | Variable | Valor local | Uso |
 |---|---|---|
-| `POSTGRES_PASSWORD` | ver `.env.example` | Credencial DB (solo local/QA) |
-| `DATABASE_URL` | ver `.env.example` | API → Postgres |
+| `JAVA_PORT` | `8080` | Backend Java (API pública) |
+| `PORT` | `8000` | Inference FastAPI (interno) |
+| `POSTGRES_HOST_PORT` | `5433` | Postgres host (evita conflicto con postgres local) |
+| `JWT_SECRET` | ver `.env.example` | Firma JWT del backend Java |
 | `API_HOST` | IP LAN de tu PC | Flutter en móvil físico |
 | `DEVICE` | ej. `OJLNRO8PNFLNNBFA` | ID adb / `flutter devices` |
 
@@ -91,31 +92,32 @@ adb devices                       # copiar id → DEVICE en .env
 make flutter-phone
 ```
 
-Emulador: `cd frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`
+Emulador: `cd frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080`
 
-### URLs locales
+### URLs locales (desarrollo)
 
-| URL | Descripción |
-|---|---|
-| http://localhost:8000/health | Healthcheck |
-| http://localhost:8000/docs | Swagger |
-| http://localhost:8000/predict | Predicción (umbrales) |
-| http://\<IP-LAN\>:8000/predict | Desde el móvil |
+| Servicio | URL | Acceso |
+|---|---|---|
+| **Java API** (pública) | http://localhost:8080/actuator/health | Flutter + clientes |
+| Java REST | http://localhost:8080/api/v1/... | Auth, telemetría, alertas |
+| Inference ML (interno) | http://localhost:8000/health | Solo Java / dev |
+| Inference Swagger | http://localhost:8000/docs | Solo desarrollo |
+| Grafana | http://localhost:3000 | Dashboards (`admin`/`admin`) |
+| Prometheus | http://localhost:9090 | Métricas |
+| Postgres | `localhost:5433` | Debug (DBeaver/psql) |
+| RabbitMQ UI | http://localhost:15673 | Management (`guest`/`guest`) |
+| Flutter móvil | http://\<IP-LAN\>:8080 | Misma WiFi que el PC |
 
-### ¿Qué lee la base de datos hoy?
+### URLs QA / Producción (EC2 — `34.235.130.33`)
 
-Solo **versiones OTA** (`app_versions`): `GET/POST /app/*`.  
-`/predict` no usa DB.
-
-Detalle SQL: [db/README.md](db/README.md)
-
-### URLs QA (EC2)
-
-| URL | Descripción |
-|---|---|
-| http://34.235.130.33:8005/health | Healthcheck |
-| http://34.235.130.33:8005/docs | Swagger |
-| http://34.235.130.33:8005/predict | Predicción |
+| Servicio | URL | Acceso |
+|---|---|---|
+| **Java API** (pública) | http://34.235.130.33:8005/actuator/health | Flutter + clientes |
+| Java REST | http://34.235.130.33:8005/api/v1/... | Auth, telemetría, alertas |
+| Postgres (debug) | `34.235.130.33:5435` | Solo admin (DBeaver/psql) |
+| Grafana | http://34.235.130.33:3006 | Dashboards (`admin`/`admin`) |
+| Inference ML | interno `:8000` | No expuesto — Java lo consume |
+| RabbitMQ / Prometheus | internos | No expuestos |
 
 Flutter contra QA (sin levantar backend local):
 
@@ -130,21 +132,24 @@ make flutter-qa
 
 ```
 Proyecto5-grupo1/
-├── frontend/              # App Flutter
-├── inference/               # API + ML + data/
-├── db/init/               # SQL init Postgres (app_versions)
-├── scripts/               # verify-local.sh · run-flutter-local.sh
-├── docker-compose.yml     # fallsentinel-api + fallsentinel-db (local)
-├── docker-compose.prod.yml # API + DB en EC2 (CI/CD)
+├── frontend/              # App Flutter (SentiLife)
+├── backend/               # API Java Spring Boot 3 — puerta de entrada pública
+├── inference/             # Servicio FastAPI — inferencia ML (interno)
+├── contracts/             # Contrato SL-14 ventana (Flutter ↔ Java ↔ ML)
+├── db/init/               # SQL init Postgres
+├── backend/observability/ # Prometheus + Grafana
+├── scripts/               # verify-local.sh · run-flutter-*.sh
+├── docker-compose.yml     # Stack completo local
+├── docker-compose.prod.yml # Deploy EC2 (CI/CD)
 ├── .env.example           # copiar a .env (local)
 ├── .env.qa.example        # copiar a .env.qa (Flutter → EC2)
-├── Makefile               # make up · verify · flutter-phone
+├── Makefile
 ├── docs/daily/
 ├── .specify/
-└── .github/workflows/
+└── .github/workflows/     # ci.yml · android.yml
 ```
 
-Documentación por módulo: [frontend/README.md](frontend/README.md) · [inference/README.md](inference/README.md) · [db/README.md](db/README.md) · [inference/data/README.md](inference/data/README.md)
+Documentación por módulo: [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md) · [inference/README.md](inference/README.md) · [db/README.md](db/README.md)
 
 ---
 
@@ -178,24 +183,58 @@ frontend/
 └── analysis_options.yaml
 ```
 
-| Modo API | Configuración | Uso |
+| Modo API | Configuración | URL base |
 |---|---|---|
-| QA (EC2) | `make flutter-qa` + `.env.qa` | Debug frontend sin Docker local |
-| Local | `make flutter-local API_HOST=192.168.x.x` | Desarrollo en LAN |
-| Offline | `_useMock = true` | Desarrollo sin backend |
+| QA (EC2) | `make flutter-qa` + `.env.qa` | http://34.235.130.33:8005 |
+| Local — emulador | `make flutter-local` | http://10.0.2.2:8080 |
+| Local — móvil físico | `make flutter-phone` | http://\<IP-LAN\>:8080 |
+| Offline | `_useMock = true` en servicios | Sin backend |
 
 ```bash
 cd frontend && flutter pub get && flutter run
 ```
 
-**QA:** http://34.235.130.33:8005  
-**Local:** API en `http://<IP-LAN>:8000` vía `make up`
+**QA:** http://34.235.130.33:8005 (Java API)  
+**Local:** http://\<IP-LAN\>:8080 vía `make up`
 
 ---
 
-## Backend — estructura detallada
+## Backend Java — API pública (`backend/`)
 
-Monorepo Python: API REST, pipeline ML y datos con **estructura espejo por fuente** (`raw/` ↔ `processed/`).
+Spring Boot 3 + Java 21. **Única puerta de entrada** para Flutter y clientes externos: autenticación JWT, usuarios, telemetría, alertas, notificaciones FCM y administración.
+
+```
+backend/
+├── src/main/java/com/sentilife/
+│   ├── auth/           # JWT, login, registro
+│   ├── telemetry/      # Ingesta ventanas → llama inference
+│   ├── alerts/         # Alertas + feedback
+│   ├── notifications/  # Push FCM
+│   ├── admin/          # Historial, export, retrain
+│   └── ota/            # OTA Android
+├── src/main/resources/db/migration/  # Flyway
+├── observability/      # Prometheus + Grafana
+├── Dockerfile
+└── pom.xml
+```
+
+| Entorno | URL health | Puerto |
+|---|---|---|
+| Local | http://localhost:8080/actuator/health | 8080 |
+| EC2 QA | http://34.235.130.33:8005/actuator/health | 8005 |
+
+```bash
+make test-java          # mvn test (H2 en memoria)
+cd backend && mvn spring-boot:run   # sin Docker
+```
+
+Detalle: [backend/README.md](backend/README.md)
+
+---
+
+## Inference — servicio ML interno (`inference/`)
+
+FastAPI aislado. **No lo consume Flutter directamente** — el backend Java llama a `INFERENCE_URL` (red Docker interna) para clasificar ventanas IMU.
 
 ```
 inference/
@@ -284,15 +323,18 @@ Flujo: push/PR a **cualquier rama** (tests) → merge a **`main`** (deploy compl
 
 `EC2_HOST` debe estar como secret a **nivel repositorio**.
 
-### Puertos QA (EC2)
+### Puertos QA (EC2 — `34.235.130.33`)
 
-| Servicio | Puerto host |
-|---|---|
-| API | **8005** |
-| Postgres (debug) | **5435** |
-| Frontend (reservado) | **3006** |
+| Servicio | Puerto host | URL | Expuesto |
+|---|---|---|---|
+| **Java API** | **8005** | http://34.235.130.33:8005 | ✅ Sí — Flutter + clientes |
+| Postgres (debug) | **5435** | `34.235.130.33:5435` | ✅ Sí — solo admin |
+| Grafana | **3006** | http://34.235.130.33:3006 | ✅ Sí — dashboards |
+| Inference FastAPI | 8000 | — | ❌ Interno Docker |
+| RabbitMQ | 5672 | — | ❌ Interno Docker |
+| Prometheus | 9090 | — | ❌ Interno Docker |
 
-Abrir en Security Group: **TCP 8005** (API) y **TCP 5435** (Postgres debug, opcional).
+Abrir en Security Group: **TCP 8005** (Java API), **TCP 5435** (Postgres debug, opcional), **TCP 3006** (Grafana).
 
 ### Secrets GitHub (environment `production`)
 
@@ -324,38 +366,54 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 ## Deuda técnica
 
-- API usa umbrales (`classify()`), no `model.pkl`
+- Varios servicios Flutter aún usan `_useMock = true` (alertas, dispositivos, telemetría admin)
 - **No regenerar** `processed/` hasta SDD
 - MobiAct pendiente de respuesta BMI
-- Mock de desarrollo **solo** en Flutter (`api_service.dart`)
+- Endpoint OTA `/app/register-version` pendiente en Java (CI android.yml)
 
 ---
 
-## Inicio rápido — Sprint día 0 (local a prueba de balas)
+## Inicio rápido — local
 
-### 1. Backend + PostgreSQL (Docker)
+### 1. Stack completo (Docker)
 
 ```bash
-make up          # cp .env + docker compose; espera y verifica todos los health checks
-make verify      # re-comprobar contenedores y /health de la API
-make logs        # si algo falla
+cp .env.example .env    # primera vez
+make up                 # Java + inference + DB + RabbitMQ + Grafana + Prometheus
+make verify             # re-comprobar todos los health checks
+make logs               # si algo falla
 ```
 
-Requisitos: Docker Compose v2. La API queda en **http://localhost:8000** (Swagger: `/docs`).
+Requisitos: Docker Compose v2.
+
+| Servicio | URL local |
+|---|---|
+| Java API | http://localhost:8080/actuator/health |
+| Inference | http://localhost:8000/health |
+| Grafana | http://localhost:3000 |
 
 ### 2. Flutter contra la infraestructura local
 
 ```bash
-# Emulador Android (usa 10.0.2.2 por defecto)
+# Emulador Android (Java API en 10.0.2.2:8080)
 make flutter-local
 
-# Móvil físico en la misma WiFi: sustituye por la IP LAN de tu PC
-make flutter-local API_HOST=192.168.1.100
+# Móvil físico en la misma WiFi
+make flutter-phone      # usa API_HOST y DEVICE del .env
 ```
 
-`make flutter-local` comprueba antes que el stack esté sano. El build **debug** permite HTTP a la API local.
+`make flutter-local` comprueba antes que el stack esté sano. Flutter apunta al **backend Java** (`:8080`), no al inference.
 
-### 3. Backend sin Docker (opcional)
+### 3. Tests (igual que CI)
+
+```bash
+make test               # Java + Python + Flutter
+make test-java          # solo mvn test
+make test-python        # solo pytest
+make test-flutter       # solo flutter test
+```
+
+### 4. Inference sin Docker (opcional)
 
 ```bash
 cd inference
@@ -363,8 +421,6 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
-
-> Sin Postgres local, `/app/latest-version` devolverá 503 — usa `make up` para stack completo.
 
 Detalle DB: [db/README.md](db/README.md)
 

@@ -48,12 +48,12 @@ flutter run -d <device_id>
 
 La URL de la API se configura con **`--dart-define=API_BASE_URL`** (ver `lib/config/app_config.dart`).
 
-| Entorno | Comando |
-|---|---|
-| **QA — EC2** | `cp .env.qa.example .env.qa && make flutter-qa` |
-| **Local — móvil físico** | `make flutter-local API_HOST=192.168.x.x` (desde raíz del repo) |
-| **Local — emulador** | `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
-| **Mock offline** | `_useMock = true` en `api_service.dart` |
+| Entorno | URL base | Comando |
+|---|---|---|
+| **QA — EC2** | http://34.235.130.33:8005 | `cp .env.qa.example .env.qa && make flutter-qa` |
+| **Local — móvil físico** | http://\<IP-LAN\>:8080 | `make flutter-phone` (desde raíz del repo) |
+| **Local — emulador** | http://10.0.2.2:8080 | `make flutter-local` |
+| **Mock offline** | — | `_useMock = true` en servicios |
 
 Build **debug** permite HTTP (`android/app/src/debug/AndroidManifest.xml`).
 
