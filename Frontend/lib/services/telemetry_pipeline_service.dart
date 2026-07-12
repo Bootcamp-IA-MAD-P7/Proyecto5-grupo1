@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
@@ -22,12 +23,15 @@ class TelemetryPipelineService {
   final TelemetryService _telemetryService;
   final StreamController<WindowPrediction> _predictionsController =
       StreamController<WindowPrediction>.broadcast();
+  final Queue<_QueuedTelemetryWindow> _pendingWindows =
+      Queue<_QueuedTelemetryWindow>();
 
   StreamSubscription<SensorSnapshot>? _snapshotSubscription;
   String? _monitoredPersonId;
   String? _deviceId;
   bool _isRunning = false;
   bool _isDisposed = false;
+  bool _isSending = false;
 
   Stream<WindowPrediction> get predictions => _predictionsController.stream;
 
@@ -148,37 +152,59 @@ class TelemetryPipelineService {
       return;
     }
 
-    unawaited(_sendWindow(window));
-  }
-
-  Future<void> _sendWindow(TelemetryWindow window) async {
     final monitoredPersonId = _monitoredPersonId;
     final deviceId = _deviceId;
+    if (monitoredPersonId == null || deviceId == null) {
+      return;
+    }
 
-    if (!_isRunning ||
-        monitoredPersonId == null ||
-        deviceId == null ||
+    _pendingWindows.addLast(
+      _QueuedTelemetryWindow(
+        window: window,
+        monitoredPersonId: monitoredPersonId,
+        deviceId: deviceId,
+      ),
+    );
+    unawaited(_drainPendingWindows());
+  }
+
+  Future<void> _drainPendingWindows() async {
+    if (_isSending ||
+        !_isRunning ||
+        _pendingWindows.isEmpty ||
         _predictionsController.isClosed) {
       return;
     }
 
+    _isSending = true;
     try {
-      final prediction = await _telemetryService.sendWindow(
-        monitoredPersonId: monitoredPersonId,
-        deviceId: deviceId,
-        windowStart: window.windowStart,
-        windowEnd: window.windowEnd,
-        sampleRateHz: window.sampleRateHz,
-        samples: window.samples,
-        context: window.context,
-      );
+      while (_isRunning &&
+          _pendingWindows.isNotEmpty &&
+          !_predictionsController.isClosed) {
+        final pendingWindow = _pendingWindows.first;
+        try {
+          final prediction = await _telemetryService.sendWindow(
+            monitoredPersonId: pendingWindow.monitoredPersonId,
+            deviceId: pendingWindow.deviceId,
+            windowStart: pendingWindow.window.windowStart,
+            windowEnd: pendingWindow.window.windowEnd,
+            sampleRateHz: pendingWindow.window.sampleRateHz,
+            samples: pendingWindow.window.samples,
+            context: pendingWindow.window.context,
+          );
 
-      if (_isRunning && !_predictionsController.isClosed) {
-        _predictionsController.add(prediction);
+          _pendingWindows.removeFirst();
+          if (_isRunning && !_predictionsController.isClosed) {
+            _predictionsController.add(prediction);
+          }
+        } catch (error, stackTrace) {
+          debugPrint('TelemetryPipelineService sendWindow error: $error');
+          debugPrintStack(stackTrace: stackTrace);
+          break;
+        }
       }
-    } catch (error, stackTrace) {
-      debugPrint('TelemetryPipelineService sendWindow error: $error');
-      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      _isSending = false;
     }
   }
 
@@ -189,8 +215,22 @@ class TelemetryPipelineService {
 
   void _clearMonitoringState() {
     _isRunning = false;
+    _isSending = false;
+    _pendingWindows.clear();
     _windowBuilder.reset();
     _monitoredPersonId = null;
     _deviceId = null;
   }
+}
+
+class _QueuedTelemetryWindow {
+  const _QueuedTelemetryWindow({
+    required this.window,
+    required this.monitoredPersonId,
+    required this.deviceId,
+  });
+
+  final TelemetryWindow window;
+  final String monitoredPersonId;
+  final String deviceId;
 }
