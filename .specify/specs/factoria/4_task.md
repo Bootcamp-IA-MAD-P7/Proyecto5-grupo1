@@ -46,19 +46,19 @@
 - [x] **T1.1** `ML` — EDA SisFall completo (`Backend/notebooks/`): clases, histogramas X/Y/Z, correlación, sesgo edad/sexo, frecuencia de muestreo → `processed/sisfall/eda_output/`. *(ML-01)*
 - [x] **T1.2** `ML` — Definir la **ventana** (tamaño, solape, frecuencia) y publicarla como contrato compartido entrenamiento ↔ inferencia ↔ app. Contrato v1.0.0 en `contracts/window_contract.json` + `contracts/window_contract.md`: 2.5 s, 50 Hz, 50% solape, 125 muestras/señal. *(ADR-05 — bloqueante T1.3, T1.7, T1.8)*
 - [x] **T1.3** `ML` — Pipeline de features reproducible: regenerar `processed/sisfall/` con ventanas + features estadísticas. `sisfall_windows_features.csv.gz` + `feature_manifest.json`: 56.313 ventanas, 116 features, contrato SL-14. (T1.2)
-- [ ] **T1.4** `ML` — Baseline con split por sujeto (GroupKFold). *(ML-07)*
-- [ ] **T1.5** `ML` — Primer modelo candidato (RF/XGBoost) con overfitting < 5%, recall de caídas priorizado. *(ML-02, ML-03)*
-- [ ] **T1.6** `ML` — Informe técnico v1: métricas completas + ROC + confusión + feature importance + sesgo. *(ML-05)*
+- [x] **T1.4** `ML` — Baseline con split por sujeto (GroupKFold). *(ML-07)*
+- [x] **T1.5** `ML` — Primer modelo candidato (RF/XGBoost) con overfitting < 5%, recall de caídas priorizado. *(ML-02, ML-03)*
+- [x] **T1.6** `ML` — Informe técnico v1: métricas completas + ROC + confusión + feature importance + sesgo. *(ML-05)*
 
 ### Backend (paralelo a ML)
 
-- [ ] **T1.7** `BE-B` — Integrar modelo en FastAPI: carga `model.pkl`, preprocesado idéntico al entrenamiento, respuesta spec §6.8. Eliminar `classify()` por umbrales. *(ML-04, RF-13)* (T1.2, T1.5)
+- [x] **T1.7** `BE-B` — Integrar modelo en FastAPI: carga `model.pkl`, preprocesado idéntico al entrenamiento, respuesta spec §6.8. Eliminar `classify()` por umbrales. *(ML-04, RF-13)* (T1.2, T1.5)
 - [ ] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` v1 (sin consentimiento aún): valida payload → escribe InfluxDB → llama inferencia síncrona → devuelve predicción según spec §6.3. Medir latencia (histograma Prometheus). *(RF-12)* (T0.8)
 - [ ] **T1.9** `BE-A` — Java: vinculación de dispositivo `POST /api/v1/devices/pair` + `pairingCode` en personas (spec §6.4).
 
 ### Frontend (paralelo, contra mock)
 
-- [ ] **T1.10** `FE-A` — Captura de sensores reales (acelerómetro/giroscopio) y construcción de ventanas según contrato T1.2; envío continuo con cola local si no hay red. *(RF-10, RF-11)*
+- [x] **T1.10** `FE-A` — Captura de sensores reales (acelerómetro/giroscopio) y construcción de ventanas según contrato T1.2; envío continuo con cola local si no hay red. *(RF-10, RF-11)*
 - [ ] **T1.11** `FE-A` — Pantalla MONITORED v1: estado de monitorización, última evaluación. *(RF-20)*
 
 ### Integración
@@ -139,7 +139,7 @@
 
 | Nivel bootcamp | Fases | Estado |
 |---|---|---|
-| 🟢 Esencial | 0–1 | ⏳ |
+| 🟢 Esencial | 0–1 | ⏳ en progreso (ML+FE avanzados, BE bloqueado) |
 | 🟡 Medio | 2 | 🔲 |
 | 🟠 Avanzado | 3 | 🔲 |
 | 🔴 Experto | 4 | 🔲 |

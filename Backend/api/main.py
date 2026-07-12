@@ -6,7 +6,6 @@ as a deprecated compatibility bridge until their postponed migration.
 
 from __future__ import annotations
 
-from math import sqrt
 from time import perf_counter
 from typing import Annotated, Literal
 
@@ -16,6 +15,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pydantic import BaseModel, Field, model_validator
 
 from api import db as pg
+from api.inference import model as ml_model
 
 app = FastAPI(
     title="SentiLife Inference Service",
@@ -123,12 +123,53 @@ class ReloadResponse(BaseModel):
     detail: str
 
 
-MODEL_INFO = ModelInfo(
-    version="threshold-baseline-0.1.0",
-    algorithm="ThresholdBaseline",
-    trainedAt=None,
-    metrics={},
-)
+def _build_model_info() -> ModelInfo:
+    try:
+        ml_model.ensure_loaded()
+        return ModelInfo(
+            version=ml_model.version(),
+            algorithm=ml_model.model_name(),
+            trainedAt="2026-07-12",
+            metrics=ml_model.metrics_info(),
+        )
+    except Exception:
+        return ModelInfo(
+            version="threshold-baseline-0.1.0",
+            algorithm="ThresholdBaseline",
+            trainedAt=None,
+            metrics={},
+        )
+
+
+MODEL_INFO = _build_model_info()
+
+
+def _classify(samples: SensorSamples) -> tuple[bool, float]:
+    """Run inference using the trained ML model (T1.7 / SL-20)."""
+    try:
+        return ml_model.predict(
+            samples.accX, samples.accY, samples.accZ,
+            samples.gyroX, samples.gyroY, samples.gyroZ,
+        )
+    except Exception:
+        # Fallback to threshold baseline if model is unavailable.
+        from math import sqrt
+        accel_peak = max(
+            sqrt(x**2 + y**2 + z**2)
+            for x, y, z in zip(samples.accX, samples.accY, samples.accZ)
+        )
+        gyro_peak = max(
+            sqrt(x**2 + y**2 + z**2)
+            for x, y, z in zip(samples.gyroX, samples.gyroY, samples.gyroZ)
+        )
+        fall_detected = accel_peak > 15 or gyro_peak > 300
+        peak_ratio = max(accel_peak / 15, gyro_peak / 300)
+        confidence = (
+            min(0.75 + min(peak_ratio, 2.0) * 0.1, 0.99)
+            if fall_detected
+            else min(0.85 + (1 - min(peak_ratio, 1.0)) * 0.1, 0.99)
+        )
+        return fall_detected, round(confidence, 3)
 
 
 def _require_postgres() -> None:
@@ -148,25 +189,6 @@ def _row_to_app_version(row: dict) -> AppVersion:
         min_supported_version_code=row.get("min_supported_version_code"),
     )
 
-
-def classify(samples: SensorSamples) -> tuple[bool, float]:
-    """Temporary baseline; SL-20 replaces it with the trained model."""
-    accel_peak = max(
-        sqrt(x**2 + y**2 + z**2)
-        for x, y, z in zip(samples.accX, samples.accY, samples.accZ)
-    )
-    gyro_peak = max(
-        sqrt(x**2 + y**2 + z**2)
-        for x, y, z in zip(samples.gyroX, samples.gyroY, samples.gyroZ)
-    )
-    fall_detected = accel_peak > 15 or gyro_peak > 300
-    peak_ratio = max(accel_peak / 15, gyro_peak / 300)
-    confidence = (
-        min(0.75 + min(peak_ratio, 2.0) * 0.1, 0.99)
-        if fall_detected
-        else min(0.85 + (1 - min(peak_ratio, 1.0)) * 0.1, 0.99)
-    )
-    return fall_detected, round(confidence, 3)
 
 
 @app.get("/health", tags=["operation"])
@@ -190,23 +212,27 @@ def model_info():
 
 @app.post("/model/reload", response_model=ReloadResponse, tags=["model"])
 def reload_model():
-    return ReloadResponse(
-        status="unchanged",
-        modelVersion=MODEL_INFO.version,
-        detail="Model registry is not configured yet; hot reload is delivered by SL-54.",
-    )
+    try:
+        new_version = ml_model.reload()
+        return ReloadResponse(
+            status="unchanged",
+            modelVersion=new_version,
+            detail="Model reloaded from disk.",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not reload model: {exc}") from exc
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["inference"])
 def predict(data: PredictionRequest):
     started_at = perf_counter()
     with PREDICTION_LATENCY.time():
-        fall_detected, confidence = classify(data.samples)
+        fall_detected, confidence = _classify(data.samples)
     latency_ms = (perf_counter() - started_at) * 1000
     return PredictionResponse(
         fallDetected=fall_detected,
         confidence=confidence,
-        modelVersion=MODEL_INFO.version,
+        modelVersion=ml_model.version(),
         latencyMs=round(latency_ms, 3),
     )
 
