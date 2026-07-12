@@ -6,7 +6,7 @@ training table for the next ML tasks: every row has deterministic window
 metadata plus statistical features extracted from the exact signals expected by
 the inference contract.
 
-Run from Backend/:
+Run from inference/:
     python ml/build_sisfall_window_features.py \
         --root data/raw/sisfall \
         --out data/processed/sisfall/sisfall_windows_features.csv.gz \
@@ -339,7 +339,7 @@ def build_window_features(root: Path) -> tuple[pd.DataFrame, dict[str, object]]:
     manifest = {
         "task": "SL-16 / T1.3",
         "source_dataset": "SisFall",
-        "script": "Backend/ml/build_sisfall_window_features.py",
+        "script": "inference/ml/build_sisfall_window_features.py",
         "window_contract_schema_version": "1.0.0",
         "source_rate_hz": WINDOW_CONTRACT.source_rate_hz,
         "sample_rate_hz": WINDOW_CONTRACT.sample_rate_hz,

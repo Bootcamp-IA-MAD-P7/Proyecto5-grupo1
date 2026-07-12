@@ -9,7 +9,7 @@ Genera evidencias en data/processed/sisfall/eda_output/:
   - Frecuencia de muestreo documentada e inferida por duracion.
   - Escaneo de posibles fugas de datos por AUC univariante.
 
-Uso desde Backend/:
+Uso desde inference/:
     python notebooks/eda_sisfall.py
 """
 

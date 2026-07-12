@@ -80,7 +80,7 @@ services:
   # ── FastAPI Inference Service (ML only — no DB) ─────────────────
   api:
     build:
-      context: ./Backend
+      context: ./inference
       dockerfile: Dockerfile
     container_name: sentilife-inference
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
@@ -90,7 +90,7 @@ services:
       MODEL_PATH: ${MODEL_PATH:-ml/models/model.pkl}
       MODEL_VERSION: ${MODEL_VERSION:-baseline-v1}
     volumes:
-      - ./Backend:/app
+      - ./inference:/app
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
       interval: 10s
@@ -104,7 +104,7 @@ services:
     image: prom/prometheus:v2.53.0
     container_name: sentilife-prometheus
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./backend-java/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -134,8 +134,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./backend-java/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend-java/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "${GRAFANA_PORT:-3000}:3000"

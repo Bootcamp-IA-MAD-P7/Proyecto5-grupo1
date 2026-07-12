@@ -91,7 +91,7 @@ adb devices                       # copiar id → DEVICE en .env
 make flutter-phone
 ```
 
-Emulador: `cd Frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`
+Emulador: `cd frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`
 
 ### URLs locales
 
@@ -130,8 +130,8 @@ make flutter-qa
 
 ```
 Proyecto5-grupo1/
-├── Frontend/              # App Flutter
-├── Backend/               # API + ML + data/
+├── frontend/              # App Flutter
+├── inference/               # API + ML + data/
 ├── db/init/               # SQL init Postgres (app_versions)
 ├── scripts/               # verify-local.sh · run-flutter-local.sh
 ├── docker-compose.yml     # fallsentinel-api + fallsentinel-db (local)
@@ -144,7 +144,7 @@ Proyecto5-grupo1/
 └── .github/workflows/
 ```
 
-Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend/README.md](Backend/README.md) · [db/README.md](db/README.md) · [Backend/data/README.md](Backend/data/README.md)
+Documentación por módulo: [frontend/README.md](frontend/README.md) · [inference/README.md](inference/README.md) · [db/README.md](db/README.md) · [inference/data/README.md](inference/data/README.md)
 
 ---
 
@@ -153,7 +153,7 @@ Documentación por módulo: [Frontend/README.md](Frontend/README.md) · [Backend
 App **SentiLife** (`com.sentilife.app`). Monitoriza IMU + contexto y consulta la API de predicción.
 
 ```
-Frontend/
+frontend/
 ├── lib/                              # Código Dart (multiplataforma)
 │   ├── main.dart                     # Entrada, tema Material, chequeo OTA al arrancar
 │   ├── config/
@@ -185,7 +185,7 @@ Frontend/
 | Offline | `_useMock = true` | Desarrollo sin backend |
 
 ```bash
-cd Frontend && flutter pub get && flutter run
+cd frontend && flutter pub get && flutter run
 ```
 
 **QA:** http://34.235.130.33:8005  
@@ -198,7 +198,7 @@ cd Frontend && flutter pub get && flutter run
 Monorepo Python: API REST, pipeline ML y datos con **estructura espejo por fuente** (`raw/` ↔ `processed/`).
 
 ```
-Backend/
+inference/
 ├── api/                              # Capa HTTP (FastAPI)
 │   ├── main.py                       # App, CORS, /predict, /health, OTA versioning
 │   ├── inference/                    # [Esencial] Carga model.pkl + preprocesado
@@ -239,14 +239,14 @@ Backend/
 ```
 
 ```bash
-cd Backend
+cd inference
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn api.main:app --reload --port 8000
 pytest tests/ -v
 ```
 
-> Ejecutar scripts ML desde la **raíz de `Backend/`**.
+> Ejecutar scripts ML desde la **raíz de `inference/`**.
 
 ---
 
@@ -264,7 +264,7 @@ pytest tests/ -v
 
 **Limitación conocida:** caídas en SisFall simuladas casi solo por adultos jóvenes — ver `processed/sisfall/eda_output/analisis_sesgo.md`.
 
-Detalle completo: [Backend/data/README.md](Backend/data/README.md)
+Detalle completo: [inference/data/README.md](inference/data/README.md)
 
 ---
 
@@ -356,7 +356,7 @@ make flutter-local API_HOST=192.168.1.100
 ### 3. Backend sin Docker (opcional)
 
 ```bash
-cd Backend
+cd inference
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
@@ -389,16 +389,16 @@ Detalle DB: [db/README.md](db/README.md)
 
 | ID | Fuente | Ruta crudo | Ruta procesado | Estado | Esperado |
 |---|---|---|---|---|---|
-| **DS-01** | SisFall | `Backend/data/raw/sisfall/` | `Backend/data/processed/sisfall/` | ✅ En repo | 4.396 `.txt` · 38 sujetos · CSV 4.506 filas |
-| **DS-02** | MobiAct v2.0 | `Backend/data/raw/mobiact/mobiact_v2.0/` | `Backend/data/processed/mobiact/mobiact_v2.0/` | ⏳ Pendiente BMI | 3 `.txt`/ensayo (acc, gyro, orientación) |
-| **DS-02b** | MobiFall v2.0 | `Backend/data/raw/mobiact/mobifall_v2.0/` | `Backend/data/processed/mobiact/mobifall_v2.0/` | ⏳ Pendiente BMI | >3.200 ensayos · 66 sujetos |
-| ~~DS-X~~ | Kaggle zara2099 | `Backend/data/raw/kaggle/` | — | ❌ Baja | Solo `DEPRECATED.md` |
-| **DS-C** | Combinado | — | `Backend/data/processed/combined/` | 🔒 Futuro | Tras SDD + EDA DS-01/DS-02 |
+| **DS-01** | SisFall | `inference/data/raw/sisfall/` | `inference/data/processed/sisfall/` | ✅ En repo | 4.396 `.txt` · 38 sujetos · CSV 4.506 filas |
+| **DS-02** | MobiAct v2.0 | `inference/data/raw/mobiact/mobiact_v2.0/` | `inference/data/processed/mobiact/mobiact_v2.0/` | ⏳ Pendiente BMI | 3 `.txt`/ensayo (acc, gyro, orientación) |
+| **DS-02b** | MobiFall v2.0 | `inference/data/raw/mobiact/mobifall_v2.0/` | `inference/data/processed/mobiact/mobifall_v2.0/` | ⏳ Pendiente BMI | >3.200 ensayos · 66 sujetos |
+| ~~DS-X~~ | Kaggle zara2099 | `inference/data/raw/kaggle/` | — | ❌ Baja | Solo `DEPRECATED.md` |
+| **DS-C** | Combinado | — | `inference/data/processed/combined/` | 🔒 Futuro | Tras SDD + EDA DS-01/DS-02 |
 
 ### Script de verificación (copiar tras clone)
 
 ```bash
-cd Backend/data/raw/sisfall
+cd inference/data/raw/sisfall
 echo "SisFall sujetos: $(ls -d SA* SE* 2>/dev/null | wc -l) (esperado: 38)"
 echo "SisFall ensayos: $(find . -name '*.txt' ! -iname 'readme.txt' | wc -l) (esperado: 4396)"
 test -f Readme.txt && echo "Readme.txt: OK" || echo "Readme.txt: FALTA"
@@ -419,7 +419,7 @@ if [ "$MOBI" -eq 0 ]; then echo "MobiAct: pendiente (email bmi@hmu.gr)"; else ec
 | **UniMiB SHAR** | Univ. Milano-Bicocca | Reserva académica — solicitar igual que MobiAct |
 | **FARSEEING** | Proyecto EU AAL | Caídas reales mayores — acceso bajo solicitud, muestras públicas limitadas |
 
-Detalle académico completo: [Backend/data/README.md](Backend/data/README.md)
+Detalle académico completo: [inference/data/README.md](inference/data/README.md)
 
 ---
 

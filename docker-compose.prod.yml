@@ -1,9 +1,13 @@
 # SentiLife — QA/Production on EC2
-# Ports (Security Group inbound):
-#   Java API  → host 8005 → container 8080
-#   DB        → host 5435 → container 5432 (debug only)
-#   Grafana   → host 3006 → container 3000
-#   Inference, RabbitMQ, Prometheus → internal only
+#
+# Security Group inbound rules required:
+#   Port 8005  TCP  0.0.0.0/0  — Java API (reuses existing "FA: SentiLife API" rule)
+#   Port 5435  TCP  0.0.0.0/0  — PostgreSQL debug (existing "FA: SentiLife DB" rule)
+#   Port 3006  TCP  0.0.0.0/0  — Grafana dashboard  ⚠ ADD THIS RULE
+#   Port 22    TCP  (SSH key)   — SSH (existing)
+#
+# Internal only (NOT exposed externally):
+#   FastAPI inference :8000, RabbitMQ :5672/:15672, Prometheus :9090
 #
 # Other projects on same EC2 (34.235.130.33):
 #   Unicorn Valuation — frontend 3005, API 8004, Postgres 5434
@@ -97,7 +101,7 @@ services:
     image: prom/prometheus:v2.53.0
     container_name: sentilife-prometheus
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./backend-java/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -123,8 +127,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./backend-java/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend-java/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "${GRAFANA_HOST_PORT:-3006}:3000"

@@ -23,7 +23,7 @@ jobs:
     needs: gate
     defaults:
       run:
-        working-directory: Frontend
+        working-directory: frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
     needs: validate
     defaults:
       run:
-        working-directory: Frontend
+        working-directory: frontend
     env:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
 
@@ -103,7 +103,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: Frontend/build/app/outputs/flutter-apk/app-release.apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
 
       - name: Create GitHub Release

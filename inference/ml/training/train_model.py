@@ -18,7 +18,7 @@ Diferencias clave respecto al pipeline con datos sintéticos:
     modelo depende de un atajo simple de magnitud en vez de un patrón
     robusto (ver diagnostico.py, sección de feature importance).
 
-Uso (desde la raíz de Backend/):
+Uso (desde la raíz de inference/):
     python -m ml.training.train_model --data data/processed/sisfall/sisfall_windows_features.csv.gz
     python -m ml.training.train_model --data data/processed/sisfall/sisfall_windows_features.csv.gz --drop-shortcut-features
 Genera: ml/models/model.pkl (baseline) o ml/models/model_ablation.pkl (con el flag activado).

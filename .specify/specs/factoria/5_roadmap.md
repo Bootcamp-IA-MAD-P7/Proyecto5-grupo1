@@ -89,12 +89,12 @@
 
 ### Calidad
 - [ ] Los tests existentes pasan: `make test` (o `pytest` + `flutter test`)
-- [ ] No hay regresiones en el contrato de `/predict` (fixtures en `Backend/tests/`)
+- [ ] No hay regresiones en el contrato de `/predict` (fixtures en `inference/tests/`)
 - [ ] Si se modificaron features del modelo: el pipeline de entrenamiento está sincronizado
   con `api/inference/features.py` y el `window_contract.json` no cambia
 - [ ] Si se modificó un contrato de spec §6: aprobado por al menos 1 dev de cada lado
 
-### Modelo / ML (solo PRs con cambios en `Backend/ml/` o `Backend/api/inference/`)
+### Modelo / ML (solo PRs con cambios en `inference/ml/` o `inference/api/inference/`)
 - [ ] Overfitting validado: |CV_PR-AUC - Test_PR-AUC| < 5 pp
 - [ ] Split por sujeto (GroupKFold/LOSO) verificado — ningún subject_id en train Y test
 - [ ] Métricas del modelo nuevo ≥ modelo anterior en test (recall_fall y PR-AUC)

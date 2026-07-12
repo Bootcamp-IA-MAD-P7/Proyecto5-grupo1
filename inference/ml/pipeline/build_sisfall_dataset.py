@@ -10,7 +10,7 @@ Por qué "una fila por ensayo" y no "una fila por timestamp":
   generando fuga de datos severa. Resumir cada ensayo con estadísticas
   (media, máximo, std, etc.) es la forma correcta de tabularizar esto.
 
-Uso (desde la raíz de Backend/):
+Uso (desde la raíz de inference/):
     python ml/build_sisfall_dataset.py --root data/raw/sisfall --out data/processed/sisfall/sisfall_dataset.csv
 
 El script busca recursivamente cualquier .txt cuyo nombre siga el patrón

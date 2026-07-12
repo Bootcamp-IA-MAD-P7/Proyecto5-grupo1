@@ -43,4 +43,4 @@ flutter-qa: env-qa
 	 bash scripts/run-flutter-qa.sh
 
 test-backend:
-	cd Backend && pip install -r requirements.txt pytest httpx && pytest tests/ -v
+	cd inference && pip install -r requirements.txt pytest httpx && pytest tests/ -v

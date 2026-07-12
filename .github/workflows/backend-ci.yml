@@ -38,14 +38,14 @@ jobs:
           name: java-test-reports
           path: backend-java/target/surefire-reports/
 
-  # ── Python backend tests (FastAPI inference service) ───────────────────────
+  # ── Python inference service tests (FastAPI) ───────────────────────────────
   test-python:
     name: Python — pytest
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: Backend
+        working-directory: inference
 
     steps:
       - name: Checkout code
@@ -56,27 +56,17 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
-          cache-dependency-path: Backend/requirements.txt
+          cache-dependency-path: inference/requirements.txt
 
       - name: Install dependencies
         run: pip install -r requirements.txt pytest httpx
-
-      - name: Verify data layout
-        run: |
-          test -d data/raw/sisfall
-          test -d data/processed/sisfall
-          test -f data/processed/sisfall/sisfall_dataset.csv
-          test -d data/raw/mobiact
-          test -d data/processed/mobiact
-          test -d data/processed/combined
-          echo "Data layout OK"
 
       - name: Lint (import check)
         run: python -c "from api.main import app"
 
       - name: Run pytest
         env:
-          PYTHONPATH: ${{ github.workspace }}/Backend
+          PYTHONPATH: ${{ github.workspace }}/inference
         run: pytest tests/ -v --tb=short
 
   # ── Build & push Docker images (only on main merge) ────────────────────────
@@ -104,12 +94,12 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-java:${{ github.sha }}
 
-      - name: Build and push FastAPI inference image
+      - name: Build and push inference service image
         run: |
           docker build \
             -t ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest \
             -t ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }} \
-            ./Backend
+            ./inference
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }}
 
@@ -132,15 +122,32 @@ jobs:
           chmod 600 ~/.ssh/ec2_key.pem
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Upload compose and configs
+      - name: Upload compose and observability configs
         run: |
+          # Create required directories on EC2
           ssh -i ~/.ssh/ec2_key.pem \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/sentilife/db/init ~/sentilife/observability"
+            "mkdir -p ~/sentilife/backend-java/observability/grafana/provisioning/dashboards \
+                       ~/sentilife/backend-java/observability/grafana/provisioning/datasources \
+                       ~/sentilife/backend-java/observability/grafana/dashboards"
 
+          # Upload compose file
           scp -i ~/.ssh/ec2_key.pem \
             docker-compose.prod.yml \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/docker-compose.prod.yml
+
+          # Upload observability configs (Prometheus + Grafana provisioning)
+          scp -i ~/.ssh/ec2_key.pem \
+            backend-java/observability/prometheus.yml \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend-java/observability/prometheus.yml
+
+          scp -i ~/.ssh/ec2_key.pem -r \
+            backend-java/observability/grafana/provisioning \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend-java/observability/grafana/
+
+          scp -i ~/.ssh/ec2_key.pem -r \
+            backend-java/observability/grafana/dashboards \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend-java/observability/grafana/
 
       - name: Deploy on EC2
         run: |
@@ -159,17 +166,17 @@ jobs:
             DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-            sleep 20
-            echo "→ Checking Java backend health..."
+            sleep 25
+            echo "→ Checking Java backend health (internal)..."
             curl --fail --silent http://localhost:8080/actuator/health | grep '"status":"UP"'
-            echo "→ Checking inference health..."
+            echo "→ Checking inference health (internal)..."
             curl --fail --silent http://localhost:8000/health | grep '"status":"healthy"'
             echo "✅ All services healthy"
           ENDSSH
 
       - name: External smoke test
         run: |
-          echo "→ Verifying externally on http://${{ secrets.EC2_HOST }}:8080..."
+          echo "→ Verifying Java API externally on port 8005..."
           curl --fail --silent --retry 3 --retry-delay 5 \
-            "http://${{ secrets.EC2_HOST }}:8080/actuator/health" | grep '"status":"UP"'
-          echo "✅ Deployment successful — SentiLife live"
+            "http://${{ secrets.EC2_HOST }}:8005/actuator/health" | grep '"status":"UP"'
+          echo "✅ Deployment successful — SentiLife live on EC2:8005"

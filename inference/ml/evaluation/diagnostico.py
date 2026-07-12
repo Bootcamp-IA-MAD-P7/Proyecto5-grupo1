@@ -22,7 +22,7 @@ Diagnóstico rápido para entender el rendimiento del modelo guardado:
      mayoría joven) puede ocultar que el modelo funciona peor justo en
      la población que más importa para un sistema real.
 
-Uso (desde la raíz de Backend/):
+Uso (desde la raíz de inference/):
     python -m ml.evaluation.diagnostico --data data/processed/sisfall/sisfall_windows_features.csv.gz --model ml/models/model.pkl
     python -m ml.evaluation.diagnostico --data data/processed/sisfall/sisfall_windows_features.csv.gz --model ml/models/model_ablation.pkl
 """
