@@ -1,20 +1,16 @@
 # SentiLife — QA/Production on EC2
 #
 # Security Group inbound rules required:
-#   Port 8005  TCP  0.0.0.0/0  — Java API (reuses existing "FA: SentiLife API" rule)
-#   Port 3006  TCP  0.0.0.0/0  — Grafana dashboard  ⚠ ADD THIS RULE
-#   Port 22    TCP  (SSH key)   — SSH (existing)
+#   Port 8005  TCP  0.0.0.0/0  — Java API ("FA: SentiLife API Java")
+#   Port 5435  TCP  0.0.0.0/0  — PostgreSQL ("FA: SentiLife DB")
+#   Port 3006  TCP  0.0.0.0/0  — Grafana dashboard
+#   Port 22    TCP  (SSH key)   — SSH
 #
-# Internal only (NOT exposed on host — avoids port conflicts on shared EC2):
-#   PostgreSQL :5432 (Java usa db:5432 en red Docker)
+# Internal only (NOT exposed on host):
 #   FastAPI inference :8000, RabbitMQ :5672/:15672, Prometheus :9090
-#
-# Postgres debug (DBeaver/psql): NO se publica en host. Usar:
-#   docker exec -it sentilife-db psql -U fallsentinel -d fallsentinel
 #
 # Other projects on same EC2 (34.235.130.33) — NO TOCAR:
 #   Unicorn Valuation — frontend 3005, API 8004, Postgres 5434
-#   Legacy SentiLife DB — 5435 (puede seguir ocupado por despliegue anterior)
 
 name: sentilife
 
@@ -30,8 +26,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
-    # Sin ports: — Postgres solo accesible en red Docker (db:5432).
-    # Evita conflicto con 5435 ya ocupado en EC2 por despliegues legacy.
+    ports:
+      - "${POSTGRES_HOST_PORT:-5435}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fallsentinel} -d ${POSTGRES_DB:-fallsentinel}"]
       interval: 5s

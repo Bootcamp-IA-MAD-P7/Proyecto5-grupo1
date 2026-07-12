@@ -114,7 +114,7 @@ Emulador: `cd frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2
 |---|---|---|
 | **Java API** (pública) | http://34.235.130.33:8005/actuator/health | Flutter + clientes |
 | Java REST | http://34.235.130.33:8005/api/v1/... | Auth, telemetría, alertas |
-| Postgres | interno `db:5432` | Solo Java — debug vía `docker exec` en EC2 |
+| Postgres (debug) | `34.235.130.33:5435` | Solo admin (DBeaver/psql) |
 | Grafana | http://34.235.130.33:3006 | Dashboards (`admin`/`admin`) |
 | Inference ML | interno `:8000` | No expuesto — Java lo consume |
 | RabbitMQ / Prometheus | internos | No expuestos |
@@ -328,13 +328,13 @@ Flujo: push/PR a **cualquier rama** (tests) → merge a **`main`** (deploy compl
 | Servicio | Puerto host | URL | Expuesto |
 |---|---|---|---|
 | **Java API** | **8005** | http://34.235.130.33:8005 | ✅ Sí — Flutter + clientes |
-| Postgres | interno | `db:5432` (Docker) | ❌ No expuesto — evita conflicto con 5435 legacy |
+| Postgres (debug) | **5435** | `34.235.130.33:5435` | ✅ Sí — solo admin |
 | Grafana | **3006** | http://34.235.130.33:3006 | ✅ Sí — dashboards |
 | Inference FastAPI | 8000 | — | ❌ Interno Docker |
 | RabbitMQ | 5672 | — | ❌ Interno Docker |
 | Prometheus | 9090 | — | ❌ Interno Docker |
 
-Abrir en Security Group: **TCP 8005** (Java API), **TCP 3006** (Grafana). Postgres queda interno.
+Abrir en Security Group: **TCP 8005** (Java API), **TCP 5435** (Postgres debug), **TCP 3006** (Grafana).
 
 ### Secrets GitHub (environment `production`)
 
