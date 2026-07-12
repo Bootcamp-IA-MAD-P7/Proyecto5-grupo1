@@ -9,9 +9,9 @@ import 'exceptions.dart';
 /// Con [useMock] = true devuelve datos hardcodeados que implementan
 /// exactamente los contratos de spec §6.1. En producción usar el default (false).
 class AuthService {
-  final bool _useMock;
+  AuthService({this._useMock = false});
 
-  AuthService({bool useMock = false}) : _useMock = useMock;
+  final bool _useMock;
 
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/auth';
 
