@@ -182,8 +182,8 @@ El `package ID` (`com.jzelada.proyecto_flutter`) es independiente del nombre vis
 
 | Workflow | Disparo | Qué hace |
 |---|---|---|
-| `backend-ci.yml` | push/PR `dev` | pytest (Python) + `mvn test` (Java, cuando exista) + data layout + import check |
-| `backend-ci.yml` | push `main` | tests → imágenes Docker Hub → deploy EC2 (DBs + colas + APIs + observabilidad) |
+| `ci.yml` | push/PR `dev` | pytest (Python) + `mvn test` (Java, cuando exista) + data layout + import check |
+| `ci.yml` | push `main` | tests → imágenes Docker Hub → deploy EC2 (DBs + colas + APIs + observabilidad) |
 | `android.yml` | tras `backend-ci` OK en `main` | analyze → APK → GitHub Release → Firebase → registro OTA |
 
 Orden en push a `main`: primero backend (infra + APIs); al terminar con éxito se lanza `android.yml` (APK → Firebase a testers → OTA en Postgres).

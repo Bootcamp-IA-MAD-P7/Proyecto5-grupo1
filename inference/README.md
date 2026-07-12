@@ -96,7 +96,7 @@ Mismas credenciales que `.env.example`.
 | API | http://34.235.130.33:8005 |
 | Postgres (debug) | `34.235.130.33:5435` |
 
-Deploy automático vía `backend-ci.yml` (push a `main`). Defaults en `docker-compose.prod.yml`.
+Deploy automático vía `ci.yml` (push a `main`). Defaults en `docker-compose.prod.yml`.
 
 ## Tests
 

@@ -29,7 +29,7 @@
 
 ### What did I do?
 
-- **SL-44 (CI pipeline)** — Created `.github/workflows/backend-ci.yml`:
+- **SL-44 (CI pipeline)** — Created `.github/workflows/ci.yml`:
   - `test-java`: JDK 21 + `mvn test` on push to feature/backend and main
   - `test-python`: pytest for inference service
   - `build-and-push`: Docker images for Java + FastAPI (on main merge)

@@ -35,7 +35,7 @@
 | BE-B | **RabbitMQ** exchanges/colas spec §5.3 | — / T2.7 |
 | BE-B | **Alertas**: `Alert`, CRUD, `feedback_labels` | SL-34 / T2.8 |
 | BE-B | **Push FCM**: `FirebaseConfig` + `NotificationService` + `AlertPushListener` | — / T2.9 |
-| BE-B | **CI** `backend-ci.yml`: `mvn test` + Docker Hub | SL-44 / T3.2 |
+| BE-B | **CI** `ci.yml`: `mvn test` + Docker Hub | SL-44 / T3.2 |
 | BE-B | **Grafana dashboard** `sentilife-pipeline.json` definitivo | SL-47 / T3.5 |
 | BE-B | **Retrain** `POST /admin/retrain` + `GET /admin/retrain/status` (fases DRIFT→PROMOTING) | SL-55 / T4.4 |
 | BE-B | **A/B testing** `ABTestingService` 80/20% ACTIVE/CANDIDATE + Prometheus | SL-57 / T4.6 |

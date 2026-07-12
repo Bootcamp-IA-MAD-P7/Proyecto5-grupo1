@@ -270,15 +270,17 @@ Detalle completo: [inference/data/README.md](inference/data/README.md)
 
 ## CI/CD
 
-Flujo: push/PR a **`dev`** (solo tests) → merge a **`main`** (deploy completo).
+Flujo: push/PR a **cualquier rama** (tests) → merge a **`main`** (deploy completo).
 
-| Workflow | Rama | Qué hace |
+| Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `backend-ci.yml` | push/PR `dev` | pytest + data layout + import check |
-| `backend-ci.yml` | push `main` | tests + Docker Hub + deploy EC2 (DB + API) |
-| `android.yml` | tras `backend-ci` OK en `main` | analyze → APK → Release → Firebase → OTA |
+| `ci.yml` | push a **toda rama** + PR a `main`/`dev` | ☕ mvn test + 🐍 pytest + 🦋 flutter test |
+| `ci.yml` | push a `main` (tras tests OK) | build Docker Hub + deploy EC2 |
+| `android.yml` | tras `ci.yml` OK en `main` | APK firmado → GitHub Release → Firebase |
 
-**Orden en push a `main`:** primero `backend-ci` (DB + API); al terminar con éxito se lanza `android.yml` (APK, Firebase, OTA). Detalle: `.specify/specs/factoria/3_plan.md` §5.
+**Regla de bloqueo:** si cualquier test suite falla (Java, Python o Flutter) el pipeline para. No se construyen imágenes, no se despliega.
+
+**Orden en push a `main`:** `ci.yml` (tests → build → deploy EC2); al terminar con éxito se lanza `android.yml` (APK, Firebase). Detalle: `.specify/specs/factoria/3_plan.md` §5.
 
 `EC2_HOST` debe estar como secret a **nivel repositorio**.
 

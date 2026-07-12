@@ -112,7 +112,7 @@
 ## Fase 3 — Nivel Avanzado (producción) 🟠
 
 - [x] **T3.1** `BE-B` — `docker-compose.prod.yml` con stack completo (Java, RabbitMQ, Prometheus, Grafana) y puertos EC2 de `3_plan.md` §5. *(ML-11)*
-- [x] **T3.2** `BE-A` — CI: `backend-ci.yml` con `mvn test`, imágenes a Docker Hub, secrets. *(RNF-07)*
+- [x] **T3.2** `BE-A` — CI: `ci.yml` con `mvn test`, imágenes a Docker Hub, secrets. *(RNF-07)*
 - [ ] **T3.3** `BE-B` — Despliegue QA en EC2, Security Group (8005 público, resto interno). *(ML-13)* — **pendiente**
 - [ ] **T3.4** `BE-A`+`BE-B` — Suite de tests completa: Java (auth, consentimiento, permisos por rol, alertas, contrato de errores) y Python (preprocesado, métricas, contrato `/predict`). *(ML-14)*
 - [x] **T3.5** `BE-B` — Dashboard Grafana `sentilife-pipeline.json`: latencia, colas, errores, push. *(RF-25, RNF-01/02)*
