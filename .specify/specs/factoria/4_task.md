@@ -125,7 +125,7 @@
 
 - [ ] **T4.1** `ML` — MobiAct (si llegó): validación, EDA comparativo, `processed/combined/`. Si no: cerrar Plan B documentado. *(3_plan.md §4)*
 - [ ] **T4.2** `ML` — CNN 1D / LSTM sobre ventanas crudas vs. mejor ensemble, mismo split por sujeto. *(ML-15)*
-- [ ] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + tabla `model_registry`; FastAPI carga el `ACTIVE` y expone `/model/reload` (hot-reload sin reiniciar contenedores). *(ML-16, ADR-09)*
+- [x] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + tabla `model_registry`; FastAPI carga el `ACTIVE` y expone `/model/reload` (hot-reload sin reiniciar contenedores). *(ML-16, ADR-09)*
 - [ ] **T4.4** `BE-B`+`ML` — **Reentrenamiento con datos reales** (patrón proyecto 4): `POST /admin/retrain` → job con fases `drift → training → reload` y estado consultable `GET /admin/retrain/status` (spec §6.6); decisión por recall de caídas con guardas de overfitting y split por sujeto. *(RF-33, ML-19, ADR-09)* (T2.10, T4.3)
 - [ ] **T4.5** `FE-B` — Pantalla IT de MLOps: botón de reentrenamiento, polling de estado con fases y mensaje de decisión, historial de versiones de modelo. *(RF-33)* (T4.4)
 - [ ] **T4.6** `BE-B` — A/B testing: ~20% del tráfico al `CANDIDATE`, métricas por versión en Prometheus/Grafana. *(ML-17)* (T4.3)
