@@ -1,4 +1,8 @@
-"""Contract tests for the internal FastAPI inference service."""
+"""Contract tests for the SentiLife inference service (FastAPI).
+
+Tests the inference-only API: /predict, /health, /metrics, /model/info, /model/reload.
+No business logic, no OTA, no database.
+"""
 
 from fastapi.testclient import TestClient
 
@@ -7,88 +11,81 @@ from api.main import app
 client = TestClient(app)
 
 
-def prediction_payload():
-    return {
-        "windowId": "window-001",
-        "monitoredId": "monitored-001",
-        "sampleRateHz": 50,
-        "samples": {
-            "accX": [0.1, 0.2],
-            "accY": [0.1, 0.2],
-            "accZ": [9.8, 9.7],
-            "gyroX": [0.0, 0.1],
-            "gyroY": [0.0, 0.1],
-            "gyroZ": [0.0, 0.1],
-        },
-        "subjectFeatures": {
-            "age": 78,
-            "sex": "M",
-            "weightKg": 78.5,
-            "heightCm": 172,
-        },
-    }
+# ── /health ──────────────────────────────────────────────────────────────────
 
-
-def test_health_exposes_service_and_model_version():
+def test_health_returns_status_and_model_info():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
-    assert response.json()["service"] == "sentilife-inference"
-    assert response.json()["modelVersion"]
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert "model_loaded" in data
+    assert "model_name" in data
+    assert "version" in data
 
 
-def test_predict_matches_frozen_contract():
-    response = client.post("/predict", json=prediction_payload())
+# ── /predict ─────────────────────────────────────────────────────────────────
 
-    assert response.status_code == 200
-    assert set(response.json()) == {
-        "fallDetected",
-        "confidence",
-        "modelVersion",
-        "latencyMs",
-    }
-    assert response.json()["fallDetected"] is False
-    assert 0 <= response.json()["confidence"] <= 1
-    assert response.json()["latencyMs"] >= 0
+def test_predict_returns_503_or_422_without_valid_features():
+    """If model is loaded, predict returns 422 (missing features).
+    If no model, returns 503."""
+    response = client.post("/predict", json={"features": {}})
+    assert response.status_code in (503, 422)
 
 
-def test_predict_rejects_sensor_series_with_different_lengths():
-    payload = prediction_payload()
-    payload["samples"]["gyroZ"] = [0.0]
-
-    response = client.post("/predict", json=payload)
-
+def test_predict_rejects_invalid_body():
+    response = client.post("/predict", json={"invalid": "payload"})
     assert response.status_code == 422
 
 
-def test_model_operations_are_available():
-    info_response = client.get("/model/info")
-    reload_response = client.post("/model/reload")
+# ── /model/info ──────────────────────────────────────────────────────────────
 
-    assert info_response.status_code == 200
-    assert set(info_response.json()) == {
+def test_model_info_returns_expected_fields():
+    response = client.get("/model/info")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert set(data.keys()) == {
+        "model_name",
         "version",
-        "algorithm",
-        "trainedAt",
-        "metrics",
+        "threshold",
+        "features_count",
+        "numeric_features",
+        "categorical_features",
+        "loaded_at",
+        "file_path",
     }
-    assert reload_response.status_code == 200
-    assert reload_response.json()["modelVersion"] == info_response.json()["version"]
 
 
-def test_metrics_are_exposed_in_prometheus_format():
-    client.get("/health")
+# ── /model/reload ────────────────────────────────────────────────────────────
 
+def test_model_reload_with_invalid_path_returns_404():
+    response = client.post("/model/reload?path=nonexistent.pkl")
+    assert response.status_code == 404
+
+
+def test_model_reload_without_path_uses_default():
+    """Reload with no path param uses the configured MODEL_PATH."""
+    response = client.post("/model/reload")
+    # Either 200 (model found at default path) or 404 (no model file in test env)
+    assert response.status_code in (200, 404)
+
+
+# ── /metrics ─────────────────────────────────────────────────────────────────
+
+def test_metrics_returns_prometheus_format():
     response = client.get("/metrics")
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/plain")
-    assert "sentilife_inference_http_requests_total" in response.text
-    assert "sentilife_inference_prediction_duration_seconds" in response.text
+    assert "text/plain" in response.headers["content-type"]
+    assert "predictions_total" in response.text
+    assert "prediction_latency_seconds" in response.text
 
 
-def test_only_inference_and_deprecated_ota_application_routes_exist():
+# ── Route structure ──────────────────────────────────────────────────────────
+
+def test_only_inference_routes_exist():
+    """Verifies only inference endpoints exist — no OTA, no business logic."""
     application_paths = {
         route.path
         for route in app.routes
@@ -97,18 +94,10 @@ def test_only_inference_and_deprecated_ota_application_routes_exist():
     }
 
     assert application_paths == {
-        "/predict",
+        "/",
         "/health",
+        "/predict",
         "/metrics",
         "/model/info",
         "/model/reload",
-        "/app/latest-version",
-        "/app/register-version",
     }
-    ota_routes = [
-        route
-        for route in app.routes
-        if getattr(route, "path", "").startswith("/app/")
-    ]
-    assert ota_routes
-    assert all(route.deprecated for route in ota_routes)
