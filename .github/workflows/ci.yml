@@ -1,0 +1,234 @@
+name: SentiLife CI
+
+# Runs on every push to any branch and on every PR targeting main or dev.
+# Tests must pass before any deployment is allowed.
+# Build & deploy only happen on pushes to main.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  # ── Java backend tests (Spring Boot 3, H2 in-memory) ──────────────────────
+  test-java:
+    name: ☕ Java — mvn test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run tests
+        run: mvn test -B -q
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-test-reports
+          path: backend/target/surefire-reports/
+
+  # ── Python inference service tests (FastAPI) ───────────────────────────────
+  test-python:
+    name: 🐍 Python — pytest
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: inference
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: inference/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest httpx
+
+      - name: Lint (import check)
+        run: python -c "from api.main import app"
+
+      - name: Run pytest
+        env:
+          PYTHONPATH: ${{ github.workspace }}/inference
+        run: pytest tests/ -v --tb=short
+
+  # ── Flutter tests (analyze + unit tests) ──────────────────────────────────
+  test-flutter:
+    name: 🦋 Flutter — analyze + test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java (required by Flutter toolchain)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run unit tests
+        run: flutter test --reporter=github
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-results
+          path: frontend/test/
+
+  # ── Build & push Docker images (only on main, all tests must pass) ─────────
+  build-and-push:
+    name: 🐳 Build & push images
+    runs-on: ubuntu-latest
+    needs: [test-java, test-python, test-flutter]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" \
+            | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build & push Java backend image
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/sentilife-java:${{ github.sha }} \
+            ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-java:${{ github.sha }}
+
+      - name: Build & push inference service image
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }} \
+            ./inference
+          docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }}
+
+  # ── Deploy to EC2 (only after successful build on main) ────────────────────
+  deploy:
+    name: 🚀 Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload compose and configs to EC2
+        run: |
+          ssh -i ~/.ssh/ec2_key.pem \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            "mkdir -p ~/sentilife/backend/observability/grafana/provisioning/dashboards \
+                       ~/sentilife/backend/observability/grafana/provisioning/datasources \
+                       ~/sentilife/backend/observability/grafana/dashboards \
+                       ~/sentilife/db/init"
+
+          scp -i ~/.ssh/ec2_key.pem \
+            docker-compose.prod.yml \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/docker-compose.prod.yml
+
+          scp -i ~/.ssh/ec2_key.pem \
+            db/init/01_schema.sql \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/db/init/01_schema.sql
+
+          scp -i ~/.ssh/ec2_key.pem \
+            backend/observability/prometheus.yml \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/observability/prometheus.yml
+
+          scp -i ~/.ssh/ec2_key.pem -r \
+            backend/observability/grafana/provisioning \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/observability/grafana/
+
+          scp -i ~/.ssh/ec2_key.pem -r \
+            backend/observability/grafana/dashboards \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/observability/grafana/
+
+      - name: Deploy on EC2
+        run: |
+          ssh -i ~/.ssh/ec2_key.pem \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            bash -s << 'ENDSSH'
+            set -e
+
+            echo "${{ secrets.DOCKER_PASSWORD }}" \
+              | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+            docker pull ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
+
+            cd ~/sentilife
+            DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+            POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+            POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
+            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            sleep 25
+            echo "→ Checking Java backend health..."
+            curl --fail --silent http://localhost:8080/actuator/health | grep '"status":"UP"'
+            echo "→ Checking inference health..."
+            curl --fail --silent http://localhost:8000/health | grep '"status":"healthy"'
+            echo "✅ All services healthy"
+          ENDSSH
+
+      - name: External smoke test
+        run: |
+          echo "→ Verifying Java API on port 8005..."
+          curl --fail --silent --retry 3 --retry-delay 5 \
+            "http://${{ secrets.EC2_HOST }}:8005/actuator/health" | grep '"status":"UP"'
+          echo "✅ SentiLife live on EC2:8005"

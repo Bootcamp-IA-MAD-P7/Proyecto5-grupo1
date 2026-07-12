@@ -20,7 +20,7 @@ API_URL="${API_BASE_URL:-http://${QA_API_HOST:-34.235.130.33}:${QA_API_PORT:-800
 echo "→ QA API_BASE_URL=$API_URL"
 [[ -n "$DEVICE" ]] && echo "→ DEVICE=$DEVICE"
 
-cd "$ROOT/Frontend"
+cd "$ROOT/frontend"
 flutter pub get
 flutter devices
 

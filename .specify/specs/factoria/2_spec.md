@@ -1,0 +1,442 @@
+# 2. Spec — SentiLife
+
+> **Metodología SDD:** segundo documento fundamental. Traduce la intención (`1_intent.md`) en requisitos verificables: funcionales, no funcionales, modelo de datos, contratos de API y criterios de aceptación. El diseño técnico se detalla en `3_plan.md`.
+
+## 1. Alcance de esta especificación
+
+Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro niveles del bootcamp (constitución §3). Cada requisito lleva un identificador (`RF-xx` funcional, `RNF-xx` no funcional, `ML-xx` machine learning) y el nivel del bootcamp al que contribuye.
+
+---
+
+## 2. Requisitos funcionales
+
+### 2.1 Autenticación, usuarios y roles
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-01 | El sistema permite registro y login de usuarios con email y contraseña. La sesión se gestiona con **JWT** (access + refresh token). | Avanzado |
+| RF-02 | Existen tres roles: `MONITORED`, `CAREGIVER`, `IT_ADMIN`. Cada endpoint valida el rol requerido. | Avanzado |
+| RF-03 | Un `CAREGIVER` puede registrar una o varias **personas monitorizadas** mediante formulario con datos mínimos: nombre, fecha de nacimiento (edad), sexo, peso, altura y contacto opcional. | Avanzado |
+| RF-04 | Un `IT_ADMIN` puede listar, activar/desactivar usuarios y consultar la relación cuidador ↔ persona monitorizada. | Avanzado |
+
+### 2.2 Consentimiento y privacidad (GDPR)
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-05 | Antes de iniciar cualquier recogida de sensores, la app muestra un **modal de consentimiento** que explica qué datos se recogen, con qué fin y por cuánto tiempo. | Avanzado |
+| RF-06 | El consentimiento se persiste en PostgreSQL con: persona, versión del texto legal, fecha de aceptación y estado. Sin consentimiento activo, la ingesta de telemetría se rechaza (HTTP 403). | Avanzado |
+| RF-07 | El consentimiento es **revocable** desde la app; la revocación detiene la recogida de inmediato. | Avanzado |
+| RF-08 | El sistema permite la **supresión** de los datos de una persona a petición (borrado de negocio en PostgreSQL y de telemetría en InfluxDB). | Avanzado |
+| RF-09 | La telemetría se almacena **seudonimizada**: InfluxDB solo conoce el identificador técnico (`monitored_id`), nunca nombre ni datos identificativos. | Avanzado |
+
+### 2.3 Captura de telemetría y detección de caídas (núcleo)
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-10 | La app captura de forma continua acelerómetro (`accX/Y/Z` en m/s²) y giroscopio (`gyroX/Y/Z` en °/s) del móvil. Sensores adicionales (frecuencia cardíaca, temperatura ambiente, luz) se capturan si están disponibles, como datos de contexto para crecimiento futuro. | Esencial |
+| RF-11 | La app envía la telemetría en **ventanas deslizantes** según el contrato SL-14/T1.2 versionado en `contracts/window_contract.json` y documentado en `contracts/window_contract.md`: 2.5 s, 50 Hz, 50% de solape y 125 muestras por señal obligatoria. | Esencial |
+| RF-12 | El backend Java valida el consentimiento, persiste la ventana (InfluxDB) y solicita la clasificación al servicio de inferencia FastAPI. | Esencial |
+| RF-13 | El servicio de inferencia devuelve: `fallDetected` (bool), `confidence` (0.0–1.0), versión del modelo y timestamp. | Esencial |
+| RF-14 | Ante `fallDetected = true`, el backend publica un evento `fall.detected` en RabbitMQ y crea una **alerta** persistida en PostgreSQL. | Medio |
+| RF-15 | El cuidador recibe la alerta en la app (polling o push según `3_plan.md`) con hora, confianza y persona afectada. | Medio |
+
+### 2.4 Historial y feedback
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-16 | El cuidador consulta el historial de alertas y predicciones de **sus** personas monitorizadas. | Medio |
+| RF-17 | El cuidador puede **confirmar o descartar** cada alerta (verdadero/falso positivo). El feedback se persiste asociado a la ventana de telemetría original. | Medio |
+| RF-18 | El `IT_ADMIN` consulta el historial **global** de telemetría, predicciones y feedback. | Medio |
+| RF-19 | El `IT_ADMIN` puede **exportar** datasets etiquetados (telemetría + feedback) en formato tabular para reentrenamiento. | Medio |
+
+### 2.5 Perfiles en la app Flutter
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-20 | Perfil `MONITORED`: pantalla simple con estado de monitorización (activa/inactiva), consentimiento y última evaluación. | Esencial |
+| RF-21 | Perfil `CAREGIVER`: lista de personas monitorizadas, estado en tiempo casi real, alertas e historial, formulario de registro de persona. | Medio |
+| RF-22 | Perfil `IT_ADMIN`: acceso al historial global y estado del sistema (enlace a Grafana en MVP; vista embebida como evolución). | Medio |
+| RF-23 | La app soporta actualización **OTA** (chequeo de versión al arrancar, descarga de APK). | Avanzado |
+
+### 2.6 Observabilidad y operación
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-24 | Backend Java y servicio de inferencia exponen métricas en formato **Prometheus** (`/metrics` o actuator): latencia por endpoint, throughput, errores, latencia de inferencia. | Avanzado |
+| RF-25 | **Grafana** incluye al menos un dashboard con: latencia extremo a extremo del pipeline de detección, tasa de predicciones, profundidad de la cola RabbitMQ y salud de servicios. | Avanzado |
+| RF-26 | Todos los servicios exponen `health check` (`/health` o `/actuator/health`). | Esencial |
+
+### 2.7 Notificaciones push
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-27 | La app del cuidador registra su **token de dispositivo** (FCM) en el backend al iniciar sesión; el token se asocia al usuario y se renueva cuando FCM lo rota. | Medio |
+| RF-28 | Ante un evento `alert.created`, el backend envía una **notificación push** (Firebase Cloud Messaging) a todos los dispositivos del cuidador responsable, incluso con la app cerrada o en segundo plano. El polling in-app (RF-15) queda como mecanismo de respaldo. | Medio |
+| RF-29 | La notificación push incluye: persona afectada, tipo de evento (caída), confianza y timestamp; al tocarla, la app abre el detalle de la alerta. | Medio |
+| RF-30 | Cambios de **estado del monitoreado** relevantes para el cuidador (monitorización iniciada/detenida, consentimiento revocado) también generan push de baja prioridad. | Medio |
+
+### 2.8 Internacionalización y transparencia
+
+| ID | Requisito | Nivel |
+|---|---|---|
+| RF-31 | La app Flutter soporta **múltiples idiomas** (mínimo español e inglés) mediante ARB/`intl`, incluyendo los textos del modal de consentimiento por versión e idioma. | Avanzado |
+| RF-32 | **Modal de transparencia de datos** (patrón proyecto 4): la app informa al usuario, en lenguaje claro, de que las predicciones que ve y el feedback que emite se almacenan como datos reales para reentrenar el modelo. Accesible desde ajustes y enlazado desde el modal de consentimiento. | Medio |
+| RF-33 | El `IT_ADMIN` puede lanzar un **reentrenamiento** con los datos reales recogidos y consultar su estado (`idle / running / completed / failed`, fase actual y decisión final) mediante polling, sin reiniciar contenedores (hot-reload del modelo). | Experto |
+
+---
+
+## 3. Requisitos de Machine Learning (mapeo directo a niveles del bootcamp)
+
+### 🟢 Nivel Esencial
+
+| ID | Requisito |
+|---|---|
+| ML-01 | EDA completo del dataset activo (SisFall) con visualizaciones: matriz de correlación, histogramas de señales X/Y/Z, distribución de clases, análisis de sesgo por edad/sexo. |
+| ML-02 | Modelo funcional de clasificación binaria Caída vs. ADL. |
+| ML-03 | **Overfitting < 5%** entre métricas de entrenamiento y validación. |
+| ML-04 | Modelo servido en producción vía **FastAPI** (`/predict`). |
+| ML-05 | Informe técnico: accuracy, recall, precision, F1, curva ROC/AUC, matriz de confusión, feature importance. En este dominio, **recall de caídas** es la métrica priorizada (un falso negativo es una caída sin atender). |
+
+### 🟡 Nivel Medio
+
+| ID | Requisito |
+|---|---|
+| ML-06 | Modelos ensemble: Random Forest, Gradient Boosting, XGBoost; comparación documentada. |
+| ML-07 | Validación cruzada con **split por sujeto** (GroupKFold / Leave-One-Subject-Out) — obligatorio para evitar fuga de datos entre ensayos del mismo sujeto. |
+| ML-08 | Optimización de hiperparámetros con Optuna (o GridSearch/RandomSearch documentado). |
+| ML-09 | Pipeline de feedback: las alertas confirmadas/descartadas (RF-17) alimentan `data/feedback/` como dataset etiquetado. |
+| ML-10 | Recogida de datos nuevos vía API para futuros reentrenamientos (RF-19). |
+
+### 🟠 Nivel Avanzado
+
+| ID | Requisito |
+|---|---|
+| ML-11 | Stack completo dockerizado, incluido el servicio de inferencia con el modelo. |
+| ML-12 | Persistencia de registros de la app en bases de datos (PostgreSQL + InfluxDB). |
+| ML-13 | Despliegue de APIs y bases de datos en la nube. |
+| ML-14 | Tests unitarios: preprocesado, contrato de `/predict`, métricas, y backend Java (auth, consentimiento, alertas). |
+
+### 🔴 Nivel Experto
+
+| ID | Requisito |
+|---|---|
+| ML-15 | Experimento con redes neuronales para series temporales (CNN 1D o LSTM sobre ventanas crudas) comparado contra el mejor ensemble. |
+| ML-16 | Registro de modelos con versionado (`ml/registry/`) y metadata de métricas. |
+| ML-17 | **A/B testing** de modelos en producción (enrutado de un % de tráfico a modelo candidato). |
+| ML-18 | Monitoreo de **data drift** sobre las distribuciones de features de entrada. |
+| ML-19 | **Auto-reemplazo** de modelo condicionado a superar métricas predefinidas en evaluación automática. |
+
+---
+
+## 4. Requisitos no funcionales
+
+| ID | Requisito | Objetivo |
+|---|---|---|
+| RNF-01 | **Latencia extremo a extremo** (evento físico → alerta visible al cuidador) | < 5 s (p95) |
+| RNF-02 | **Latencia de inferencia** (`/predict`) | < 300 ms (p95) |
+| RNF-03 | Disponibilidad del pipeline de detección en demo/QA | Sin caídas durante demo; reinicio automático de contenedores (`restart: unless-stopped`) |
+| RNF-04 | Seguridad: contraseñas hasheadas (BCrypt), JWT firmado, secretos fuera del repo (`.env`, GitHub Secrets) | Obligatorio |
+| RNF-05 | Privacidad: cumplimiento de constitución §8 (consentimiento, minimización, seudonimización, supresión) | Obligatorio |
+| RNF-06 | Todo el stack se levanta en local con `docker compose up` | Un comando |
+| RNF-07 | CI/CD: tests en cada PR; despliegue automático a QA en merge a `main` | GitHub Actions |
+| RNF-08 | Idioma de la documentación y la UI: español | — |
+
+---
+
+## 5. Modelo de datos
+
+### 5.1 PostgreSQL (negocio — backend Java)
+
+```
+users                 (id, email, password_hash, role, active, created_at)
+monitored_persons     (id, caregiver_id → users, user_id → users NULL,
+                       full_name, birth_date, sex, weight_kg, height_cm,
+                       emergency_contact, created_at)
+consents              (id, monitored_person_id, policy_version, status
+                       [ACTIVE|REVOKED], accepted_at, revoked_at)
+alerts                (id, monitored_person_id, detected_at, confidence,
+                       model_version, status [PENDING|CONFIRMED|DISMISSED],
+                       reviewed_by → users NULL, reviewed_at)
+feedback_labels       (id, alert_id, label [TRUE_FALL|FALSE_ALARM],
+                       telemetry_window_ref, created_by, created_at)
+model_registry        (id, version, algorithm, metrics_json, artifact_uri,
+                       status [CANDIDATE|ACTIVE|RETIRED], created_at)
+paired_devices        (id, monitored_person_id, device_id, platform,
+                       device_token_hash, paired_at, active)
+push_tokens           (id, user_id → users, device_id, fcm_token, platform,
+                       locale, updated_at)
+app_versions          (existente — OTA Android)
+```
+
+Notas:
+- `monitored_persons.user_id` es opcional: la persona monitorizada puede tener cuenta propia (rol `MONITORED`) o ser gestionada solo por el cuidador.
+- `telemetry_window_ref` referencia la ventana en InfluxDB (measurement + rango temporal + `monitored_id`).
+
+### 5.2 InfluxDB (telemetría en tiempo real)
+
+```
+measurement: sensor_window
+  tags:    monitored_id, device_id, window_id
+  fields:  acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z,
+           heart_rate?, room_temp?, room_light?
+  time:    timestamp de la muestra
+
+measurement: prediction
+  tags:    monitored_id, model_version, window_id
+  fields:  fall_detected (0/1), confidence, latency_ms
+  time:    timestamp de la predicción
+```
+
+Solo identificadores técnicos (RF-09). Retención configurable (RF-08: supresión por `monitored_id`).
+
+### 5.3 Eventos RabbitMQ
+
+| Exchange / routing key | Productor | Consumidor | Payload |
+|---|---|---|---|
+| `sentilife.telemetry` / `telemetry.window` | Backend Java (ingesta) | Worker de inferencia | ventana + `monitored_id` |
+| `sentilife.events` / `fall.detected` | Worker de inferencia | Servicio de alertas (Java) | predicción positiva |
+| `sentilife.events` / `alert.created` | Servicio de alertas | Notificador (app cuidador) | alerta persistida |
+
+*(Decisión síncrono vs. asíncrono para el camino crítico: ver `3_plan.md` §4. El fallback sin cola mantiene los mismos contratos.)*
+
+---
+
+## 6. Contratos de API (fuente de verdad para trabajo en paralelo)
+
+> **Regla de equipo:** estos contratos son el punto de encuentro entre los dos devs de backend y los dos de frontend. Frontend desarrolla contra estos JSON usando el mock de Flutter (`_useMock`); backend los implementa tal cual. **Cualquier cambio de contrato se acuerda aquí primero** (PR sobre este documento), nunca cambiando código de un lado sin avisar al otro.
+
+Convenciones generales:
+
+- Base path negocio: `/api/v1`. Autenticación: header `Authorization: Bearer <access_token>` salvo endpoints públicos.
+- Fechas en **ISO-8601 UTC** (`2026-07-08T10:15:00Z`). IDs de negocio: UUID v4.
+- Errores con cuerpo uniforme:
+
+```json
+{ "timestamp": "2026-07-08T10:15:00Z", "status": 403, "error": "FORBIDDEN", "message": "Consentimiento no activo", "path": "/api/v1/telemetry/windows" }
+```
+
+- Códigos: `400` validación, `401` sin token/expirado, `403` rol o consentimiento, `404` no existe o no es tuyo, `409` conflicto (email duplicado).
+- Listados paginados: `?page=0&size=20` → respuesta `{ "content": [...], "page": 0, "size": 20, "totalElements": 132, "totalPages": 7 }`.
+
+### 6.1 Auth (`/api/v1/auth`) — público
+
+**POST `/register`**
+
+```json
+// request
+{ "email": "ana@mail.com", "password": "S3cure!pass", "fullName": "Ana García", "role": "CAREGIVER", "locale": "es" }
+// 201 response
+{ "id": "uuid", "email": "ana@mail.com", "fullName": "Ana García", "role": "CAREGIVER" }
+```
+
+`role` admitidos en registro: `CAREGIVER`, `MONITORED`. `IT_ADMIN` se crea por seed/gestión interna.
+
+**POST `/login`**
+
+```json
+// request
+{ "email": "ana@mail.com", "password": "S3cure!pass" }
+// 200 response
+{
+  "accessToken": "eyJ...", "refreshToken": "eyJ...",
+  "expiresIn": 900,
+  "user": { "id": "uuid", "email": "ana@mail.com", "fullName": "Ana García", "role": "CAREGIVER", "locale": "es" }
+}
+```
+
+**POST `/refresh`** — `{ "refreshToken": "eyJ..." }` → mismo shape que login.
+
+### 6.2 Personas monitorizadas (`/api/v1/monitored-persons`) — rol CAREGIVER
+
+**POST `/`** (formulario de registro, RF-03)
+
+```json
+// request
+{
+  "fullName": "Manuel Pérez", "birthDate": "1948-03-12", "sex": "M",
+  "weightKg": 78.5, "heightCm": 172, "emergencyContact": "+34600111222"
+}
+// 201 response
+{
+  "id": "uuid", "fullName": "Manuel Pérez", "birthDate": "1948-03-12", "age": 78,
+  "sex": "M", "weightKg": 78.5, "heightCm": 172, "emergencyContact": "+34600111222",
+  "consentStatus": "PENDING", "monitoringStatus": "INACTIVE",
+  "pairingCode": "SL-84F2K9", "createdAt": "2026-07-08T10:15:00Z"
+}
+```
+
+`pairingCode`: código de un solo uso con el que el dispositivo de la persona monitorizada se vincula (ver 6.4). `sex`: `M | F | OTHER` (dato de features del modelo).
+
+**GET `/`** → paginado de personas del cuidador con `lastSeenAt` y `lastPrediction` embebidos.
+**GET `/{id}`** → detalle. **PUT `/{id}`** → mismo shape que POST. **DELETE `/{id}`** → `204` y supresión GDPR total (RF-08).
+
+**POST `/{id}/consent`** (RF-06)
+
+```json
+// request
+{ "policyVersion": "1.0-es", "acceptedBy": "MONITORED" }
+// 201 response
+{ "id": "uuid", "monitoredPersonId": "uuid", "policyVersion": "1.0-es", "status": "ACTIVE", "acceptedAt": "2026-07-08T10:15:00Z" }
+```
+
+**DELETE `/{id}/consent`** → `200` `{ "status": "REVOKED", "revokedAt": "..." }`.
+
+### 6.3 Telemetría (`/api/v1/telemetry`) — rol MONITORED (dispositivo vinculado)
+
+**POST `/windows`** (RF-11/RF-12) — una ventana según ADR-05 y el contrato SL-14/T1.2 (`contracts/window_contract.json`):
+
+```json
+// request
+{
+  "monitoredPersonId": "uuid",
+  "deviceId": "android-f8a3...",
+  "windowStart": "2026-07-08T10:15:00.000Z",
+  "windowEnd": "2026-07-08T10:15:02.500Z",
+  "sampleRateHz": 50,
+  "samples": {
+    "accX": [0.12, ...], "accY": [9.71, ...], "accZ": [0.33, ...],
+    "gyroX": [1.2, ...], "gyroY": [0.4, ...], "gyroZ": [2.1, ...]
+  },
+  "context": { "heartRate": 74, "roomTemp": 22.5, "roomLight": 310 }
+}
+// 200 response (clasificación en línea — camino crítico)
+{
+  "windowId": "uuid",
+  "prediction": { "fallDetected": false, "confidence": 0.03, "modelVersion": "xgb-1.2.0", "latencyMs": 145 }
+}
+// 403 si consentimiento no activo (RF-06)
+```
+
+`context` es opcional y extensible: campos nuevos de sensores se añaden aquí sin romper el contrato.
+
+Reglas fijas SL-14/T1.2: `sampleRateHz = 50`; `windowEnd = windowStart + 2500 ms`; cada array obligatorio en `samples` contiene exactamente 125 valores finitos en unidades físicas (`acc*` en `m/s²`, `gyro*` en `°/s`). SisFall se remuestrea de 200 Hz a 50 Hz con interpolación lineal; producción conserva gravedad y deja cualquier normalización dentro del pipeline del modelo.
+
+**GET `/status/{monitoredPersonId}`** — rol CAREGIVER: `{ "monitoringStatus": "ACTIVE", "lastWindowAt": "...", "lastPrediction": { ... } }`.
+
+### 6.4 Vinculación de dispositivo y push (`/api/v1/devices`)
+
+**POST `/pair`** — público con `pairingCode` (dispositivo del monitoreado):
+
+```json
+// request
+{ "pairingCode": "SL-84F2K9", "deviceId": "android-f8a3...", "platform": "ANDROID" }
+// 200 response
+{ "monitoredPersonId": "uuid", "deviceToken": "eyJ..." }   // token de dispositivo para POST /telemetry/windows
+```
+
+**POST `/push-token`** — autenticado (app del cuidador, RF-27):
+
+```json
+// request
+{ "fcmToken": "fcm_abc...", "deviceId": "android-99b1...", "platform": "ANDROID", "locale": "es" }
+// 204 response — idempotente: re-registrar el mismo deviceId actualiza el token
+```
+
+**Payload de push FCM** (RF-28/RF-29) — mensaje `data` + `notification`:
+
+```json
+{
+  "notification": { "title": "⚠ Posible caída — Manuel", "body": "Confianza 92% · 10:15" },
+  "data": {
+    "type": "FALL_ALERT",            // FALL_ALERT | MONITORING_STARTED | MONITORING_STOPPED | CONSENT_REVOKED
+    "alertId": "uuid", "monitoredPersonId": "uuid",
+    "confidence": "0.92", "detectedAt": "2026-07-08T10:15:03Z"
+  }
+}
+```
+
+Al tocar la notificación, Flutter navega a `AlertDetailScreen(alertId)`.
+
+### 6.5 Alertas (`/api/v1/alerts`) — rol CAREGIVER
+
+**GET `/`** — filtros `?status=PENDING&monitoredPersonId=uuid`, paginado:
+
+```json
+{ "content": [ {
+  "id": "uuid", "monitoredPersonId": "uuid", "monitoredPersonName": "Manuel Pérez",
+  "detectedAt": "2026-07-08T10:15:03Z", "confidence": 0.92,
+  "modelVersion": "xgb-1.2.0", "status": "PENDING"
+} ], "page": 0, "size": 20, "totalElements": 3, "totalPages": 1 }
+```
+
+**PATCH `/{id}`** (feedback, RF-17)
+
+```json
+// request
+{ "status": "CONFIRMED", "comment": "Se resbaló en el baño" }   // CONFIRMED | DISMISSED
+// 200 response → alerta actualizada + { "feedbackLabelId": "uuid" }
+```
+
+### 6.6 Administración (`/api/v1/admin`) — rol IT_ADMIN
+
+- **GET `/history`** — historial global paginado (predicciones + alertas + feedback), filtros por fecha/persona/resultado.
+- **GET `/export?from=...&to=...&format=csv`** — dataset etiquetado (features de ventana + label de feedback) para reentrenamiento (RF-19).
+- **GET `/users`** / **PATCH `/users/{id}`** — gestión de usuarios (RF-04).
+- **POST `/retrain`** → `202` `{ "status": "running" }` (RF-33). Rechaza con `409` si ya hay un job en curso.
+- **GET `/retrain/status`** (patrón proyecto 4):
+
+```json
+{
+  "status": "completed",           // idle | running | completed | failed
+  "phase": null,                   // drift | training | reload
+  "message": "Modelo promovido a producción (recall 0.91 → 0.94). La API ya sirve el nuevo modelo.",
+  "startedAt": "2026-07-08T10:00:00Z", "finishedAt": "2026-07-08T10:04:12Z",
+  "decision": "promoted",          // promoted | candidate | discarded | skipped
+  "details": { "currentRecall": 0.91, "newRecall": 0.94, "overfittingGap": 0.03, "driftDetected": false, "modelReloaded": true }
+}
+```
+
+### 6.7 OTA (`/api/v1/app`) — público (migrado de FastAPI)
+
+- **GET `/latest-version`** → `{ "version": "1.4.0", "apkUrl": "https://github.com/.../releases/...", "mandatory": false, "releaseNotes": "..." }`
+- **POST `/register-version`** — solo CI (token de servicio).
+
+### 6.8 Servicio de inferencia (FastAPI) — interno, no expuesto a internet
+
+**POST `/predict`**
+
+```json
+// request (mismas señales que 6.3, sin datos identificativos — solo monitored_id técnico)
+{ "windowId": "uuid", "monitoredId": "uuid", "sampleRateHz": 50, "samples": { "accX": [...], "accY": [...], "accZ": [...], "gyroX": [...], "gyroY": [...], "gyroZ": [...] }, "subjectFeatures": { "age": 78, "sex": "M", "weightKg": 78.5, "heightCm": 172 } }
+// 200 response
+{ "fallDetected": true, "confidence": 0.92, "modelVersion": "xgb-1.2.0", "latencyMs": 87 }
+```
+
+- **GET `/health`** · **GET `/metrics`** (Prometheus) · **GET `/model/info`** → `{ "version": "xgb-1.2.0", "algorithm": "XGBoost", "trainedAt": "...", "metrics": { "recall": 0.94, "f1": 0.91 } }`
+- **POST `/model/reload`** — interno: recarga el modelo `ACTIVE` del registry sin reiniciar el contenedor (usado por el flujo de reentrenamiento, RF-33).
+
+El backend Java es el **único** cliente de este servicio (más el worker de cola).
+
+---
+
+## 7. Criterios de aceptación del MVP
+
+1. **Demo de caída:** con la app en un móvil y el stack desplegado, una caída simulada produce una alerta visible en el perfil del cuidador en < 5 s.
+2. **Roles:** un `CAREGIVER` no puede acceder a `/api/v1/admin/*` (403); un `MONITORED` no ve alertas de otros.
+3. **Consentimiento:** sin consentimiento activo, `POST /telemetry/windows` devuelve 403 y la app no envía datos.
+4. **Supresión:** tras `DELETE /monitored-persons/{id}`, no queda telemetría de esa persona en InfluxDB ni datos de negocio en PostgreSQL.
+5. **ML:** informe técnico completo con overfitting < 5% y validación por sujeto (LOSO/GroupKFold).
+6. **Feedback:** una alerta confirmada aparece en el export de `IT_ADMIN` como muestra etiquetada.
+7. **Observabilidad:** dashboard Grafana con latencia del pipeline y salud de los servicios, alimentado por Prometheus.
+8. **Operación:** `docker compose up` levanta todo el stack en local; merge a `main` despliega a QA automáticamente.
+
+---
+
+## 8. Trazabilidad con los niveles del bootcamp
+
+| Nivel | Requisitos que lo cubren |
+|---|---|
+| 🟢 Esencial | ML-01…ML-05 · RF-10…RF-13 · RF-20 · RF-26 |
+| 🟡 Medio | ML-06…ML-10 · RF-14…RF-19 · RF-21 · RF-22 · RF-27…RF-30 · RF-32 |
+| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RNF-01…RNF-07 |
+| 🔴 Experto | ML-15…ML-19 · RF-33 |
+
+---
+
+## 9. Estado del documento
+
+| Campo | Valor |
+|---|---|
+| Estado | Draft v0.2 — contratos detallados para trabajo en paralelo, push FCM, i18n, transparencia y reentrenamiento |
+| Autores | Equipo Grupo 1 |
+| Última actualización | 08/07/2026 |
