@@ -90,7 +90,7 @@
 
 ### Stream FE-A (monitored)
 
-- [ ] **T2.11** `FE-A` — Login + navegación por rol (3 perfiles), sesión JWT con refresh. *(RF-20…RF-22)* 
+- [x] **T2.11** `FE-A` — Login + navegación por rol (3 perfiles), sesión JWT con refresh. *(RF-20…RF-22)* 
 - [ ] **T2.12** `FE-A` — Modal de **consentimiento** (primera ejecución, versión por idioma, revocación en ajustes) + flujo de vinculación con `pairingCode`. *(RF-05, RF-07)*
 - [ ] **T2.13** `FE-A` — Modal de **transparencia de datos** (patrón proyecto 4): "tus predicciones y feedback se usan para reentrenar el modelo", enlazado desde consentimiento y ajustes. *(RF-32)*
 

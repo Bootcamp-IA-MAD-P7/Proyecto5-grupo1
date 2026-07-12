@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'services/session_manager.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
 
@@ -55,12 +57,12 @@ class _AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<_AppRoot> {
   final _updateService = UpdateService();
+  bool _loggedIn = false;
 
   @override
   void initState() {
     super.initState();
-    // Comprobamos actualización tras el primer frame para no bloquear
-    // el arranque de la app. Si falla, la app sigue funcionando con normalidad.
+    _loggedIn = SessionManager().isLoggedIn;
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkUpdate());
   }
 
@@ -79,6 +81,10 @@ class _AppRootState extends State<_AppRoot> {
     }
   }
 
+  void _onLoginSuccess() {
+    setState(() => _loggedIn = true);
+  }
+
   @override
   void dispose() {
     _updateService.dispose();
@@ -87,6 +93,12 @@ class _AppRootState extends State<_AppRoot> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_loggedIn) {
+      return LoginScreen(onLoginSuccess: _onLoginSuccess);
+    }
+    // Route by role (RF-20, RF-21, RF-22)
+    // For now all roles go to HomeScreen; dedicated screens per role
+    // will be added in SL-11 (navigation 3 profiles) and SL-31 (CAREGIVER).
     return HomeScreen(onLocaleChanged: widget.onLocaleChanged);
   }
 }
