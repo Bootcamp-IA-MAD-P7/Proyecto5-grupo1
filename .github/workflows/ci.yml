@@ -211,6 +211,10 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
 
             cd ~/sentilife
+
+            # Liberar puertos de despliegues anteriores del mismo stack
+            docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+
             DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
             POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
             POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
@@ -219,10 +223,11 @@ jobs:
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             sleep 25
-            echo "→ Checking Java backend health..."
-            curl --fail --silent http://localhost:8080/actuator/health | grep '"status":"UP"'
-            echo "→ Checking inference health..."
-            curl --fail --silent http://localhost:8000/health | grep '"status":"healthy"'
+            echo "→ Checking Java backend health (host :8005)..."
+            curl --fail --silent http://localhost:8005/actuator/health | grep '"status":"UP"'
+            echo "→ Checking inference health (container interno)..."
+            docker exec sentilife-inference python -c \
+              "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"
             echo "✅ All services healthy"
           ENDSSH
 

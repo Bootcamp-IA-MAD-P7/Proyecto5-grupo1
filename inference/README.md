@@ -93,7 +93,7 @@ En Docker, Java lo consume vía `INFERENCE_URL=http://api:8000`.
 | Recurso | URL / puerto | Acceso |
 |---|---|---|
 | **Java API** (Flutter apunta aquí) | http://34.235.130.33:8005 | Público |
-| Postgres (debug) | `34.235.130.33:5435` | Admin |
+| Postgres | interno `db:5432` | Solo Java — `docker exec` en EC2 |
 | Grafana | http://34.235.130.33:3006 | Público |
 | Inference FastAPI | `:8000` interno | Solo Java |
 
