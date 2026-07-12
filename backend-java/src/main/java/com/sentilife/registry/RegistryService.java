@@ -1,5 +1,6 @@
 package com.sentilife.registry;
 
+import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,9 +25,9 @@ public class RegistryService {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryService.class);
 
-    private static final String STATUS_ACTIVE = "ACTIVE";
-    private static final String STATUS_CANDIDATE = "CANDIDATE";
-    private static final String STATUS_RETIRED = "RETIRED";
+    private static final String STATUS_ACTIVE = DomainConstants.MODEL_ACTIVE;
+    private static final String STATUS_CANDIDATE = DomainConstants.MODEL_CANDIDATE;
+    private static final String STATUS_RETIRED = DomainConstants.MODEL_RETIRED;
 
     private final ModelVersionRepository repository;
     private final RestTemplate restTemplate;

@@ -1,5 +1,6 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.config.DomainConstants;
 import com.sentilife.registry.ModelVersion;
 import com.sentilife.registry.ModelVersionRepository;
 import io.micrometer.core.instrument.Counter;
@@ -39,11 +40,11 @@ public class ABTestingService {
                             MeterRegistry meterRegistry) {
         this.modelVersionRepository = modelVersionRepository;
         this.activeCounter = Counter.builder("ab_testing_predictions_total")
-                .tag("model_status", "ACTIVE")
+                .tag("model_status", DomainConstants.MODEL_ACTIVE)
                 .description("Predictions served by the ACTIVE model")
                 .register(meterRegistry);
         this.candidateCounter = Counter.builder("ab_testing_predictions_total")
-                .tag("model_status", "CANDIDATE")
+                .tag("model_status", DomainConstants.MODEL_CANDIDATE)
                 .description("Predictions served by the CANDIDATE model")
                 .register(meterRegistry);
     }
@@ -55,7 +56,7 @@ public class ABTestingService {
      * @return ABDecision with the model version and whether it's the candidate
      */
     public ABDecision decide() {
-        Optional<ModelVersion> candidate = modelVersionRepository.findByStatus("CANDIDATE");
+        Optional<ModelVersion> candidate = modelVersionRepository.findByStatus(DomainConstants.MODEL_CANDIDATE);
 
         if (candidate.isEmpty()) {
             // No candidate available — always use active
@@ -89,7 +90,7 @@ public class ABTestingService {
     }
 
     private String getActiveVersion() {
-        return modelVersionRepository.findByStatus("ACTIVE")
+        return modelVersionRepository.findByStatus(DomainConstants.MODEL_ACTIVE)
                 .map(ModelVersion::getVersion)
                 .orElse("baseline-v1");
     }

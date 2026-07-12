@@ -40,4 +40,9 @@ public class DomainConstants {
     // Monitoring statuses
     public static final String MONITORING_ACTIVE   = "ACTIVE";
     public static final String MONITORING_INACTIVE = "INACTIVE";
+
+    // Model registry statuses
+    public static final String MODEL_ACTIVE    = "ACTIVE";
+    public static final String MODEL_CANDIDATE = "CANDIDATE";
+    public static final String MODEL_RETIRED   = "RETIRED";
 }
