@@ -161,101 +161,153 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get understood => 'Entendido';
+
   @override
   String get loginTitle => 'Iniciar sesión';
+
   @override
   String get email => 'Correo electrónico';
+
   @override
   String get password => 'Contraseña';
+
   @override
   String get login => 'Entrar';
+
   @override
   String get logout => 'Cerrar sesión';
+
   @override
   String get demoAccounts => 'Cuentas de demostración';
+
   @override
   String get roleCaregiver => 'Cuidador';
+
   @override
   String get roleMonitored => 'Persona monitorizada';
+
   @override
   String get roleItAdmin => 'Administrador IT';
+
   @override
   String get monitoredTitle => 'Mi monitorización';
+
   @override
   String get caregiverTitle => 'Panel del cuidador';
+
   @override
   String get itAdminTitle => 'Administración IT';
+
   @override
   String get persons => 'Personas';
+
   @override
   String get alerts => 'Alertas';
+
   @override
   String get history => 'Historial';
+
   @override
   String get export => 'Exportar';
+
   @override
   String get users => 'Usuarios';
+
   @override
   String get lastEvaluation => 'Última evaluación';
+
   @override
   String get noEvaluationYet => 'Sin evaluaciones todavía';
+
   @override
-  String lastWindowAt(String timestamp) => 'Última ventana: $timestamp';
+  String lastWindowAt(String timestamp) {
+    return 'Última ventana: $timestamp';
+  }
+
   @override
   String get modelVersion => 'Versión del modelo';
+
   @override
   String get noPersonsYet => 'No hay personas registradas';
+
   @override
   String get addPerson => 'Registrar persona';
+
   @override
   String get fullName => 'Nombre completo';
+
   @override
   String get birthDate => 'Fecha de nacimiento';
+
   @override
   String get sex => 'Sexo';
+
   @override
   String get weightKg => 'Peso (kg)';
+
   @override
   String get heightCm => 'Altura (cm)';
+
   @override
   String get emergencyContact => 'Contacto de emergencia';
+
   @override
   String get save => 'Guardar';
+
   @override
   String get age => 'Edad';
+
   @override
   String get consent => 'Consentimiento';
+
   @override
   String get monitoringStatus => 'Estado de monitorización';
+
   @override
   String get noAlerts => 'No hay alertas';
+
   @override
   String get alertDetail => 'Detalle de alerta';
+
   @override
   String get comment => 'Comentario';
+
   @override
   String get confirmFall => 'Confirmar caída';
+
   @override
   String get dismissAlert => 'Descartar alerta';
+
   @override
   String get status => 'Estado';
+
   @override
-  String get exportDescription => 'Exporta el dataset etiquetado con feedback del cuidador para reentrenar el modelo.';
+  String get exportDescription =>
+      'Exporta el dataset etiquetado con feedback del cuidador para reentrenar el modelo.';
+
   @override
   String get exportDataset => 'Exportar dataset';
+
   @override
   String get exportReady => 'Export listo';
+
   @override
   String get consentTitle => 'Consentimiento de monitorización';
+
   @override
-  String get consentBody => 'Autorizo el uso de mis datos de sensores para detectar caídas y mejorar el modelo de SentiLife. Puedo revocar este consentimiento en cualquier momento desde Ajustes.';
+  String get consentBody =>
+      'Autorizo el uso de mis datos de sensores para detectar caídas y mejorar el modelo de SentiLife. Puedo revocar este consentimiento en cualquier momento desde Ajustes.';
+
   @override
   String get acceptConsent => 'Acepto';
+
   @override
   String get decline => 'Rechazar';
+
   @override
   String get dataTransparency => 'Transparencia de datos';
-  @override
-  String get transparencyBody => 'Tus predicciones y el feedback que proporciones se utilizan para reentrenar y mejorar el modelo de detección de caídas. Los datos se procesan de forma segura y solo con tu consentimiento activo.';
 
+  @override
+  String get transparencyBody =>
+      'Tus predicciones y el feedback que proporciones se utilizan para reentrenar y mejorar el modelo de detección de caídas. Los datos se procesan de forma segura y solo con tu consentimiento activo.';
 }

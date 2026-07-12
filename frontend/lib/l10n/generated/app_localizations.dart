@@ -385,55 +385,294 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Entendido'**
   String get understood;
-  String get loginTitle;
-  String get email;
-  String get password;
-  String get login;
-  String get logout;
-  String get demoAccounts;
-  String get roleCaregiver;
-  String get roleMonitored;
-  String get roleItAdmin;
-  String get monitoredTitle;
-  String get caregiverTitle;
-  String get itAdminTitle;
-  String get persons;
-  String get alerts;
-  String get history;
-  String get export;
-  String get users;
-  String get lastEvaluation;
-  String get noEvaluationYet;
-  String lastWindowAt(String timestamp);
-  String get modelVersion;
-  String get noPersonsYet;
-  String get addPerson;
-  String get fullName;
-  String get birthDate;
-  String get sex;
-  String get weightKg;
-  String get heightCm;
-  String get emergencyContact;
-  String get save;
-  String get age;
-  String get consent;
-  String get monitoringStatus;
-  String get noAlerts;
-  String get alertDetail;
-  String get comment;
-  String get confirmFall;
-  String get dismissAlert;
-  String get status;
-  String get exportDescription;
-  String get exportDataset;
-  String get exportReady;
-  String get consentTitle;
-  String get consentBody;
-  String get acceptConsent;
-  String get decline;
-  String get dataTransparency;
-  String get transparencyBody;
 
+  /// No description provided for @loginTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar sesión'**
+  String get loginTitle;
+
+  /// No description provided for @email.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo electrónico'**
+  String get email;
+
+  /// No description provided for @password.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña'**
+  String get password;
+
+  /// No description provided for @login.
+  ///
+  /// In es, this message translates to:
+  /// **'Entrar'**
+  String get login;
+
+  /// No description provided for @logout.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar sesión'**
+  String get logout;
+
+  /// No description provided for @demoAccounts.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuentas de demostración'**
+  String get demoAccounts;
+
+  /// No description provided for @roleCaregiver.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuidador'**
+  String get roleCaregiver;
+
+  /// No description provided for @roleMonitored.
+  ///
+  /// In es, this message translates to:
+  /// **'Persona monitorizada'**
+  String get roleMonitored;
+
+  /// No description provided for @roleItAdmin.
+  ///
+  /// In es, this message translates to:
+  /// **'Administrador IT'**
+  String get roleItAdmin;
+
+  /// No description provided for @monitoredTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi monitorización'**
+  String get monitoredTitle;
+
+  /// No description provided for @caregiverTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Panel del cuidador'**
+  String get caregiverTitle;
+
+  /// No description provided for @itAdminTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Administración IT'**
+  String get itAdminTitle;
+
+  /// No description provided for @persons.
+  ///
+  /// In es, this message translates to:
+  /// **'Personas'**
+  String get persons;
+
+  /// No description provided for @alerts.
+  ///
+  /// In es, this message translates to:
+  /// **'Alertas'**
+  String get alerts;
+
+  /// No description provided for @history.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial'**
+  String get history;
+
+  /// No description provided for @export.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar'**
+  String get export;
+
+  /// No description provided for @users.
+  ///
+  /// In es, this message translates to:
+  /// **'Usuarios'**
+  String get users;
+
+  /// No description provided for @lastEvaluation.
+  ///
+  /// In es, this message translates to:
+  /// **'Última evaluación'**
+  String get lastEvaluation;
+
+  /// No description provided for @noEvaluationYet.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin evaluaciones todavía'**
+  String get noEvaluationYet;
+
+  /// No description provided for @lastWindowAt.
+  ///
+  /// In es, this message translates to:
+  /// **'Última ventana: {timestamp}'**
+  String lastWindowAt(String timestamp);
+
+  /// No description provided for @modelVersion.
+  ///
+  /// In es, this message translates to:
+  /// **'Versión del modelo'**
+  String get modelVersion;
+
+  /// No description provided for @noPersonsYet.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay personas registradas'**
+  String get noPersonsYet;
+
+  /// No description provided for @addPerson.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrar persona'**
+  String get addPerson;
+
+  /// No description provided for @fullName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre completo'**
+  String get fullName;
+
+  /// No description provided for @birthDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha de nacimiento'**
+  String get birthDate;
+
+  /// No description provided for @sex.
+  ///
+  /// In es, this message translates to:
+  /// **'Sexo'**
+  String get sex;
+
+  /// No description provided for @weightKg.
+  ///
+  /// In es, this message translates to:
+  /// **'Peso (kg)'**
+  String get weightKg;
+
+  /// No description provided for @heightCm.
+  ///
+  /// In es, this message translates to:
+  /// **'Altura (cm)'**
+  String get heightCm;
+
+  /// No description provided for @emergencyContact.
+  ///
+  /// In es, this message translates to:
+  /// **'Contacto de emergencia'**
+  String get emergencyContact;
+
+  /// No description provided for @save.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar'**
+  String get save;
+
+  /// No description provided for @age.
+  ///
+  /// In es, this message translates to:
+  /// **'Edad'**
+  String get age;
+
+  /// No description provided for @consent.
+  ///
+  /// In es, this message translates to:
+  /// **'Consentimiento'**
+  String get consent;
+
+  /// No description provided for @monitoringStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado de monitorización'**
+  String get monitoringStatus;
+
+  /// No description provided for @noAlerts.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay alertas'**
+  String get noAlerts;
+
+  /// No description provided for @alertDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'Detalle de alerta'**
+  String get alertDetail;
+
+  /// No description provided for @comment.
+  ///
+  /// In es, this message translates to:
+  /// **'Comentario'**
+  String get comment;
+
+  /// No description provided for @confirmFall.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar caída'**
+  String get confirmFall;
+
+  /// No description provided for @dismissAlert.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartar alerta'**
+  String get dismissAlert;
+
+  /// No description provided for @status.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado'**
+  String get status;
+
+  /// No description provided for @exportDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Exporta el dataset etiquetado con feedback del cuidador para reentrenar el modelo.'**
+  String get exportDescription;
+
+  /// No description provided for @exportDataset.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar dataset'**
+  String get exportDataset;
+
+  /// No description provided for @exportReady.
+  ///
+  /// In es, this message translates to:
+  /// **'Export listo'**
+  String get exportReady;
+
+  /// No description provided for @consentTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Consentimiento de monitorización'**
+  String get consentTitle;
+
+  /// No description provided for @consentBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Autorizo el uso de mis datos de sensores para detectar caídas y mejorar el modelo de SentiLife. Puedo revocar este consentimiento en cualquier momento desde Ajustes.'**
+  String get consentBody;
+
+  /// No description provided for @acceptConsent.
+  ///
+  /// In es, this message translates to:
+  /// **'Acepto'**
+  String get acceptConsent;
+
+  /// No description provided for @decline.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazar'**
+  String get decline;
+
+  /// No description provided for @dataTransparency.
+  ///
+  /// In es, this message translates to:
+  /// **'Transparencia de datos'**
+  String get dataTransparency;
+
+  /// No description provided for @transparencyBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus predicciones y el feedback que proporciones se utilizan para reentrenar y mejorar el modelo de detección de caídas. Los datos se procesan de forma segura y solo con tu consentimiento activo.'**
+  String get transparencyBody;
 }
 
 class _AppLocalizationsDelegate
