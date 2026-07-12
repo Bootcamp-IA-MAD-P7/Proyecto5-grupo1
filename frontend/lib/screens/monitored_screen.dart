@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../services/auth_session.dart';
 import '../services/telemetry_pipeline_service.dart';
-import '../services/telemetry_service.dart';
 import '../widgets/consent_dialog.dart';
 import '../widgets/transparency_dialog.dart';
 import 'app_shell.dart';
@@ -26,7 +25,6 @@ class MonitoredScreen extends StatefulWidget {
 }
 
 class _MonitoredScreenState extends State<MonitoredScreen> {
-  final _telemetry = TelemetryService();
   final _pipeline = TelemetryPipelineService();
   bool _monitoring = false;
   WindowPrediction? _lastPrediction;

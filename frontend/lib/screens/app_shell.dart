@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../models/user.dart';
 import '../services/auth_session.dart';
-import 'alerts_screen.dart';
 import 'caregiver_home_screen.dart';
 import 'it_admin_screen.dart';
 import 'monitored_screen.dart';

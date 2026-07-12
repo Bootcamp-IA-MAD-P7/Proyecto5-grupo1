@@ -208,7 +208,7 @@ class _AddPersonDialogState extends State<_AddPersonDialog> {
             TextField(controller: _name, decoration: InputDecoration(labelText: l10n.fullName)),
             TextField(controller: _birth, decoration: InputDecoration(labelText: l10n.birthDate)),
             DropdownButtonFormField<String>(
-              value: _sex,
+              initialValue: _sex,
               items: const [
                 DropdownMenuItem(value: 'M', child: Text('M')),
                 DropdownMenuItem(value: 'F', child: Text('F')),

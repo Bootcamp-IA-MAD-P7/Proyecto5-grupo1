@@ -85,7 +85,7 @@ class _HistoryTab extends StatelessWidget {
               subtitle: Text(
                 '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
               ),
-              trailing: Text(h.alertStatus.value),
+              trailing: Text(h.alertStatus.name),
             );
           },
         );
@@ -147,7 +147,7 @@ class _UsersTab extends StatelessWidget {
             final u = snap.data!.content[i];
             return ListTile(
               title: Text(u.fullName),
-              subtitle: Text('${u.email} · ${u.role.value}'),
+              subtitle: Text('${u.email} · ${u.role.name}'),
             );
           },
         );
