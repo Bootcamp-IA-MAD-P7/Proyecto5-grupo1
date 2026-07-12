@@ -3,6 +3,8 @@
 > **Metodología SDD:** cuarto documento fundamental. Backlog ejecutable derivado de `3_plan.md`, organizado por fases y por **workstreams paralelos** (2 devs backend + 2 devs frontend, `3_plan.md` §6). Cada tarea referencia los requisitos de `2_spec.md`. Marcar con `[x]` al completar; si una tarea cambia de alcance, actualizar primero spec/plan.
 >
 > El **orden de ejecución en el tiempo** y el backlog con IDs Jira (`SL-*`) están en `5_roadmap.md`; el mapeo es 1-a-1 con las tareas `T*` de este documento.
+>
+> **⛔ GATE DE PR (desde dom 12/07):** ningún PR se mergea sin: (1) esta tarea marcada `[x]`, (2) el SL correspondiente en ✅ en `5_roadmap.md §4`, (3) `make test` / `pytest` / `flutter test` verde. Ver checklist completo en `5_roadmap.md §0b`.
 
 **Convenciones:**
 - IDs: `T<fase>.<n>`. La tarea de integración de cada fase es `T<fase>.INT`.
@@ -135,14 +137,14 @@
 
 ---
 
-## Tablero de estado por nivel
+## Tablero de estado por nivel — actualizado dom 12/07
 
-| Nivel bootcamp | Fases | Estado |
-|---|---|---|
-| 🟢 Esencial | 0–1 | ⏳ en progreso (ML+FE avanzados, BE bloqueado) |
-| 🟡 Medio | 2 | 🔲 |
-| 🟠 Avanzado | 3 | 🔲 |
-| 🔴 Experto | 4 | 🔲 |
+| Nivel bootcamp | Fases | Estado | Notas |
+|---|---|---|---|
+| 🟢 Esencial | 0–1 | ⏳ **ML+FE completos · BE Java bloqueado** | ML ✅ · FastAPI ✅ · Flutter sensores ✅ · Java sin push |
+| 🟡 Medio | 2 | 🔲 en curso | SL-41+SL-42 (ML) ejecutándose hoy; Flutter pantallas pendiente |
+| 🟠 Avanzado | 3 | 🔲 bloqueado parcial | Depende de Java BE (deploy, CI, GDPR) |
+| 🔴 Experto | 4 | 🔲 en curso | SL-54 registry hoy · SL-53 CNN lunes · SL-55 retrain lunes |
 
 ## Matriz rápida de paralelismo (Fase 2, la más cargada)
 
@@ -159,6 +161,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.2 |
+| Estado | v0.4 — sincronizado dom 12/07, gate de PR añadido |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 08/07/2026 |
+| Última actualización | 12/07/2026 |
+| Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |
