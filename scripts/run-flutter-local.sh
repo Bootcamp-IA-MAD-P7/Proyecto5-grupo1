@@ -14,7 +14,7 @@ export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
 echo "→ API_BASE_URL=$API_BASE_URL"
 [[ -n "$DEVICE" ]] && echo "→ DEVICE=$DEVICE"
 
-cd "$ROOT/Frontend"
+cd "$ROOT/frontend"
 flutter pub get
 flutter devices
 

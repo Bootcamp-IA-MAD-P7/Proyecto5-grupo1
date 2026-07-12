@@ -28,13 +28,26 @@ while IFS= read -r service; do
   ok "$service en ejecución y sano"
 done <<< "$services"
 
-api_port="${PORT:-$(sed -n 's/^PORT=//p' .env | tail -n 1)}"
-api_port="${api_port:-8000}"
-curl -fsS "http://localhost:${api_port}/health" | grep -q healthy \
-  || fail "GET http://localhost:${api_port}/health falló"
-ok "API local responde en /health"
+# ── Smoke tests HTTP ─────────────────────────────────────────────────────────
+# Strip inline comments and whitespace when reading port values from .env
+_read_port() {
+  local key="$1" default="$2"
+  grep -m1 "^${key}=" .env 2>/dev/null | cut -d= -f2 | cut -d'#' -f1 | tr -d ' \t' || echo "$default"
+}
 
-LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+inference_port="${PORT:-$(_read_port PORT 8000)}"
+inference_port="${inference_port:-8000}"
+curl -fsS "http://localhost:${inference_port}/health" | grep -q healthy \
+  || fail "GET http://localhost:${inference_port}/health falló (inference)"
+ok "Inference API responde en :${inference_port}/health"
+
+java_port="${JAVA_PORT:-$(_read_port JAVA_PORT 8080)}"
+java_port="${java_port:-8080}"
+curl -fsS "http://localhost:${java_port}/actuator/health" | grep -q '"status":"UP"' \
+  || fail "GET http://localhost:${java_port}/actuator/health falló (Java backend)"
+ok "Java backend responde en :${java_port}/actuator/health"
+
 echo ""
-echo "Flutter emulador: make flutter-local"
-echo "Flutter móvil: API_HOST=${LAN_IP:-<IP_LAN>} DEVICE=<id> make flutter-local"
+LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+echo "Flutter emulador : make flutter-local"
+echo "Flutter móvil    : API_HOST=${LAN_IP:-<IP_LAN>} DEVICE=<id> make flutter-phone"
