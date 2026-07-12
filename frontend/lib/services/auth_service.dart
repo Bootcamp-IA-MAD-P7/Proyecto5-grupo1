@@ -6,11 +6,13 @@ import 'exceptions.dart';
 
 /// Servicio de autenticación — spec §6.1
 ///
-/// Con [_useMock] = true devuelve datos hardcodeados que implementan
-/// exactamente los contratos de spec §6.1. Cuando el backend Java esté listo,
-/// basta con poner [_useMock] = false.
+/// Con [useMock] = true devuelve datos hardcodeados que implementan
+/// exactamente los contratos de spec §6.1. En producción usar el default (false).
 class AuthService {
-  static const bool _useMock = false;
+  final bool _useMock;
+
+  AuthService({bool useMock = false}) : _useMock = useMock;
+
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/auth';
 
   // ── Mock data ──────────────────────────────────────────────────────────────

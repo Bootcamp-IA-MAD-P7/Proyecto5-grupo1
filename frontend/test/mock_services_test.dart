@@ -15,7 +15,7 @@ import 'package:sentilife/services/telemetry_service.dart';
 void main() {
   // ── AuthService ────────────────────────────────────────────────────────────
   group('AuthService (mock)', () {
-    final auth = AuthService();
+    final auth = AuthService(useMock: true);
 
     test('login con credenciales válidas devuelve tokens y usuario', () async {
       final tokens = await auth.login(
