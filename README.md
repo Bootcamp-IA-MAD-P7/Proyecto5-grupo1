@@ -336,11 +336,11 @@ pytest tests/ -v
 
 | ID | Fuente | Crudo | Procesado | Estado |
 |---|---|---|---|---|
-| **DS-01** | SisFall (Sucerquia et al., *Sensors* 2017) | `raw/sisfall/` | `processed/sisfall/` | **Activo** — crudo descargado |
-| **DS-02** | MobiAct / MobiFall (BMI HMU) | `raw/mobiact/` | `processed/mobiact/` | **Candidato** — email a bmi@hmu.gr |
+| **DS-01** | SisFall (Sucerquia et al., *Sensors* 2017) | `raw/sisfall/` | `processed/sisfall/` | **Activo** — Factoría |
+| **DS-02** | MobiAct / MobiFall (BMI HMU) | `raw/mobiact/` | — | ✂ **CEMP** (fuera Factoría) |
 | ~~Kaggle~~ | zara2099 | — | — | **Dado de baja** — sin paper ni ética documentada |
 
-**Stack recomendado:** SisFall (IMU cintura, benchmark) + MobiAct (smartphone, cross-dataset) → `processed/combined/` tras SDD.
+**Factoría:** solo SisFall. MobiAct no bloquea este sprint.
 
 **Limitación conocida:** caídas en SisFall simuladas casi solo por adultos jóvenes — ver `processed/sisfall/eda_output/analisis_sesgo.md`.
 
@@ -392,14 +392,16 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 ---
 
-## Roadmap Factoría F5
+## Estado Factoría F5
+
+Fuente de verdad: [`.specify/specs/factoria/4_task.md`](.specify/specs/factoria/4_task.md) (estado actual + cola + CA). Presentación: **jueves 16**.
 
 | Nivel | Estado | Pendiente clave |
 |---|---|---|
 | Esencial | ✅ Cerrado | T0.INT + T1.INT verificados |
 | Medio | ✅ Cerrado | T2.INT (`make smoke-mvp`) |
-| Avanzado | ~50% | EC2 QA, tests ampliados, GDPR, i18n |
-| Experto | ~40% | CNN/LSTM, MLOps UI, drift |
+| Avanzado | ~44% | Tests MockMvc, GDPR+test, i18n, OTA, T3.INT (CI/CD deploy ✅) |
+| Experto | ~25% | CNN/LSTM, retrain real, drift real, MLOps UI, presentaciones |
 
 > El SDD formal ya está definido y enlazado en la sección
 > [Documentación](#documentación).
@@ -410,8 +412,9 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 - ~~Mocks Flutter~~ — **eliminados por completo**: servicios solo contra backend Java real (`http.Client` inyectable); los tests usan `MockClient` de `package:http/testing` ✅
 - **No regenerar** `processed/` hasta SDD
-- MobiAct pendiente de respuesta BMI
-- Endpoint OTA `/app/register-version` pendiente en Java (CI android.yml)
+- ~~MobiAct~~ — fuera de alcance Factoría (CEMP)
+- Retrain (`T4.4`): API stub — falta entrenamiento real
+- Endpoint OTA `/app/register-version` pendiente verificación en dispositivo (CI android.yml ya registra)
 
 ---
 
@@ -509,8 +512,7 @@ Detalle DB y Flyway: [backend/README.md](backend/README.md#base-de-datos-flyway)
 | 1. Intención: visión y alcance | [1_intent.md](.specify/specs/factoria/1_intent.md) |
 | 2. Especificación: requisitos y contratos | [2_spec.md](.specify/specs/factoria/2_spec.md) |
 | 3. Plan: arquitectura, ADR y CI/CD | [3_plan.md](.specify/specs/factoria/3_plan.md) |
-| 4. Tareas: backlog ejecutable | [4_task.md](.specify/specs/factoria/4_task.md) |
-| Roadmap y tablero de estado | [5_roadmap.md](.specify/specs/factoria/5_roadmap.md) |
+| 4. Tareas: backlog ejecutable (**fuente de verdad**) | [4_task.md](.specify/specs/factoria/4_task.md) |
 | Contrato SL-14 de ventana | [window_contract.md](contracts/window_contract.md) |
 | Constitución Factoría | [constitucion_factoria.md](.specify/memory/constitucion_factoria.md) |
 

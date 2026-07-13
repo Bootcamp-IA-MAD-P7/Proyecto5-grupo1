@@ -1,17 +1,75 @@
 # 4. Task — SentiLife
 
-> **Metodología SDD:** cuarto documento fundamental. Backlog ejecutable derivado de `3_plan.md`, organizado por fases y por **workstreams paralelos** (2 devs backend + 2 devs frontend, `3_plan.md` §6). Cada tarea referencia los requisitos de `2_spec.md`. Marcar con `[x]` al completar; si una tarea cambia de alcance, actualizar primero spec/plan.
+> **Único archivo de verdad del backlog.** Derivado de `3_plan.md` / `2_spec.md`. Marcar `[x]` al completar; si cambia el alcance, actualizar primero spec/plan.
 >
-> El **orden de ejecución en el tiempo** y el backlog con IDs Jira (`SL-*`) están en `5_roadmap.md`; el mapeo es 1-a-1 con las tareas `T*` de este documento.
+> Presentación Factoría: **jueves 16**. Contratos API: congelados en `2_spec.md` §6.
 >
-> **📌 ¿Task o Roadmap?** **`4_task.md` manda** — es el archivo de la verdad: qué hacer, en qué orden y cuándo está hecho (`[x]`). `5_roadmap.md` es el **espejo operativo** con IDs `SL-*` para commits/PRs y calendario; se actualiza **en el mismo commit** al marcar una tarea aquí. Si hay conflicto, gana este documento.
->
-> **⛔ GATE DE PR (desde dom 12/07):** ningún PR se mergea sin: (1) esta tarea marcada `[x]`, (2) el SL correspondiente en ✅ en `5_roadmap.md §4`, (3) `make test` / `pytest` / `flutter test` verde. Ver checklist completo en `5_roadmap.md §0b`.
+> **⛔ GATE DE PR:** ningún merge a `dev`/`main` sin: (1) tarea `[x]` aquí, (2) `make test` / pytest / flutter test verde, (3) si cambia contrato §6 → OK de 1 dev por lado. Commits: `T3.4: …` o `SL-46: …`.
 
 **Convenciones:**
-- IDs: `T<fase>.<n>`. La tarea de integración de cada fase es `T<fase>.INT`.
-- Columna **Stream**: `BE-A` (Java: auth/negocio), `BE-B` (Java+Python: telemetría/eventos/push), `FE-A` (Flutter: auth/monitored), `FE-B` (Flutter: caregiver/IT), `ML` (transversal), `ALL` (equipo).
-- Dependencias entre paréntesis. Los streams sin dependencias entre sí se ejecutan **en paralelo**.
+- IDs: `T<fase>.<n>` (fuente). Opcional `SL-*` en commits (tabla abajo). Integración de fase = `T<fase>.INT`.
+- Stream: `BE-A` · `BE-B` · `FE-A` · `FE-B` · `ML` · `ALL`.
+- Dependencias entre paréntesis. Streams independientes → **en paralelo**.
+
+---
+
+## Estado actual
+
+> **Revalidado 13/07/2026 contra código** (no contra checkboxes). Objetivo: Esencial+Medio sin mocks, FE→Java→inference.
+
+| Nivel | Estado | Progreso | Evidencia / pendiente |
+|---|---|---|---|
+| 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
+| 🟡 Medio | ✅ **CERRADO funcional** · ⚠ deuda residual | Fase 2 + 2b | Flujo producto OK; ver **Deuda residual pre-Fase 3** |
+| 🟠 Avanzado | ⏳ | **4/9 (~44%)** | ✅ T3.1–3.3, T3.5 · 🔲 **T3.4 · T3.6 · T3.7 · T3.8 · T3.INT** |
+| 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
+
+### Checklist Esencial + Medio (certeza)
+
+| Check | Resultado | Evidencia |
+|---|---|---|
+| 0 mocks en `frontend/lib/` | ✅ | Grep: 0 hits `useMock` / `USE_MOCK` / `_mock` / `mock-access-token` |
+| FE solo habla con Java | ✅ | Services → `AppConfig.apiBaseUrl` `/api/v1/*` · 0 llamadas a FastAPI |
+| Java → FastAPI `/predict` | ✅ | `TelemetryService` → `InferenceClient` → HTTP sync |
+| Modelo real en git | ✅ | `inference/ml/models/model.pkl` + `model_tuned.pkl` **trackeados** · registry ACTIVE XGBoost |
+| Features alineadas contrato | ✅ | `window_contract.json` 125@50Hz · `features.py` · Flutter `SlidingWindowBuilder` |
+| Consent + 403 telemetría | ✅ | BE + FE pipeline para en 403 |
+| Pairing antes de monitorizar | ✅ | `MonitoredScreen` gate `isPaired` + consent |
+| Alertas + feedback → export | ✅ | RabbitMQ `alert.created` · `feedback_labels` · `GET /admin/export` |
+| Ensembles + Optuna + LOSO | ✅ | `ensemble_comparison.json` · `optuna_study.json` · informes v1/v2 |
+| Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
+| Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
+
+**Veredicto producto:** sí — **sin mocks**, **conectado FE ↔ Java ↔ inference con `model.pkl`**. Mañana puedes arrancar Fase 3/4 sobre esta base.
+
+### Deuda residual (NO es Fase 3, pero no es “100% RF Medio”)
+
+> No bloquean el flujo demo caída→alerta→export. Sí bloquean afirmar cumplimiento literal de cada RF. **Meter en T3.4 / hotfixes mañana AM si hay hueco.**
+
+| ID | Hueco | Dónde | Acción sugerida |
+|---|---|---|---|
+| RF-02 / RF-22 | Comentarios dicen “IT_ADMIN only” pero **no hay `@PreAuthorize`** — cualquier JWT válido llega a `/admin/*` | `SecurityConfig` · `AdminController` | Añadir `hasRole('IT_ADMIN')` / CAREGIVER en endpoints (encaja en **T3.4**) |
+| RF-30 | Push solo `FALL_ALERT` — no hay push de consent/monitor start/stop | `NotificationService` | Implementar o documentar como post-demo (spec Medio) |
+| Sec | `/api/v1/telemetry/**` es `permitAll` (comentario “hasta device JWT”) | `SecurityConfig:55` | Cerrar cuando haya device JWT; consent sigue validándose en service |
+| UX IT | Export muestra URL; no descarga autenticada con Bearer | `it_admin_screen.dart` | GET autenticado + save file |
+| UX sesión | JWT solo en memoria · `refresh()` existe pero no se llama | `SessionManager` · `AuthService` | Persistencia + refresh (nice-to-have demo) |
+| Docs | Task decía 82 FE tests · repo tiene **~69** `test(` | `frontend/test/` | Corregir número al correr `flutter test` |
+
+**Decisiones de alcance (no renegociar cada día):**
+- InfluxDB → Postgres (ADR-03). RabbitMQ solo `alert.created` → push; predicción HTTP síncrona.
+- MobiAct ✂ Factoría (CEMP). Retrain stub **no** se marca ✅. i18n/OTA se mantienen en cola.
+- Fallback `InferenceClient` (`inference-unavailable`): smoke **falla** si aparece — no silenciar en demo.
+
+**Ruta crítica pendiente (solo Fase 3–4):**
+```
+T4.2 CNN + T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
+T3.4 tests (+ roles!) + T3.6 GDPR → T3.INT   |   CI/CD deploy ya ✅
+```
+
+**Arranque mañana (sin cuello de botella):**
+1. `make up` → `make smoke-mvp` (prueba viva Java↔modelo).
+2. Hotfix deuda residual roles (T3.4) si da tiempo AM.
+3. Cola Experto: T4.2 → T4.7 → T4.4 → T4.5.
 
 ---
 
@@ -107,7 +165,7 @@
 
 ### Cableado real (eliminar mocks — bloqueante para T1.INT y T2.INT)
 
-> **Estado código lun 13 — ✅ MOCKS ELIMINADOS:** los servicios Flutter solo hablan con el backend Java real vía `http.Client` inyectable; ya no existe modo mock ni datos fake (`AppConfig.useMock`, `USE_MOCK`, `_mock*`, tester sintético legacy y `docs/mock_services.md` eliminados). Los tests usan `MockClient` de `package:http/testing`. Ver `5_roadmap.md §0c`.
+> **Estado código — ✅ MOCKS ELIMINADOS:** los servicios Flutter solo hablan con el backend Java real vía `http.Client` inyectable; ya no existe modo mock ni datos fake. Los tests usan `MockClient` de `package:http/testing`.
 
 - [x] **T2.18** `FE-A`+`FE-B` — Apagar `_useMock` en `telemetry_service`, `monitored_service`, `alerts_service`, `devices_service`, `admin_service`; flag central en `AppConfig.useMock` (default `false`). *(verificado: ningún `useMock: true` en `frontend/lib/`)*
 - [x] **T2.19** `FE-A`+`FE-B` — Inyectar `SessionManager.accessToken` en `_headers()` vía `api_headers.dart` (sustituir `Bearer mock-access-token`).
@@ -140,51 +198,118 @@
 
 ## Fase 3 — Nivel Avanzado (producción) 🟠
 
+### Hecho
+
 - [x] **T3.1** `BE-B` — `docker-compose.prod.yml` con stack completo (Java, RabbitMQ, Prometheus, Grafana) y puertos EC2 de `3_plan.md` §5. *(ML-11)*
-- [x] **T3.2** `BE-A` — CI: `ci.yml` con `mvn test`, imágenes a Docker Hub, secrets. *(RNF-07)*
-- [ ] **T3.3** `BE-B` — Despliegue QA en EC2, Security Group (8005 público, resto interno). *(ML-13)* — **pendiente**
-- [ ] **T3.4** `BE-A`+`BE-B` — Suite de tests completa: Java (auth, consentimiento, permisos por rol, alertas, contrato de errores) y Python (preprocesado, métricas, contrato `/predict`). *(ML-14)*
+- [x] **T3.2** `BE-A` — CI: `ci.yml` con `mvn test` / pytest / flutter test, imágenes a Docker Hub, secrets. *(RNF-07)*
+- [x] **T3.3** `BE-B` — Despliegue QA en EC2 vía CI/CD (`ci.yml` deploy on `main`, Security Group 8005 público, resto interno). *(ML-13)* — **CI/CD cerrado**
 - [x] **T3.5** `BE-B` — Dashboard Grafana `sentilife-pipeline.json`: latencia, colas, errores, push. *(RF-25, RNF-01/02)*
-- [ ] **T3.6** `BE-A` — Supresión GDPR end-to-end (Postgres + InfluxDB + tokens) con test. *(RF-08)*
-- [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en (incluidos textos legales versionados) + pulido de UX; revisar textos de push localizados por `locale` del token. *(RF-31)*
-- [ ] **T3.8** `FE-B` — Verificar OTA end-to-end en dispositivo Android real (`update_service.dart` → Java `/app/*`). *(RF-23 — migración hecha en T2.6)*
-- [ ] **T3.INT** `ALL` — Push a `main` → despliegue automático → demo de caída sobre QA con dashboard en vivo, app en ambos idiomas y latencia verificada (si > 5 s, contingencias de `3_plan.md` §8).
+
+### Pendiente (cerrar Avanzado)
+
+- [ ] **T3.4** `BE-A`+`BE-B` — Suite de tests ampliada **+ enforcement de roles**. *(ML-14, RF-02)*
+  - **Hoy:** ~23 unitarios Java + ~23 pytest. Sin MockMvc. **Sin `@PreAuthorize`** (cualquier JWT llega a `/admin`).
+  - **Hacer:** (1) `hasRole('IT_ADMIN')` en `/admin/**` + retrain/registry; CAREGIVER en alerts/monitored según spec; (2) MockMvc: auth, consent 403, matriz roles, alertas PATCH, error JSON; (3) Python contrato `/predict`.
+  - **CA:** caregiver JWT → 403 en `/admin`; IT_ADMIN → 200; `mvn test` + `pytest` verdes.
+
+- [ ] **T3.6** `BE-A` — Supresión GDPR **demostrada**. *(RF-08)*
+  - **Hoy:** cascade en `MonitoredService.delete()` (feedback → alerts → telemetry_windows → paired_devices → consents → person). Influx N/A (ADR-03 Postgres). Test actual solo `verify(mock)` — no toca BD.
+  - **Hacer:** test de integración: crear persona + ventana + alerta + feedback → `DELETE /api/v1/monitored-persons/{id}` → assert `COUNT(*) = 0` en esas tablas.
+  - **CA:** un test automatizado prueba el wipe; documentar en README que Influx no aplica.
+
+- [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)*
+  - **Hoy:** ARB `app_es.arb` / `app_en.arb` (~118 keys, pares). Huecos: `login_screen.dart` hardcodeado ES; `update_service.dart` strings ES; push FCM en BE hardcodeado EN (no usa `PushToken.locale`); textos legales solo vía ARB + `policy_version = 1.0-{lang}` (sin docs legales versionados aparte).
+  - **Hacer:** migrar login + OTA a ARB; localizar push por `locale` del token; revisar consentimiento/transparencia en ambos idiomas.
+  - **CA:** app en `en` sin textos ES visibles en login/OTA/consent; push respeta locale.
+
+- [ ] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)*
+  - **Hoy:** código listo (`update_service.dart` → Java `OtaController` `/app/*`; CI `android.yml` registra versión). Sin verificación en móvil físico ni test OTA.
+  - **Hacer:** en Android físico: arrancar app → detectar versión → descargar APK → instalar. Anotar resultado en `docs/daily/`.
+  - **CA:** flujo OTA ejecutado una vez en dispositivo real (o video corto).
+
+- [ ] **T3.INT** `ALL` — Demo QA sobre EC2.
+  - **Hacer:** merge/`main` → deploy automático → caída simulada contra `:8005` → alerta cuidador < 5 s → Grafana vivo → (ideal) app es/en.
+  - **CA:** smoke QA documentado (latencias + URL health) + video o acta en `docs/daily/`.
 
 ---
 
 ## Fase 4 — Nivel Experto (MLOps) 🔴
 
-- [ ] **T4.1** `ML` — MobiAct (si llegó): validación, EDA comparativo, `processed/combined/`. Si no: cerrar Plan B documentado. *(3_plan.md §4)*
-- [ ] **T4.2** `ML` — CNN 1D / LSTM sobre ventanas crudas vs. mejor ensemble, mismo split por sujeto. *(ML-15)*
-- [x] **T4.3** `BE-B` — Registro de modelos: `ml/registry/` + modelos en `ml/models/` + FastAPI carga ACTIVE y expone `/model/reload` + `/model/registry`. *(ML-16, ADR-09)*
-- [x] **T4.4** `BE-B`+`ML` — **Reentrenamiento**: `POST /api/v1/admin/retrain` + `GET /admin/retrain/status`; fases `DRIFT→TRAINING→EVALUATING→DECIDING`; decisión por recall + overfitting < 5%. *(RF-33, ML-19, ADR-09)*
-- [ ] **T4.5** `FE-B` — Pantalla IT de MLOps: botón retrain, polling de fases, historial versiones. *(RF-33)* — **pendiente lun 13**
-- [x] **T4.6** `BE-B` — A/B testing `ABTestingService`: 80/20% ACTIVE/CANDIDATE, métricas Prometheus por versión. *(ML-17)*
-- [ ] **T4.7** `ML` — Monitoreo de data drift con panel y alerta en Grafana. *(ML-18)*
-- [ ] **T4.8** `ALL` — Informe técnico final + presentación de negocio + presentación técnica. *(constitución §4)*
-- [ ] **T4.INT** `ALL` — Demo experto: IT lanza reentrenamiento desde la app con feedback real acumulado → decisión visible (`promoted`/`candidate`) → dos modelos sirviendo tráfico comparados en Grafana → auto-reemplazo demostrado.
+### Hecho
+
+- [x] **T4.3** `BE-B` — Registry: `ml/registry/` + `ml/models/` + FastAPI `/model/reload` + `/model/registry`. *(ML-16, ADR-09)*
+- [x] **T4.6** `BE-B` — A/B testing `ABTestingService` 80/20 ACTIVE/CANDIDATE + métricas Prometheus. *(ML-17)*
+
+### Cortado (no cuenta para Factoría)
+
+- **T4.1** `ML` — ✂ **CORTADO** — MobiAct / Plan B → **CEMP**. Dataset Factoría = SisFall.
+
+### Pendiente (cerrar Experto)
+
+- [ ] **T4.2** `ML` — CNN 1D / LSTM vs mejor ensemble, mismo split por sujeto. *(ML-15)*
+  - **Hoy:** solo sklearn/XGBoost (`train_model.py`, `compare_ensembles.py`, `optuna_tune.py`). Sin TF/Keras/PyTorch en `inference/requirements.txt`.
+  - **Hacer:** script/notebook en `inference/ml/training/` (CNN1D o LSTM sobre ventanas crudas); GroupKFold/LOSO idéntico al ensemble; comparar recall/PR-AUC; documentar en informe.
+  - **CA:** artefacto + métricas documentadas; overfitting < 5 pp; ningún subject_id en train y test.
+
+- [ ] **T4.4** `BE-B`+`ML` — **Reentrenamiento real** + auto-reemplazo. *(RF-33, ML-19, ADR-09)*
+  - **Hoy (stub — NO contar):** `RetrainService.java` hace `Thread.sleep` en drift y `callTrainingEndpoint()` lee `GET /model/info` con **recall=0.92 hardcodeado**. No entrena.
+  - **Hacer:** endpoint/script real de train en FastAPI (o job que invoque `ml/training/…` con feedback de `data/feedback/`); devolver métricas reales; promover solo si recall ↑ y overfitting < 5%; hot-reload ACTIVE.
+  - **CA:** `POST /admin/retrain` produce modelo nuevo medible; decisión `promoted|candidate|discarded` con números reales (no constantes).
+
+- [ ] **T4.5** `FE-B` — Pantalla IT MLOps. *(RF-33)*
+  - **Hoy:** `AdminService.startRetrain()` / `getRetrainStatus()` existen; `it_admin_screen.dart` solo tabs History / Export / Users. Posible mismatch JSON backend↔`RetrainJobStatus`.
+  - **Hacer:** tab MLOps: botón retrain, polling de fases, historial/versión, mostrar decisión. Alinear DTO con `RetrainDtos`.
+  - **CA:** IT_ADMIN lanza retrain desde la app y ve fases hasta completed.
+
+- [ ] **T4.7** `ML` — Data drift **real** + panel Grafana. *(ML-18)*
+  - **Hoy:** drift = `Thread.sleep(2000)` en `RetrainService`. Grafana `sentilife-pipeline.json` sin paneles de drift. Sin métrica Prometheus de drift.
+  - **Hacer:** comparar distribución de features (p.ej. PSI/KS) train vs ventanas recientes; exponer métrica; panel + alerta en Grafana; cablear fase DRIFT del retrain a ese cálculo.
+  - **CA:** panel Grafana con drift visible; valor cambia con datos; no hay sleep fingiendo drift.
+
+- [ ] **T4.8** `ALL` — Informe técnico final + presentación negocio + presentación técnica. *(constitución §4)*
+  - **Hoy:** solo `inference/docs/informe_tecnico_v1.md` y `v2.md`. Cero pptx/pdf de presentación.
+  - **Hacer:** informe final (métricas + sesgo + Experto) + 2 decks. Entrega **jueves 16**.
+  - **CA:** archivos en repo o `docs/` enlazados desde README.
+
+- [ ] **T4.INT** `ALL` — Demo experto en vivo.
+  - **Depende de:** T4.2, T4.4, T4.5, T4.7 (T4.6 ya ✅).
+  - **Hacer:** IT lanza retrain desde app → decisión visible → A/B en Grafana → drift visible → (opcional) CNN mencionado en informe.
+  - **CA:** guion de demo ejecutado una vez (local o QA) sin stubs.
 
 ---
 
-## Tablero de estado por nivel — actualizado lun 13/07 (verdad en código)
+## Cola para continuar (orden sugerido)
 
-> **Regla de lectura:** un nivel solo está **CERRADO** cuando todas sus tareas `[x]` **y** su `.INT` están verificadas. El calendario de `5_roadmap.md §2` marca *objetivos planificados*, no estado real.
+> Arrancar aquí mañana. Marcar `[x]` en la Fase 3/4 al cerrar. Paralelizar BE / ML / FE.
 
-| Nivel bootcamp | Fases | Estado real | Qué falta para cerrarlo |
-|---|---|---|---|
-| 🟢 Esencial | Fase 0–1 | ✅ **CERRADO** | — |
-| 🟡 Medio | 2 | ✅ **CERRADO (re-verificado E2E lun 13)** | Auditoría FE↔BE resuelta: bugs de contrato (T2.23–T2.26) + huecos (T2.27 lastPrediction/monitoringStatus real · T2.28 revocación self-revoke · T2.29 pairing persist + code · T2.30 fallback push Web · T2.31 users UI). **T2.INT.b** re-verificado contra backend real (`make smoke-mvp` PASS + contratos nuevos PASS; 23 BE + 82 FE tests, analyze limpio). Nota: QA push en Android físico (T2.30) y verificación OTA física (T3.8) son de campo. |
-| 🟠 Avanzado | 3 | ⏳ **~33% · NO cerrado** | T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.7 i18n · T3.8 OTA · T3.INT |
-| 🔴 Experto | 4 | ⏳ **~33% · NO cerrado** | T4.1 MobiAct · T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.8 informe · T4.INT |
-
-## Matriz rápida de paralelismo (Fase 2, la más cargada)
-
-| | BE-A | BE-B | FE-A | FE-B |
+| # | Tarea | SL | Stream | Bloquea |
 |---|---|---|---|---|
-| Semana 1 | T2.3 auth | T2.7 colas | T2.11 login | T2.14 caregiver |
-| Semana 2 | T2.4/T2.5 personas+consent | T2.8/T2.9 alertas+push | T2.12/T2.13 modales | T2.15/T2.16 alertas+push |
-| Cierre | T2.6 OTA ✅ · T2.18/19/20/21 ✅ · T2.27/28 ✅ | T2.10 admin | T2.29 pairing ✅ | T2.17 IT ✅ · T2.22 push-token ✅ · T2.30/31 ✅ |
-| Juntos | | | | **T2.INT** |
+| 1 | **T4.2** CNN/LSTM | SL-53 | ML | T4.INT, informe |
+| 2 | **T4.7** drift real + Grafana | SL-58 | ML | T4.4, T4.INT |
+| 3 | **T4.4** retrain real (matar stub) | SL-55 | BE+ML | T4.5, T4.INT |
+| 4 | **T4.5** MLOps UI | SL-56 | FE-B | T4.INT |
+| 5 | **T3.4** MockMvc roles/alertas | SL-46 | BE | T3.INT / Avanzado |
+| 6 | **T3.6** GDPR test integración | SL-48 | BE-A | Avanzado |
+| 7 | **T3.7** i18n es/en | — | FE | T3.INT (idioma) |
+| 8 | **T3.8** OTA Android real | — | FE-B | — |
+| 9 | **T3.INT** demo QA | SL-51 | ALL | cierre Avanzado |
+| 10 | **T4.8** presentaciones (jue 16) | SL-59 | ALL | entrega |
+| 11 | **T4.INT** demo experto | SL-60 | ALL | cierre Experto |
+
+Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 · T4.1 ✂ CEMP.
+
+---
+
+## Tablero por nivel
+
+> Un nivel solo está **CERRADO** cuando todas sus tareas pendientes `[x]` **y** su `.INT` están verificadas.
+
+| Nivel bootcamp | Fases | Estado | Pendiente explícito |
+|---|---|---|---|
+| 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
+| 🟡 Medio | 2 + 2b | ✅ **CERRADO** | — |
+| 🟠 Avanzado | 3 | ⏳ **4/9 (~44%)** | **T3.4** · **T3.6** · **T3.7** · **T3.8** · **T3.INT** |
+| 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
 ---
 
@@ -192,7 +317,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v1.8 — lun 13: auditoría FE↔BE **cerrada**. Esencial 18/18 ✅ · **Medio CERRADO** (T2.23–T2.31 + T2.INT.b re-verificados E2E contra backend real: `make smoke-mvp` PASS, 23 BE + 82 FE tests, analyze limpio) |
+| Estado | v2.2 — revalidación Esencial+Medio (sin mocks, model.pkl en git) · deuda residual documentada · T3.4 incluye roles |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
-| Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |
+| Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

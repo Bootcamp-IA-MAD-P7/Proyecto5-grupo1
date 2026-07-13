@@ -104,5 +104,5 @@ defined in `2_spec.md` section 6.8.
 - Flutter constants in `Frontend/lib/config/window_contract.dart` match the JSON.
 - Tests cover the fixed values, required signal keys, optional context keys, and
   validation/preprocessing rules.
-- `4_task.md` marks T1.2 complete and `5_roadmap.md` marks SL-14 complete.
+- `4_task.md` marks T1.2 complete (ventana v1.0.0).
 

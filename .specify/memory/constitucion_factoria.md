@@ -113,9 +113,9 @@ La elección de datasets es **bloqueante** para el SDD y el entrenamiento. Sin f
 
 El desarrollo se ejecuta mediante **agentes de IA**; el equipo humano dirige, revisa y aprueba. Reglas para cualquier agente que trabaje en este repo:
 
-1. **Solo se ejecutan tareas del backlog** (`5_roadmap.md`, IDs `SL-*`). Nada fuera del backlog: si falta una tarea, primero se añade al roadmap/SDD y luego se ejecuta.
-2. **Una tarea = un commit**, con el ID al inicio: `SL-21: ingesta de ventanas de telemetria con clasificacion sincrona`. No mezclar tareas en un commit.
-3. **Actualizar el estado al terminar cada tarea:** columna Estado en `5_roadmap.md` §4 (🔲 pendiente → ⏳ en curso → ✅ hecho / ⚠ bloqueado) y checkbox equivalente en `4_task.md`. La actualización de estado va incluida en el commit de la tarea.
+1. **Solo se ejecutan tareas del backlog** (`4_task.md`, IDs `T*` / opcional `SL-*`). Nada fuera del backlog: si falta una tarea, primero se añade a `4_task.md` y luego se ejecuta.
+2. **Una tarea = un commit**, con el ID al inicio: `T3.4: MockMvc permisos por rol` o `SL-46: …`. No mezclar tareas en un commit.
+3. **Actualizar el estado al terminar cada tarea:** checkbox `[x]` en `4_task.md` (y sección Estado actual / cola). La actualización de estado va incluida en el commit de la tarea.
 4. **El SDD es la fuente de verdad:** si al ejecutar una tarea la realidad contradice `2_spec.md` o `3_plan.md` (contrato, decisión, fallback), se actualiza el documento en el mismo commit, marcando la decisión (⚠) — nunca se deja divergir código y documentación.
 5. **Criterios de aceptación:** una tarea no se marca ✅ sin verificar su CA (tests verdes, health checks, demo del flujo). Si el CA no se puede verificar, queda ⚠ con nota del bloqueo.
 6. **Calidad de constitución no negociable:** overfitting < 5%, split por sujeto, GDPR y criterios de datasets (§6) aplican también al código generado por agentes.
