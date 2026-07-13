@@ -15,11 +15,10 @@ class TelemetryPipelineService {
     SensorCaptureService? sensorCaptureService,
     SlidingWindowBuilder? windowBuilder,
     TelemetryService? telemetryService,
-    void Function(TelemetryException error)? onTelemetryError,
+    this._onTelemetryError,
   })  : _sensorCaptureService = sensorCaptureService ?? SensorCaptureService(),
         _windowBuilder = windowBuilder ?? SlidingWindowBuilder(),
-        _telemetryService = telemetryService ?? TelemetryService(),
-        _onTelemetryError = onTelemetryError;
+        _telemetryService = telemetryService ?? TelemetryService();
 
   final SensorCaptureService _sensorCaptureService;
   final SlidingWindowBuilder _windowBuilder;

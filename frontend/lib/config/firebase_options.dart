@@ -1,6 +1,4 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 
 /// Opciones Firebase para builds sin `google-services.json` local.
 /// En CI se escribe `android/app/google-services.json` desde secrets.
