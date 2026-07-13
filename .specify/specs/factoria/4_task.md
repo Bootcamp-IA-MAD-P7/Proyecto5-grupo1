@@ -39,7 +39,7 @@
 
 ### Integración
 
-- [ ] **T0.INT** `ALL` — En una máquina limpia: `git clone` → `cp .env.example .env` → `docker compose up` → todos los servicios sanos → `make flutter-local` muestra la app. Documentar cualquier fricción en README.
+- [x] **T0.INT** `ALL` — En una máquina limpia: `git clone` → `cp .env.example .env` → `docker compose up` → todos los servicios sanos → `make flutter-local` muestra la app. Documentar cualquier fricción en README. *(verificado 13/07: clone → make up → verify 6/6 healthy; APK debug compila; fricciones en README §Clone limpio)*
 
 ---
 
@@ -155,7 +155,7 @@
 
 | Nivel bootcamp | Fases | Estado real | Qué falta para cerrarlo |
 |---|---|---|---|
-| 🟢 Esencial | Fase 0–1 | ⏳ **~95% · NO cerrado** | T0.INT |
+| 🟢 Esencial | Fase 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 | ✅ **CERRADO** | — |
 | 🟠 Avanzado | 3 | ⏳ **~50% · NO cerrado** | T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.7 i18n · T3.INT |
 | 🔴 Experto | 4 | ⏳ **~40% · NO cerrado** | T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.8 informe · T4.INT |
@@ -175,7 +175,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v1.3 — lun 13: T2.INT MVP E2E (SL-43) — alerta 291ms, push 325ms, export IT |
+| Estado | v1.4 — lun 13: T0.INT clone limpio (SL-15) — 🟢 Esencial CERRADO |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |

@@ -18,7 +18,7 @@
 
 | Nivel | Estado | Evidencia |
 |---|---|---|
-| 🟢 Esencial | ⏳ **NO cerrado** (~95%) | ML+FastAPI+Java telemetría ✅ · T1.INT ✅ · T0.INT 🔲 |
+| 🟢 Esencial | ✅ **CERRADO** | ML+FastAPI+Java telemetría ✅ · T1.INT ✅ · T0.INT ✅ (`make up` + verify 6/6) |
 | 🟡 Medio | ✅ **CERRADO** | Cableado FE ✅ · T2.INT ✅ (`make smoke-mvp`) |
 | 🟠 Avanzado | ⏳ **NO cerrado** (~50%) | compose.prod+CI+Grafana ✅ · EC2/GDPR/tests/i18n 🔲 |
 | 🔴 Experto | ⏳ **NO cerrado** (~40%) | Registry+Retrain+A/B backend ✅ · CNN/drift/MLOps UI 🔲 |
@@ -75,6 +75,7 @@
 | ML | Carpeta `ml/` reorganizada: `pipeline/`, `training/`, `evaluation/`, `feedback/`, `models/` | — |
 | ALL | **T1.INT smoke telemetría real** (`make smoke-telemetry`) — E2E 61–197 ms, inferencia 16 ms | SL-25 / T1.INT |
 | ALL | **T2.INT MVP E2E** (`make smoke-mvp`) — alerta 291ms, push 325ms, export TRUE_FALL | SL-43 / T2.INT |
+| ALL | **T0.INT clone limpio** (`git clone` → `make up` → verify 6/6 → Flutter APK debug) | SL-15 / T0.INT |
 
 ### 0c. Estado de mocks Flutter (bloqueante producto funcional)
 
@@ -103,7 +104,7 @@ Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push
 | SL-39 / T2.16 | Push Flutter (FCM background/terminated + tap → alerta) | FE-B | lun 13 | SHOULD | ✅ |
 | SL-25 / T1.INT | Smoke telemetría real app→Java→FastAPI + latencia | ALL | lun 13 | **MUST** | ✅ |
 | SL-43 / T2.INT | MVP end-to-end local (requiere SL-61…65 + SL-39) | ALL | lun 13 | **MUST** | ✅ |
-| SL-15 / T0.INT | Clone limpio → compose up → flutter-local | ALL | lun 13 | **MUST** |
+| SL-15 / T0.INT | Clone limpio → compose up → flutter-local | ALL | lun 13 | **MUST** | ✅ |
 | SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 | MUST |
 | SL-56 / T4.5 | Pantalla MLOps IT Flutter (retrain + polling + historial) | FE-B | lun 13 | SHOULD |
 | SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 | MUST |
@@ -195,7 +196,7 @@ Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push
 | ALL | SL-12 flujo local (`make up` + health checks + `make flutter-local`) | Arranque local homologado |
 | ML | SL-13 EDA SisFall — **ruta crítica, prioridad absoluta** | Notebook avanzado |
 
-### 🗓 JUE 9 — Contrato de ventana + primeros endpoints · 🎯 parcial (T0.INT 🔲)
+### 🗓 JUE 9 — Contrato de ventana + primeros endpoints · 🎯 parcial (T0.INT ✅)
 
 | Quién | Tareas | Entregable |
 |---|---|---|
@@ -204,7 +205,7 @@ Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push
 | FE-A | SL-23 sensores + ventanas (provisional 2.5 s@50 Hz hasta SL-14) | Streaming contra mock |
 | FE-B | SL-11 navegación 3 perfiles → SL-31 perfil CAREGIVER | Pantallas navegables |
 | ML | SL-14 **contrato de ventana** · SL-16 pipeline de features | `processed/` regenerado |
-| **Cierre** | **T0.INT:** clone limpio → compose up → verde | 🔲 **pendiente** |
+| **Cierre** | **T0.INT:** clone limpio → compose up → verde | ✅ |
 
 ### 🗓 VIE 10 — Modelo Esencial + auth · 🎯 ML logrado · integración 🔲
 
@@ -307,7 +308,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-12 | Flujo local Makefile + health checks | ALL | MUST | mié 8 | SL-5 | ✅ |
 | SL-13 | EDA SisFall (🟢) | ML | MUST | mié 8 | SL-1 | ✅ |
 | SL-14 | Contrato de ventana v1.0.0 | ML | MUST | jue 9 | SL-13 | ✅ |
-| SL-15 | T0.INT fundaciones | ALL | MUST | lun 13 | SL-2…SL-11 | 🔲 |
+| SL-15 | T0.INT fundaciones | ALL | MUST | lun 13 | SL-2…SL-11 | ✅ |
 | SL-16 | Pipeline de features (56.313 ventanas, 116 feat) | ML | MUST | jue 9 | SL-14 | ✅ |
 | SL-17 | Baseline por sujeto (GroupKFold, LOSO) | ML | MUST | vie 10 | SL-16 | ✅ |
 | SL-18 | Modelo < 5% overfitting + informe v1 (🟢) | ML | MUST | vie 10 | SL-17 | ✅ |
