@@ -60,7 +60,7 @@
 - [x] **T1.8** `BE-B` — Java: `POST /api/v1/telemetry/windows` + A/B testing → inferencia síncrona + métricas Prometheus. *(RF-12)*
 - [x] **T1.9** `BE-A` — Java: `/api/v1/devices/pair`, `/devices/push-token` (spec §6.4).
 
-### Frontend (paralelo, contra mock)
+### Frontend (paralelo — desarrollo inicial contra mock; cableado real en T2.18)
 
 - [x] **T1.10** `FE-A` — Captura de sensores reales (acelerómetro/giroscopio) y construcción de ventanas según contrato T1.2; envío continuo con cola local si no hay red. *(RF-10, RF-11)*
 - [x] **T1.11** `FE-A` — Pantalla MONITORED v1: estado de monitorización, última evaluación. *(RF-20)*
@@ -107,9 +107,9 @@
 
 ### Cableado real (eliminar mocks — bloqueante para T1.INT y T2.INT)
 
-> **Estado código lun 13:** `auth_service` y `api_service` ya usan backend real (`_useMock = false`). Los 5 servicios restantes siguen en mock. Ver `5_roadmap.md §0c`.
+> **Estado código lun 13 — ✅ MOCK-OFF COMPLETO:** los 8 servicios Flutter usan backend real en runtime (`AppConfig.useMock = false`; `AuthService._useMock = false`). Los bloques mock permanecen solo como herramienta dev/test (`USE_MOCK=true` o tests unitarios). Ver `5_roadmap.md §0c`.
 
-- [x] **T2.18** `FE-A`+`FE-B` — Apagar `_useMock` en `telemetry_service`, `monitored_service`, `alerts_service`, `devices_service`, `admin_service`; flag central en `AppConfig.useMock` (default `false`).
+- [x] **T2.18** `FE-A`+`FE-B` — Apagar `_useMock` en `telemetry_service`, `monitored_service`, `alerts_service`, `devices_service`, `admin_service`; flag central en `AppConfig.useMock` (default `false`). *(verificado: ningún `useMock: true` en `frontend/lib/`)*
 - [x] **T2.19** `FE-A`+`FE-B` — Inyectar `SessionManager.accessToken` en `_headers()` vía `api_headers.dart` (sustituir `Bearer mock-access-token`).
 - [x] **T2.20** `FE-A` — Consentimiento real: `ConsentDialog` → `MonitoredService.acceptConsent()` (`POST /{id}/consent`); bloquear envío de ventanas si API devuelve 403.
 - [x] **T2.21** `FE-A` — Flujo pairing dispositivo MONITORED: integrar `DevicesService.pair()` en pantalla antes de iniciar telemetría.
@@ -175,7 +175,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v1.4 — lun 13: T0.INT clone limpio (SL-15) — 🟢 Esencial CERRADO |
+| Estado | v1.5 — lun 13: 🟢 Esencial + 🟡 Medio CERRADOS · mock-off verificado en código |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |

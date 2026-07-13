@@ -86,7 +86,7 @@ El repo actual tiene FastAPI como API única (`Backend/api/main.py` con `classif
 
 1. FastAPI queda **solo** como servicio de inferencia (`/predict`, `/health`, `/metrics`, `/model/info`).
 2. OTA (`/app/*`) y la tabla `app_versions` migran al backend Java. **⚠ Sprint 15/07: migración pospuesta** — OTA se queda en FastAPI para la entrega (funciona y no aporta a la demo).
-3. La lógica por umbrales `classify()` se reemplaza por `model.pkl` real (ML-04). El mock de desarrollo vive en **cada servicio Flutter** (`*_service.dart`, `_useMock = true`) para trabajo offline — regla: si cambia el contrato, actualizar backend y mocks a la vez. El apagado global es T2.18 (`AppConfig.useMock = false`).
+3. La lógica por umbrales `classify()` se reemplaza por `model.pkl` real (ML-04). Los mocks Flutter en `*_service.dart` quedan como **herramienta dev/test** (T0.10) — activables con `USE_MOCK=true` o `useMock: true` en tests. **Estado lun 13:** apagado global verificado (`AppConfig.useMock = false`; T2.18 ✅). Regla: si cambia el contrato, actualizar backend y mocks a la vez.
 
 ### ADR-07 — Notificaciones push con Firebase Cloud Messaging
 
@@ -236,7 +236,7 @@ Transversal (rotativo o el primero que se libere): ML/EDA (Fase 1) y observabili
 
 ### Reglas del paralelo
 
-1. **Frontend nunca espera a backend:** todo se desarrolla contra los mocks de Flutter (`_useMock` por servicio), que implementan exactamente los JSON de spec §6. Cuando el endpoint real existe, se apagan con T2.18/T2.19 y debe funcionar sin cambios.
+1. **Frontend nunca espera a backend (Fase 0–1):** se desarrolló contra mocks Flutter que implementan exactamente los JSON de spec §6. **Estado lun 13:** mocks apagados (T2.18/T2.19 ✅); la app en runtime usa solo backend Java real. Los mocks siguen disponibles para offline/tests.
 2. **Backend nunca espera a frontend:** cada endpoint se valida con tests + Swagger/curl contra los mismos JSON.
 3. Cada stream trabaja en su rama (`feat/be-a-auth`, `feat/fe-b-alerts`, …) → PR a `dev` con CI verde.
 4. Al final de cada fase hay una **tarea de integración** explícita (mock off, end-to-end real, cronómetro de latencia) — está en `4_task.md` como `T<fase>.INT`.
@@ -247,17 +247,17 @@ Transversal (rotativo o el primero que se libere): ML/EDA (Fase 1) y observabili
 
 Cada fase termina con una demo funcional y una tarea de integración. El detalle está en `4_task.md`.
 
-### Fase 0 — Fundaciones (SDD + estructura + compose)
-Cerrar los 4 documentos SDD, renombrar app a SentiLife, **crear la estructura completa `backend-java/`** (no existe aún — tarea inicial T0.4), `observability/`, docker-compose ampliado (Java, RabbitMQ, InfluxDB, Prometheus, Grafana), i18n base en Flutter.
-**Demo (T0.INT):** `docker compose up` en máquina limpia levanta todo el stack con health checks verdes + `make flutter-local` arranca la app.
+### Fase 0 — Fundaciones (SDD + estructura + compose) — ✅ CERRADA
+Cerrar los 4 documentos SDD, renombrar app a SentiLife, **crear la estructura completa `backend/`** (T0.4), `observability/`, docker-compose ampliado (Java, RabbitMQ, Prometheus, Grafana), i18n base en Flutter.
+**Demo (T0.INT ✅):** clone limpio → `make up` → 6/6 healthy → `make flutter-local` / APK debug. Evidencia: SL-15, README §Clone limpio.
 
-### Fase 1 — Nivel Esencial (ML núcleo)
+### Fase 1 — Nivel Esencial (ML núcleo) — ✅ CERRADA
 EDA SisFall completo, pipeline de ventanas, primer modelo con overfitting < 5%, `/predict` real en FastAPI, informe técnico v1, app enviando ventanas reales.
-**Demo (T1.INT):** caída simulada con el móvil → predicción real del modelo.
+**Demo (T1.INT ✅):** `make smoke-telemetry` — E2E 61–197 ms, inferencia 16 ms, modelo `baseline-v1`.
 
-### Fase 2 — Nivel Medio + perfiles + push
-Ensembles + LOSO + Optuna; backend Java con auth JWT, roles, personas, consentimiento; alertas vía RabbitMQ + **notificaciones push FCM**; perfiles CAREGIVER e IT_ADMIN; modal de transparencia; feedback y export.
-**Demo (T2.INT):** cuidador registra persona → caída → **push en el móvil del cuidador en < 5 s** → confirma/descarta → IT exporta dataset etiquetado.
+### Fase 2 — Nivel Medio + perfiles + push — ✅ CERRADA
+Ensembles + LOSO + Optuna; backend Java con auth JWT, roles, personas, consentimiento; alertas vía RabbitMQ + **notificaciones push FCM**; perfiles CAREGIVER e IT_ADMIN; modal de transparencia; feedback y export; **mock-off completo** (T2.18–T2.22).
+**Demo (T2.INT ✅):** `make smoke-mvp` — alerta 291 ms, push 325 ms, export IT `TRUE_FALL`.
 
 ### Fase 3 — Nivel Avanzado (producción)
 Stack completo dockerizado y desplegado en EC2, InfluxDB en producción, tests unitarios Java + Python, Prometheus + Grafana con dashboard del pipeline, supresión GDPR end-to-end, i18n completo es/en.
@@ -283,10 +283,23 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos r
 
 ---
 
-## 9. Estado del documento
+## 9. Estado de ejecución (sincronizado con `4_task.md` — lun 13/07)
+
+| Nivel bootcamp | Fases | Estado | Evidencia clave |
+|---|---|---|---|
+| 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make up` + `make smoke-telemetry` |
+| 🟡 Medio | 2 | ✅ **CERRADO** | T2.18–T2.22 mock-off · T2.INT · `make smoke-mvp` |
+| 🟠 Avanzado | 3 | ⏳ ~50% | T3.1/T3.2/T3.5 ✅ · T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.INT 🔲 |
+| 🔴 Experto | 4 | ⏳ ~40% | T4.3/T4.4/T4.6 ✅ · T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.INT 🔲 |
+
+**Mocks Flutter:** apagados en producción (`AppConfig.useMock = false`). Bloques mock conservados para dev offline y tests unitarios.
+
+---
+
+## 10. Estado del documento
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.2 — ADR-07/08/09 (push, i18n, reentrenamiento), workstreams paralelos y premisa de compose único |
+| Estado | v0.3 — lun 13: Fases 0–2 cerradas · mock-off verificado · ADR-06 actualizado |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 08/07/2026 |
+| Última actualización | 13/07/2026 |

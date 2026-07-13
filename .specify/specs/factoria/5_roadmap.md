@@ -8,20 +8,20 @@
 
 ---
 
-## 0. ESTADO ACTUAL — LUN 13 MAÑANA (sincronizado 13/07/2026)
+## 0. ESTADO ACTUAL — LUN 13 (sincronizado 13/07/2026 · post T0.INT)
 
 > Esta sección es la fuente de verdad de situación para todos los agentes. Actualizar aquí **antes** de cualquier PR.
 >
-> **⚠ Lectura del calendario (§2):** las etiquetas «nivel 🟢/🟡/🟠/🔴 cerrado» en el calendario son **objetivos planificados del sprint**, no afirmaciones de que ya está hecho. El estado real está en las tablas de abajo.
+> **✅ Hitos cerrados hoy:** T0.INT (SL-15) · mock-off verificado · 🟢 Esencial + 🟡 Medio **CERRADOS**.
 
 ### Semáforo por nivel bootcamp (estado REAL)
 
 | Nivel | Estado | Evidencia |
 |---|---|---|
-| 🟢 Esencial | ✅ **CERRADO** | ML+FastAPI+Java telemetría ✅ · T1.INT ✅ · T0.INT ✅ (`make up` + verify 6/6) |
-| 🟡 Medio | ✅ **CERRADO** | Cableado FE ✅ · T2.INT ✅ (`make smoke-mvp`) |
-| 🟠 Avanzado | ⏳ **NO cerrado** (~50%) | compose.prod+CI+Grafana ✅ · EC2/GDPR/tests/i18n 🔲 |
-| 🔴 Experto | ⏳ **NO cerrado** (~40%) | Registry+Retrain+A/B backend ✅ · CNN/drift/MLOps UI 🔲 |
+| 🟢 Esencial | ✅ **CERRADO** | Fase 0+1 completa · T0.INT ✅ · T1.INT ✅ (`make smoke-telemetry`) |
+| 🟡 Medio | ✅ **CERRADO** | Fase 2 completa · mock-off ✅ · T2.INT ✅ (`make smoke-mvp`) |
+| 🟠 Avanzado | ⏳ **NO cerrado** (~50%) | compose.prod+CI+Grafana ✅ · EC2/GDPR/tests/i18n/T3.INT 🔲 |
+| 🔴 Experto | ⏳ **NO cerrado** (~40%) | Registry+Retrain+A/B backend ✅ · CNN/drift/MLOps UI/T4.INT 🔲 |
 
 ### ✅ Completado (verificado en código — en `dev`)
 
@@ -77,44 +77,37 @@
 | ALL | **T2.INT MVP E2E** (`make smoke-mvp`) — alerta 291ms, push 325ms, export TRUE_FALL | SL-43 / T2.INT |
 | ALL | **T0.INT clone limpio** (`git clone` → `make up` → verify 6/6 → Flutter APK debug) | SL-15 / T0.INT |
 
-### 0c. Estado de mocks Flutter (bloqueante producto funcional)
+### 0c. Estado de mocks Flutter — ✅ MOCK-OFF COMPLETO (verificado en código)
 
-| Servicio | `_useMock` | Acción pendiente |
+| Servicio | Runtime (`lib/`) | Dev/test |
 |---|---|---|
-| `auth_service.dart` | `false` ✅ | — |
-| `api_service.dart` | `false` ✅ | — |
-| `update_service.dart` | N/A (siempre real) ✅ | — |
-| `telemetry_service.dart` | `false` ✅ | — |
-| `monitored_service.dart` | `false` ✅ | — |
-| `alerts_service.dart` | `false` ✅ | — |
-| `devices_service.dart` | `false` ✅ | — |
-| `admin_service.dart` | `false` ✅ | — |
+| `auth_service.dart` | `false` ✅ | mock en tests |
+| `api_service.dart` | `false` ✅ | mock en tests |
+| `update_service.dart` | siempre real ✅ | — |
+| `telemetry_service.dart` | `false` ✅ | mock en tests |
+| `monitored_service.dart` | `false` ✅ | mock en tests |
+| `alerts_service.dart` | `false` ✅ | mock en tests |
+| `devices_service.dart` | `false` ✅ | mock en tests |
+| `admin_service.dart` | `false` ✅ | mock en tests |
 
-Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push-token CAREGIVER (T2.22 ✅).
+**Activación mock (solo dev):** `flutter run --dart-define=USE_MOCK=true` o `useMock: true` en constructores de test. Ningún archivo en `frontend/lib/` pasa `useMock: true`.
 
-### 🔲 Pendiente — lun 13 + mar 14 (prioridad: mock-off → integración → experto)
+Cableado real verificado: consentimiento API (T2.20 ✅) · pairing MONITORED (T2.21 ✅) · push-token CAREGIVER (T2.22 ✅) · JWT headers (T2.19 ✅).
 
-| SL | Tarea | Stream | Día plan | Prio |
-|---|---|---|---|---|
-| SL-61 / T2.18 | Apagar mocks Flutter (5 servicios) | FE | lun 13 | **MUST** | ✅ |
-| SL-62 / T2.19 | JWT SessionManager en headers servicios | FE | lun 13 | **MUST** | ✅ |
-| SL-63 / T2.20 | Consentimiento real API | FE-A | lun 13 | **MUST** | ✅ |
-| SL-64 / T2.21 | Pairing dispositivo MONITORED en UI | FE-A | lun 13 | **MUST** | ✅ |
-| SL-65 / T2.22 | Registro push-token FCM tras login CAREGIVER | FE-B | lun 13 | **MUST** | ✅ |
-| SL-39 / T2.16 | Push Flutter (FCM background/terminated + tap → alerta) | FE-B | lun 13 | SHOULD | ✅ |
-| SL-25 / T1.INT | Smoke telemetría real app→Java→FastAPI + latencia | ALL | lun 13 | **MUST** | ✅ |
-| SL-43 / T2.INT | MVP end-to-end local (requiere SL-61…65 + SL-39) | ALL | lun 13 | **MUST** | ✅ |
-| SL-15 / T0.INT | Clone limpio → compose up → flutter-local | ALL | lun 13 | **MUST** | ✅ |
-| SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 | MUST |
-| SL-56 / T4.5 | Pantalla MLOps IT Flutter (retrain + polling + historial) | FE-B | lun 13 | SHOULD |
-| SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 | MUST |
-| SL-45 / T3.3 | Despliegue QA en EC2 (Security Group 8005 público) | ALL | mar 14 | MUST |
-| SL-48 / T3.6 | GDPR supresión end-to-end (Postgres + tokens) | BE-A | mar 14 | MUST |
-| — / T3.7 | i18n completo es/en (textos legales, push localizados) | FE | mar 14 | SHOULD |
-| — / T3.8 | Verificar OTA en dispositivo Android real | FE-B | mar 14 | SHOULD |
-| SL-46 / T3.4 | Suite tests completa Java + Python | BE | mar 14 | MUST |
-| SL-51 / T3.INT | Demo QA cronometrada + video respaldo | ALL | mar 14 | MUST |
-| SL-59 / T4.8 | Informe final + presentaciones | ALL | mié 15 | MUST |
+### 🔲 Pendiente — mar 14 + mié 15 (post Esencial/Medio)
+
+| SL | Tarea | Stream | Día plan | Prio | Estado |
+|---|---|---|---|---|---|
+| SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 | MUST | 🔲 |
+| SL-56 / T4.5 | Pantalla MLOps IT Flutter (retrain + polling + historial) | FE-B | lun 13 | SHOULD | 🔲 |
+| SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 | MUST | 🔲 |
+| SL-45 / T3.3 | Despliegue QA en EC2 (Security Group 8005 público) | ALL | mar 14 | MUST | 🔲 |
+| SL-48 / T3.6 | GDPR supresión end-to-end (Postgres + tokens) | BE-A | mar 14 | MUST | 🔲 |
+| — / T3.7 | i18n completo es/en (textos legales, push localizados) | FE | mar 14 | SHOULD | 🔲 |
+| — / T3.8 | Verificar OTA en dispositivo Android real | FE-B | mar 14 | SHOULD | 🔲 |
+| SL-46 / T3.4 | Suite tests completa Java + Python | BE | mar 14 | MUST | 🔲 |
+| SL-51 / T3.INT | Demo QA cronometrada + video respaldo | ALL | mar 14 | MUST | 🔲 |
+| SL-59 / T4.8 | Informe final + presentaciones | ALL | mié 15 | MUST | 🔲 |
 
 ---
 
@@ -158,12 +151,12 @@ Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push
 
 ### Innegociable (constitución §3 — los 4 niveles)
 
-| Nivel | Ítems | Dónde cae en el calendario |
+| Nivel | Ítems | Estado lun 13 |
 |---|---|---|
-| 🟢 Esencial | EDA completo · modelo funcional · **overfitting < 5%** · FastAPI · informe técnico completo | mié 8 → vie 10 |
-| 🟡 Medio | Ensembles (RF/GB/XGBoost) · validación cruzada por sujeto (LOSO/GroupKFold) · Optuna · feedback desde la app · recogida de datos nuevos vía API | vie 10 → dom 12 |
-| 🟠 Avanzado | Todo dockerizado · registros en BD · deploy en nube · tests unitarios | sáb 11 → lun 13 |
-| 🔴 Experto | **Red neuronal (CNN 1D/LSTM)** · **A/B testing** · **data drift** · **auto-reemplazo por métricas** | dom 12 → mar 14 |
+| 🟢 Esencial | EDA completo · modelo funcional · **overfitting < 5%** · FastAPI · informe técnico completo | ✅ **CERRADO** |
+| 🟡 Medio | Ensembles (RF/GB/XGBoost) · validación cruzada por sujeto (LOSO/GroupKFold) · Optuna · feedback desde la app · recogida de datos nuevos vía API | ✅ **CERRADO** |
+| 🟠 Avanzado | Todo dockerizado · registros en BD · deploy en nube · tests unitarios | ⏳ ~50% |
+| 🔴 Experto | **Red neuronal (CNN 1D/LSTM)** · **A/B testing** · **data drift** · **auto-reemplazo por métricas** | ⏳ ~40% (A/B+retrain ✅) |
 
 ### Flexible (extras nuestros, NO constitución — aquí se ajusta si el tiempo aprieta)
 
@@ -207,27 +200,27 @@ Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push
 | ML | SL-14 **contrato de ventana** · SL-16 pipeline de features | `processed/` regenerado |
 | **Cierre** | **T0.INT:** clone limpio → compose up → verde | ✅ |
 
-### 🗓 VIE 10 — Modelo Esencial + auth · 🎯 ML logrado · integración 🔲
+### 🗓 VIE 10 — Modelo Esencial + auth · 🎯 ✅ logrado
 
 | Quién | Tareas | Entregable |
 |---|---|---|
 | BE-A | SL-26 auth completa (JWT, roles, BCrypt) + SL-27 CRUD personas | Contratos §6.1/§6.2 reales ✅ |
 | BE-B | SL-20 modelo real en FastAPI · SL-22 `/devices/pair` | `/predict` con model.pkl ✅ |
-| FE-A | SL-24 pantalla MONITORED + SL-37 modal consentimiento | Flujo monitored (mock) ✅ |
-| FE-B | SL-32 alertas + feedback → SL-40 perfil IT | Flujo caregiver (mock) ✅ |
+| FE-A | SL-24 pantalla MONITORED + SL-37 modal consentimiento | Flujo monitored ✅ |
+| FE-B | SL-32 alertas + feedback → SL-40 perfil IT | Flujo caregiver ✅ |
 | ML | SL-17 baseline por sujeto → SL-18 **modelo < 5% overfitting** | model.pkl ✅ |
-| **Cierre** | **T1.INT:** app → Java → FastAPI → predicción real | ✅ **verificado** — `make smoke-telemetry` |
+| **Cierre** | **T1.INT:** app → Java → FastAPI → predicción real | ✅ `make smoke-telemetry` |
 
-### 🗓 SÁB 11 — Ciclo completo: consentimiento, alertas, push · 🎯 backend logrado · MVP 🔲
+### 🗓 SÁB 11 — Ciclo completo: consentimiento, alertas, push · 🎯 ✅ logrado
 
 | Quién | Tareas | Entregable |
 |---|---|---|
 | BE-A | SL-28 consentimiento + filtro 403 · SL-48 supresión GDPR | Consent ✅ · GDPR 🔲 |
 | BE-B | SL-34 alertas + `feedback_labels` · SL-35 push FCM | Alertas ✅ · FCM backend ✅ |
-| FE-A | SL-30 login real por rol · SL-38 modal transparencia | Auth real ✅ · consent API 🔲 |
+| FE-A | SL-30 login real por rol · SL-38 modal transparencia | Auth real ✅ |
 | FE-B | SL-39 push Flutter | ✅ |
 | ML | Supervisar Optuna/LOSO | Ensembles en marcha ✅ |
-| **Cierre** | **T2.INT:** registro → caída → alerta → confirmar → export IT | ✅ **verificado** — `make smoke-mvp` |
+| **Cierre** | **T2.INT:** registro → caída → alerta → confirmar → export IT | ✅ `make smoke-mvp` |
 
 ### 🗓 DOM 12 — Infra Experto + informe · 🎯 ML Medio + backend Experto parcial ✅
 
@@ -235,21 +228,21 @@ Además: consentimiento real (T2.20 ✅); pairing UI MONITORED (T2.21 ✅); push
 |---|---|---|
 | BE-A | SL-44 CI con mvn test · SL-46 tests Java | CI ✅ · suite completa 🔲 |
 | BE-B | SL-54 registry + hot-reload · SL-55 retrain · SL-57 A/B | Backend Experto parcial ✅ |
-| FE-A/FE-B | Flecos de pantallas | UI ✅ · cableado real 🔲 |
+| FE-A/FE-B | Cableado real (mock-off) | UI ✅ · SL-61…65 ✅ |
 | ML | SL-42 Optuna + informe v2 | 🟡 ML Medio ✅ |
-| **Cierre** | Registry+retrain+A/B en local | ✅ backend · 🔲 sin demo e2e real |
+| **Cierre** | Registry+retrain+A/B en local | ✅ backend |
 
-### 🗓 LUN 13 (HOY) — Mock-off + integración + Experto I · 🎯 objetivo del día
+### 🗓 LUN 13 (HOY) — Integración + cierre Esencial/Medio · ✅ logrado
 
 | Quién | Tareas | Entregable |
 |---|---|---|
-| FE-A+FE-B | **SL-61…65** mock-off ✅ + JWT ✅ · consent API · pairing · push-token | App contra Java real |
-| FE-B | SL-39 push Flutter · SL-56 pantalla MLOps (SHOULD) | Push + MLOps UI |
-| ALL | SL-15 T0.INT · SL-25 T1.INT · SL-43 T2.INT | Smoke tests reales |
-| BE-B | SL-45 deploy QA EC2 | QA en vivo |
-| BE-B+ML | SL-55 retrain (ya en código — verificar demo) | Auto-reemplazo demostrable |
-| ML | SL-53 CNN 1D/LSTM | Comparativa vs. ensemble |
-| **Cierre** | Producto funcional local sin mocks | 🎯 **gate del día** |
+| FE-A+FE-B | SL-61…65 mock-off + JWT + consent + pairing + push-token | ✅ App contra Java real |
+| FE-B | SL-39 push Flutter | ✅ |
+| ALL | SL-15 T0.INT · SL-25 T1.INT · SL-43 T2.INT | ✅ Smoke tests reales |
+| BE-B | SL-45 deploy QA EC2 | 🔲 pendiente mar 14 |
+| ML | SL-53 CNN 1D/LSTM | 🔲 pendiente |
+| FE-B | SL-56 pantalla MLOps (SHOULD) | 🔲 pendiente |
+| **Cierre** | Producto funcional local sin mocks · 🟢+🟡 cerrados | ✅ **gate cumplido** |
 
 ### 🗓 MAR 14 — Experto II + freeze · 🎯 objetivo (NO logrado aún)
 
@@ -371,7 +364,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 
 | Campo | Valor |
 |---|---|
-| Estado | v5.2 — lun 13: T2.INT MVP E2E (SL-43) — alerta 291ms, push 325ms |
+| Estado | v5.3 — lun 13: 🟢 Esencial + 🟡 Medio CERRADOS · mock-off verificado · T0/T1/T2.INT ✅ |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Próxima revisión obligatoria | Al completar cada SL — actualizar §0 y §4 antes del PR |
