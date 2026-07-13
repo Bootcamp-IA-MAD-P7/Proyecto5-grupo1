@@ -188,7 +188,7 @@ El `package ID` (`com.jzelada.proyecto_flutter`) es independiente del nombre vis
 
 Orden en push a `main`: primero backend (infra + APIs); al terminar con éxito se lanza `android.yml` (APK → Firebase a testers → OTA en Postgres).
 
-### Puertos en EC2 compartido (`34.235.130.33`)
+### Puertos en EC2 compartido (`100.52.221.179`)
 
 | Servicio | Puerto host | Nota |
 |---|---|---|

@@ -7,7 +7,7 @@
 ///   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ///
 /// Producción AWS EC2 (Java API):
-///   flutter run --dart-define=API_BASE_URL=http://34.235.130.33:8005
+///   flutter run --dart-define=API_BASE_URL=http://100.52.221.179:8005
 class AppConfig {
   AppConfig._();
 

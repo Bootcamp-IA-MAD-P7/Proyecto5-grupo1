@@ -17,7 +17,7 @@ fi
 
 bash "$ROOT/scripts/setup-firebase.sh" || true
 
-API_URL="${API_BASE_URL:-http://${QA_API_HOST:-34.235.130.33}:${QA_API_PORT:-8005}}"
+API_URL="${API_BASE_URL:-http://${QA_API_HOST:-100.52.221.179}:${QA_API_PORT:-8005}}"
 
 echo "→ QA API_BASE_URL=$API_URL"
 [[ -n "$DEVICE" ]] && echo "→ DEVICE=$DEVICE"

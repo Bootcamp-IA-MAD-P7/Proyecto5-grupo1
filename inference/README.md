@@ -88,13 +88,13 @@ pospuesta según ADR-06.
 Ver `/.env.example`. El servicio inference **no conecta a Postgres** — es solo ML.
 En Docker, Java lo consume vía `INFERENCE_URL=http://api:8000`.
 
-## Producción (AWS EC2 — `34.235.130.33`)
+## Producción (AWS EC2 — `100.52.221.179`)
 
 | Recurso | URL / puerto | Acceso |
 |---|---|---|
-| **Java API** (Flutter apunta aquí) | http://34.235.130.33:8005 | Público |
-| Postgres (debug) | `34.235.130.33:5435` | Admin |
-| Grafana | http://34.235.130.33:3006 | Público |
+| **Java API** (Flutter apunta aquí) | http://100.52.221.179:8005 | Público |
+| Postgres (debug) | `100.52.221.179:5435` | Admin |
+| Grafana | http://100.52.221.179:3006 | Público |
 | Inference FastAPI | `:8000` interno | Solo Java |
 
 Deploy automático vía `ci.yml` (push a `main`). Defaults en `docker-compose.prod.yml`.
