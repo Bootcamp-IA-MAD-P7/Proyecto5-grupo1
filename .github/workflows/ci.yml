@@ -255,6 +255,38 @@ jobs:
             # Stack SentiLife anterior (mismo compose)
             docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 
+            POSTGRES_USER="${{ secrets.POSTGRES_USER }}"
+            POSTGRES_DB="${{ secrets.POSTGRES_DB }}"
+
+            # Flyway V1 crea users; el init legacy (db/init) solo dejó app_versions.
+            # Si users no existe pero hay restos legacy o flyway_schema_history → reset pgdata.
+            if docker volume inspect sentilife_pgdata >/dev/null 2>&1; then
+              echo "=== Comprobando estado Flyway en pgdata ==="
+              docker compose -f docker-compose.prod.yml up -d db
+              for i in $(seq 1 30); do
+                if docker exec sentilife-db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 2
+              done
+
+              USERS_OK=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+                "SELECT to_regclass('public.users') IS NOT NULL;" 2>/dev/null || echo "f")
+              LEGACY=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+                "SELECT to_regclass('public.app_versions') IS NOT NULL;" 2>/dev/null || echo "f")
+              FLYWAY_ROWS=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+                "SELECT count(*) FROM flyway_schema_history;" 2>/dev/null || echo "0")
+
+              if [ "$USERS_OK" != "t" ] && { [ "$LEGACY" = "t" ] || [ "${FLYWAY_ROWS:-0}" -gt 0 ]; }; then
+                echo "→ pgdata corrupto (users ausente, legacy o Flyway parcial). Reseteando volumen..."
+                docker compose -f docker-compose.prod.yml down --remove-orphans
+                docker volume rm sentilife_pgdata
+              else
+                echo "→ pgdata OK o vacío (users=${USERS_OK}, legacy=${LEGACY}, flyway_rows=${FLYWAY_ROWS})"
+                docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+              fi
+            fi
+
             # Respaldo: cualquier contenedor que aún publique esos puertos
             for port in 5435 8005 3006; do
               for id in $(docker ps -q); do
@@ -273,7 +305,20 @@ jobs:
             JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-            sleep 25
+            echo "→ Esperando backend (Flyway V1–V4 + arranque Spring, hasta ~2 min)..."
+            for i in $(seq 1 24); do
+              if curl --fail --silent http://localhost:8005/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
+                echo "→ Backend UP tras ${i}0s"
+                break
+              fi
+              if [ "$i" -eq 24 ]; then
+                echo "→ Backend no respondió a tiempo. Logs:"
+                docker logs sentilife-backend --tail 80
+                exit 1
+              fi
+              sleep 10
+            done
+
             echo "→ Contenedores SentiLife:"
             docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 

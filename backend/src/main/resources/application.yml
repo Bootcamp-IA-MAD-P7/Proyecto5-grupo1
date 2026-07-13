@@ -22,7 +22,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    # No usar baseline-on-migrate: el init legacy (app_versions) provocaba
+    # que Flyway saltara V1 y V2 fallara con "relation users does not exist".
 
   # ── RabbitMQ ──────────────────────────────────────────────────
   rabbitmq:
@@ -49,6 +50,15 @@ management:
 # ── Servidor ─────────────────────────────────────────────────────
 server:
   port: 8080
+
+# ── OpenAPI / Swagger UI ─────────────────────────────────────────
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
 
 # ── JWT ──────────────────────────────────────────────────────────
 sentilife:

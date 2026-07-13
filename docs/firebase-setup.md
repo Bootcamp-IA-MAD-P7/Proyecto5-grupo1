@@ -104,7 +104,7 @@ cp .env.qa.example .env.qa
 Apunta al EC2 y reutiliza los mismos archivos Firebase:
 
 ```bash
-API_BASE_URL=http://34.235.130.33:8005
+API_BASE_URL=http://100.52.221.179:8005
 GOOGLE_SERVICES_JSON_PATH=./secrets/google-services.json
 FIREBASE_SERVICE_ACCOUNT_PATH=./secrets/sentilife-a7767-firebase-adminsdk-fbsvc-6015549a37.json
 ```
@@ -141,7 +141,7 @@ cat secrets/*-firebase-adminsdk-*.json   # → pegar en FIREBASE_SERVICE_ACCOUNT
 
 | Secret | Uso | Workflow |
 |---|---|---|
-| `EC2_HOST` | `34.235.130.33` | `ci.yml`, `android.yml` |
+| `EC2_HOST` | `100.52.221.179` | `ci.yml`, `android.yml` |
 | `EC2_USER` | `ubuntu` o `ec2-user` | `ci.yml` |
 | `EC2_SSH_KEY` | Clave PEM privada SSH | `ci.yml` |
 | `DOCKER_USERNAME` | Usuario Docker Hub | `ci.yml` |

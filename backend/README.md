@@ -22,6 +22,8 @@ docker compose up backend
 El servicio queda en **http://localhost:8080**
 
 - Health: http://localhost:8080/actuator/health
+- **Swagger UI:** http://localhost:8080/swagger-ui.html
+- OpenAPI JSON: http://localhost:8080/v3/api-docs
 - Métricas Prometheus: http://localhost:8080/actuator/prometheus
 
 ### Local (sin Docker)

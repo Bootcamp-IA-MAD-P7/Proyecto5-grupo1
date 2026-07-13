@@ -150,14 +150,14 @@ En móvil: login CAREGIVER en un dispositivo + MONITORED en otro (o emulador); t
 | RabbitMQ UI | http://localhost:15673 | Management (`guest`/`guest`) |
 | Flutter móvil | http://\<IP-LAN\>:8080 | Misma WiFi que el PC |
 
-### URLs QA / Producción (EC2 — `34.235.130.33`)
+### URLs QA / Producción (EC2 — `100.52.221.179`)
 
 | Servicio | URL | Acceso |
 |---|---|---|
-| **Java API** (pública) | http://34.235.130.33:8005/actuator/health | Flutter + clientes |
-| Java REST | http://34.235.130.33:8005/api/v1/... | Auth, telemetría, alertas |
-| Postgres (debug) | `34.235.130.33:5435` | Solo admin (DBeaver/psql) |
-| Grafana | http://34.235.130.33:3006 | Dashboards (`admin`/`admin`) |
+| **Java API** (pública) | http://100.52.221.179:8005/actuator/health | Flutter + clientes |
+| Java REST | http://100.52.221.179:8005/api/v1/... | Auth, telemetría, alertas |
+| Postgres (debug) | `100.52.221.179:5435` | Solo admin (DBeaver/psql) |
+| Grafana | http://100.52.221.179:3006 | Dashboards (`admin`/`admin`) |
 | Inference ML | interno `:8000` | No expuesto — Java lo consume |
 | RabbitMQ / Prometheus | internos | No expuestos |
 
@@ -223,7 +223,7 @@ frontend/
 
 | Modo API | Configuración | URL base |
 |---|---|---|
-| QA (EC2) | `make flutter-qa` + `.env.qa` | http://34.235.130.33:8005 |
+| QA (EC2) | `make flutter-qa` + `.env.qa` | http://100.52.221.179:8005 |
 | Local — emulador | `make flutter-local` | http://10.0.2.2:8080 |
 | Local — móvil físico | `make flutter-phone` | http://\<IP-LAN\>:8080 |
 
@@ -231,7 +231,7 @@ frontend/
 cd frontend && flutter pub get && flutter run
 ```
 
-**QA:** http://34.235.130.33:8005 (Java API)  
+**QA:** http://100.52.221.179:8005 (Java API)  
 **Local:** http://\<IP-LAN\>:8080 vía `make up`
 
 ---
@@ -258,7 +258,7 @@ backend/
 | Entorno | URL health | Puerto |
 |---|---|---|
 | Local | http://localhost:8080/actuator/health | 8080 |
-| EC2 QA | http://34.235.130.33:8005/actuator/health | 8005 |
+| EC2 QA | http://100.52.221.179:8005/actuator/health | 8005 |
 
 ```bash
 make test-java          # mvn test (H2 en memoria)
@@ -360,13 +360,13 @@ Flujo: push/PR a **cualquier rama** (tests) → merge a **`main`** (deploy compl
 
 `EC2_HOST` debe estar como secret a **nivel repositorio**.
 
-### Puertos QA (EC2 — `34.235.130.33`)
+### Puertos QA (EC2 — `100.52.221.179`)
 
 | Servicio | Puerto host | URL | Expuesto |
 |---|---|---|---|
-| **Java API** | **8005** | http://34.235.130.33:8005 | ✅ Sí — Flutter + clientes |
-| Postgres (debug) | **5435** | `34.235.130.33:5435` | ✅ Sí — solo admin |
-| Grafana | **3006** | http://34.235.130.33:3006 | ✅ Sí — dashboards |
+| **Java API** | **8005** | http://100.52.221.179:8005 | ✅ Sí — Flutter + clientes |
+| Postgres (debug) | **5435** | `100.52.221.179:5435` | ✅ Sí — solo admin |
+| Grafana | **3006** | http://100.52.221.179:3006 | ✅ Sí — dashboards |
 | Inference FastAPI | 8000 | — | ❌ Interno Docker |
 | RabbitMQ | 5672 | — | ❌ Interno Docker |
 | Prometheus | 9090 | — | ❌ Interno Docker |
@@ -379,7 +379,7 @@ Abrir en Security Group: **TCP 8005** (Java API), **TCP 5435** (Postgres debug),
 |---|---|
 | `DOCKER_USERNAME` | Usuario Docker Hub |
 | `DOCKER_PASSWORD` | Token Docker Hub |
-| `EC2_HOST` | `34.235.130.33` |
+| `EC2_HOST` | `100.52.221.179` |
 | `EC2_USER` | `ubuntu` o `ec2-user` |
 | `EC2_SSH_KEY` | Clave PEM privada |
 

@@ -9,7 +9,7 @@
 # Internal only (NOT exposed on host):
 #   FastAPI inference :8000, RabbitMQ :5672/:15672, Prometheus :9090
 #
-# Other projects on same EC2 (34.235.130.33) — NO TOCAR:
+# Other projects on same EC2 (100.52.221.179) — NO TOCAR:
 #   Unicorn Valuation — frontend 3005, API 8004, Postgres 5434
 
 name: sentilife
@@ -80,7 +80,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 90s
     restart: unless-stopped
 
   # ── FastAPI Inference (ML only — no DB) ─────────────────────────
