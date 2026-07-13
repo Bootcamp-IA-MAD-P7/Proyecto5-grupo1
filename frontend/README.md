@@ -8,13 +8,10 @@ App móvil Flutter para detección de caídas: monitorización de sensores, pred
 Frontend/
 ├── lib/                         # Código Dart compartido
 │   ├── main.dart                # Entrada, tema, chequeo de actualizaciones
-│   ├── models/
-│   │   └── prediction_result.dart
-│   ├── screens/
-│   │   ├── home_screen.dart     # Monitorización en tiempo real
-│   │   └── result_screen.dart   # Resultado / alerta de caída
-│   ├── services/
-│   │   ├── api_service.dart     # Predicción (mock o API local/AWS)
+│   ├── models/                  # alert, user, monitored_person, prediction_result, retrain_status
+│   ├── l10n/                    # ARB es/en + localizaciones generadas
+│   ├── screens/                 # login → app_shell (por rol): monitored, caregiver, alerts, it_admin
+│   ├── services/                # auth, monitored, telemetry, alerts, devices, admin (backend Java real)
 │   │   └── update_service.dart  # Auto-actualización OTA Android
 │   └── widgets/
 │       └── update_dialog.dart   # Diálogo de nueva versión
@@ -53,7 +50,6 @@ La URL de la API se configura con **`--dart-define=API_BASE_URL`** (ver `lib/con
 | **QA — EC2** | http://34.235.130.33:8005 | `cp .env.qa.example .env.qa && make flutter-qa` |
 | **Local — móvil físico** | http://\<IP-LAN\>:8080 | `make flutter-phone` (desde raíz del repo) |
 | **Local — emulador** | http://10.0.2.2:8080 | `make flutter-local` |
-| **Mock offline** | — | `_useMock = true` en servicios |
 
 Build **debug** permite HTTP (`android/app/src/debug/AndroidManifest.xml`).
 

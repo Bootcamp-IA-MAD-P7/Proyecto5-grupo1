@@ -7,6 +7,7 @@ import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.Consent;
 import com.sentilife.consent.ConsentRepository;
 import com.sentilife.devices.PairedDeviceRepository;
+import com.sentilife.telemetry.TelemetryWindow;
 import com.sentilife.telemetry.TelemetryWindowRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -155,6 +158,67 @@ class MonitoredServiceTest {
 
         assertThatThrownBy(() -> service.revokeConsent(caregiverId, personId))
                 .isInstanceOf(DomainExceptions.NotFoundException.class);
+    }
+
+    @Test
+    void revokeConsentByMonitored_revokesActiveConsent() {
+        when(repository.existsById(personId)).thenReturn(true);
+
+        Consent existing = new Consent();
+        existing.setStatus(DomainConstants.CONSENT_ACTIVE);
+        when(consentRepository.findByMonitoredPersonIdAndStatus(personId,
+                DomainConstants.CONSENT_ACTIVE)).thenReturn(Optional.of(existing));
+        when(consentRepository.save(any())).thenReturn(existing);
+
+        var result = service.revokeConsentByMonitored(personId);
+
+        assertThat(existing.getStatus()).isEqualTo(DomainConstants.CONSENT_REVOKED);
+        assertThat(result.status()).isEqualTo(DomainConstants.CONSENT_REVOKED);
+    }
+
+    // ── response enrichment (T2.27) ─────────────────────────────────────────────
+
+    @Test
+    void getById_embedsLastPredictionAndActiveMonitoring() {
+        // person (mock) tiene id null, así que toResponse consulta con id null:
+        // usamos matchers para no acoplar el test al id generado por JPA.
+        when(repository.findById(personId)).thenReturn(Optional.of(person));
+        when(consentRepository.existsByMonitoredPersonIdAndStatus(any(),
+                eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(true);
+
+        TelemetryWindow window = new TelemetryWindow();
+        window.setMonitoredPersonId(personId);
+        window.setWindowStart(Instant.now().minusSeconds(30));
+        window.setWindowEnd(Instant.now().minusSeconds(28));
+        window.setFallDetected(true);
+        window.setConfidence(new BigDecimal("0.9200"));
+        window.setModelVersion("xgb-1.2.0");
+        when(telemetryRepository.findLastByMonitoredPersonId(any()))
+                .thenReturn(Optional.of(window));
+
+        var res = service.getById(caregiverId, personId);
+
+        assertThat(res.lastPrediction()).isNotNull();
+        assertThat(res.lastPrediction().fallDetected()).isTrue();
+        assertThat(res.lastPrediction().confidence()).isEqualTo(0.92);
+        assertThat(res.lastPrediction().modelVersion()).isEqualTo("xgb-1.2.0");
+        assertThat(res.lastSeenAt()).isNotNull();
+        assertThat(res.monitoringStatus()).isEqualTo(DomainConstants.MONITORING_ACTIVE);
+    }
+
+    @Test
+    void getById_noWindow_inactiveMonitoringAndNoPrediction() {
+        when(repository.findById(personId)).thenReturn(Optional.of(person));
+        when(consentRepository.existsByMonitoredPersonIdAndStatus(any(),
+                eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(false);
+        when(telemetryRepository.findLastByMonitoredPersonId(any()))
+                .thenReturn(Optional.empty());
+
+        var res = service.getById(caregiverId, personId);
+
+        assertThat(res.lastPrediction()).isNull();
+        assertThat(res.lastSeenAt()).isNull();
+        assertThat(res.monitoringStatus()).isEqualTo(DomainConstants.MONITORING_INACTIVE);
     }
 
     // ── GDPR delete ───────────────────────────────────────────────────────────

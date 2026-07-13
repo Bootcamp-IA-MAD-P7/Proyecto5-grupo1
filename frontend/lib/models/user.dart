@@ -33,6 +33,7 @@ class User {
   final String fullName;
   final UserRole role;
   final String locale;
+  final bool active;
 
   const User({
     required this.id,
@@ -40,6 +41,7 @@ class User {
     required this.fullName,
     required this.role,
     this.locale = 'es',
+    this.active = true,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -49,8 +51,18 @@ class User {
       fullName: json['fullName'] as String,
       role: UserRoleX.fromString(json['role'] as String),
       locale: json['locale'] as String? ?? 'es',
+      active: json['active'] as bool? ?? true,
     );
   }
+
+  User copyWith({bool? active}) => User(
+        id: id,
+        email: email,
+        fullName: fullName,
+        role: role,
+        locale: locale,
+        active: active ?? this.active,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -58,6 +70,7 @@ class User {
         'fullName': fullName,
         'role': role.value,
         'locale': locale,
+        'active': active,
       };
 }
 

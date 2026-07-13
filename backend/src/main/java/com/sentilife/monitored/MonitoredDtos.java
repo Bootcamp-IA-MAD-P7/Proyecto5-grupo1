@@ -28,6 +28,14 @@ public class MonitoredDtos {
 
     // ── Response ──────────────────────────────────────────────────────────────
 
+    /** Última predicción embebida en la persona (spec §6.2 / §6.3). */
+    public record LastPredictionDto(
+        boolean fallDetected,
+        double confidence,
+        String modelVersion,
+        Instant timestamp
+    ) {}
+
     public record MonitoredResponse(
         UUID id,
         String fullName,
@@ -40,17 +48,21 @@ public class MonitoredDtos {
         String consentStatus,                // PENDING | ACTIVE | REVOKED
         String monitoringStatus,             // ACTIVE | INACTIVE
         String pairingCode,
-        Instant createdAt
+        Instant createdAt,
+        Instant lastSeenAt,                  // última ventana recibida (o null)
+        LastPredictionDto lastPrediction     // última predicción (o null)
     ) {
         /** Construye la respuesta desde la entidad calculando la edad. */
         public static MonitoredResponse from(MonitoredPerson p, String consentStatus,
-                                             String monitoringStatus) {
+                                             String monitoringStatus,
+                                             Instant lastSeenAt,
+                                             LastPredictionDto lastPrediction) {
             int age = Period.between(p.getBirthDate(), LocalDate.now()).getYears();
             return new MonitoredResponse(
                 p.getId(), p.getFullName(), p.getBirthDate(), age,
                 p.getSex(), p.getWeightKg(), p.getHeightCm(),
                 p.getEmergencyContact(), consentStatus, monitoringStatus,
-                p.getPairingCode(), p.getCreatedAt()
+                p.getPairingCode(), p.getCreatedAt(), lastSeenAt, lastPrediction
             );
         }
     }

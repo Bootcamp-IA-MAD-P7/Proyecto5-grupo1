@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import 'api_headers.dart';
@@ -46,17 +45,14 @@ class MonitoringStatusResponse {
   });
 }
 
-/// Servicio de telemetría — spec §6.3
+/// Servicio de telemetría — spec §6.3 (backend Java real).
+///
+/// [client] es inyectable para tests (`MockClient` de `package:http/testing`).
 class TelemetryService {
-  TelemetryService({bool? useMock})
-      : _useMock = useMock ?? AppConfig.useMock;
+  TelemetryService({http.Client? client}) : _client = client ?? http.Client();
 
-  final bool _useMock;
+  final http.Client _client;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/telemetry';
-
-  final _random = Random();
-
-  // ── Interfaz pública ───────────────────────────────────────────────────────
 
   /// POST /windows — enviar ventana de sensores y recibir predicción (RF-11/12)
   ///
@@ -71,46 +67,7 @@ class TelemetryService {
     required Map<String, List<double>> samples,
     Map<String, double>? context, // heartRate, roomTemp, roomLight
   }) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 150));
-
-      // Simular la clasificación por umbrales igual que el backend actual
-      final accX = samples['accX'] ?? [];
-      final accY = samples['accY'] ?? [];
-      final accZ = samples['accZ'] ?? [];
-      final gyroX = samples['gyroX'] ?? [];
-      final gyroY = samples['gyroY'] ?? [];
-      final gyroZ = samples['gyroZ'] ?? [];
-
-      bool fallDetected = false;
-      if (accX.isNotEmpty) {
-        final accelMags = List.generate(accX.length, (i) {
-          final ax = accX[i], ay = accY[i], az = accZ[i];
-          return sqrt(ax * ax + ay * ay + az * az);
-        });
-        final gyroMags = List.generate(gyroX.length, (i) {
-          final gx = gyroX[i], gy = gyroY[i], gz = gyroZ[i];
-          return sqrt(gx * gx + gy * gy + gz * gz);
-        });
-        final maxAccel = accelMags.reduce(max);
-        final maxGyro = gyroMags.reduce(max);
-        fallDetected = maxAccel > 15 || maxGyro > 300;
-      }
-
-      final confidence = fallDetected
-          ? 0.75 + _random.nextDouble() * 0.24
-          : 0.03 + _random.nextDouble() * 0.10;
-
-      return WindowPrediction(
-        windowId: 'mock-window-${DateTime.now().millisecondsSinceEpoch}',
-        fallDetected: fallDetected,
-        confidence: double.parse(confidence.toStringAsFixed(3)),
-        modelVersion: 'xgb-1.2.0',
-        latencyMs: 100 + _random.nextInt(100),
-      );
-    }
-
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/windows'),
       headers: _headers(),
       body: jsonEncode({
@@ -131,31 +88,28 @@ class TelemetryService {
 
   /// GET /status/{monitoredPersonId} — estado en tiempo real (rol CAREGIVER)
   Future<MonitoringStatusResponse> getStatus(String monitoredPersonId) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      return MonitoringStatusResponse(
-        monitoringStatus: 'ACTIVE',
-        lastWindowAt: DateTime.now().subtract(const Duration(seconds: 30)),
-        lastPrediction: WindowPrediction(
-          windowId: 'mock-window-last',
-          fallDetected: false,
-          confidence: 0.04,
-          modelVersion: 'xgb-1.2.0',
-          latencyMs: 120,
-        ),
-      );
-    }
-
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/status/$monitoredPersonId'),
       headers: _headers(),
     );
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final lp = json['lastPrediction'] as Map<String, dynamic>?;
     return MonitoringStatusResponse(
       monitoringStatus: json['monitoringStatus'] as String,
       lastWindowAt: json['lastWindowAt'] != null
           ? DateTime.parse(json['lastWindowAt'] as String)
+          : null,
+      // Backend (spec §6.3) envía lastPrediction plano (sin windowId ni objeto
+      // 'prediction' anidado), así que se construye el WindowPrediction a mano.
+      lastPrediction: lp != null
+          ? WindowPrediction(
+              windowId: (lp['windowId'] ?? '') as String,
+              fallDetected: lp['fallDetected'] as bool,
+              confidence: (lp['confidence'] as num).toDouble(),
+              modelVersion: lp['modelVersion'] as String,
+              latencyMs: (lp['latencyMs'] as num?)?.toInt() ?? 0,
+            )
           : null,
     );
   }

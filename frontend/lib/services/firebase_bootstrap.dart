@@ -9,8 +9,26 @@ import 'push_registration_service.dart';
 class FirebaseBootstrap {
   static bool initialized = false;
 
+  /// True cuando push quedó deshabilitado de forma explícita (p. ej. Web sin
+  /// opciones de Firebase). Permite a la UI comunicar el estado si hace falta.
+  static bool pushDisabled = false;
+
   static Future<void> initialize() async {
     if (initialized) return;
+
+    // Web requiere configuración explícita (config/firebase_options.dart).
+    // Sin ella deshabilitamos push de forma explícita en vez de tragar el error.
+    if (kIsWeb && !DefaultFirebaseOptions.hasExplicitOptions) {
+      pushDisabled = true;
+      if (kDebugMode) {
+        debugPrint(
+          '[FCM] Push deshabilitado en Web: faltan opciones de Firebase '
+          '(config/firebase_options.dart). La app sigue funcionando sin '
+          'notificaciones push.',
+        );
+      }
+      return;
+    }
 
     try {
       if (Firebase.apps.isEmpty) {
@@ -28,6 +46,7 @@ class FirebaseBootstrap {
       await PushNotificationService.initialize();
       if (kDebugMode) debugPrint('[FCM] Firebase inicializado correctamente');
     } catch (e) {
+      pushDisabled = true;
       if (kDebugMode) {
         debugPrint(
           '[FCM] Firebase no disponible: $e\n'

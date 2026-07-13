@@ -348,4 +348,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get transparencyBody =>
       'Your predictions and feedback are used to retrain and improve the fall detection model. Data is processed securely and only with your active consent.';
+
+  @override
+  String get revokeConsent => 'Revoke consent';
+
+  @override
+  String get revokeConsentConfirm =>
+      'Are you sure you want to revoke consent? Monitoring will stop and no more data will be sent.';
+
+  @override
+  String get consentRevoked => 'Consent revoked.';
+
+  @override
+  String get consentRevokeError =>
+      'Could not revoke consent. Please try again.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get pairingCodeShare => 'Pairing code';
+
+  @override
+  String get userActive => 'Active';
+
+  @override
+  String get userInactive => 'Inactive';
+
+  @override
+  String get userStatusUpdated => 'User status updated.';
+
+  @override
+  String get userStatusError => 'Could not update the user status.';
 }

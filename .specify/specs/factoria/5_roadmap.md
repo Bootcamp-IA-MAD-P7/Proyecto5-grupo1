@@ -12,14 +12,14 @@
 
 > Esta sección es la fuente de verdad de situación para todos los agentes. Actualizar aquí **antes** de cualquier PR.
 >
-> **Resumen:** Fases 0–2 → **42/42 tareas `[x]`** en `4_task.md` · 🟢 Esencial + 🟡 Medio **CERRADOS** · Fase 3 → **3/9** · Fase 4 → **3/9**.
+> **Resumen:** Fases 0–2 completas en `4_task.md` (incl. correcciones de la auditoría §Fase 2b, T2.23–T2.31 + T2.INT.b) · 🟢 Esencial + 🟡 Medio **CERRADOS y re-verificados E2E contra backend real (lun 13)** · Fase 3 → **3/9** · Fase 4 → **3/9**.
 
 ### Semáforo por nivel bootcamp (estado REAL)
 
 | Nivel | Estado | Progreso | Evidencia |
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO** | 18/18 | Fase 0+1 · T0.INT ✅ · T1.INT ✅ (`make smoke-telemetry`) |
-| 🟡 Medio | ✅ **CERRADO** | 19/19 | Fase 2 · mock-off ✅ · T2.INT ✅ (`make smoke-mvp`) |
+| 🟡 Medio | ✅ **CERRADO** | Fase 2 + 2b | mock-off ✅ · T2.INT ✅ · auditoría FE↔BE resuelta (T2.23–T2.31) · **T2.INT.b re-verif. real** ✅ (`make smoke-mvp` PASS · 23 BE + 82 FE tests · analyze limpio) |
 | 🟠 Avanzado | ⏳ **NO cerrado** | 3/9 (~33%) | T3.1/T3.2/T3.5 ✅ · T3.3/T3.4/T3.6/T3.7/T3.8/T3.INT 🔲 |
 | 🔴 Experto | ⏳ **NO cerrado** | 3/9 (~33%) | T4.3/T4.4/T4.6 ✅ · T4.1/T4.2/T4.5/T4.7/T4.8/T4.INT 🔲 |
 
@@ -42,7 +42,10 @@
 | T1.10 sensores | SL-23 | ✅ | T1.11 MONITORED v1 | SL-24 | ✅ |
 | **T1.INT** smoke telemetría | SL-25 | ✅ | | | |
 
-#### 🟡 Medio — Fase 2 — ✅ CERRADO (19/19)
+#### 🟡 Medio — Fase 2 — ✅ CERRADO (auditoría lun 13 resuelta)
+
+> Auditoría FE↔BE del lun 13: SL-31/32/40 se habían marcado ✅ verificando solo contra **mock**; contra el backend real fallaban por bugs de contrato (paginación `page`↔`number`, PATCH alertas, historial IT, `lastPrediction`). **Resueltos** en **4_task.md §Fase 2b**: bugs de contrato (T2.23–T2.26) + huecos (T2.27 `lastPrediction`/`monitoringStatus` real · T2.28 self-revoke consentimiento · T2.29 pairing persistido + `pairingCode` visible · T2.30 fallback push Web · T2.31 UI activar/desactivar usuarios). **T2.INT.b** re-verificado contra backend real (`make up` 6/6 healthy → `make smoke-mvp` PASS + contratos nuevos PASS; 23 BE + 82 FE tests, `flutter analyze` limpio). QA de push en Android físico queda como verificación de campo.
+
 
 | Tarea | SL | Estado | Tarea | SL | Estado |
 |---|---|---|---|---|---|
@@ -57,7 +60,10 @@
 | T2.17 IT_ADMIN | SL-40 | ✅ | T2.18 mock-off | SL-61 | ✅ |
 | T2.19 JWT headers | SL-62 | ✅ | T2.20 consent API | SL-63 | ✅ |
 | T2.21 pairing UI | SL-64 | ✅ | T2.22 push-token | SL-65 | ✅ |
-| **T2.INT** MVP E2E | SL-43 | ✅ | SL-11 navegación 3 perfiles | SL-11 | ✅ |
+| T2.23–T2.26 fix contrato | — | ✅ | T2.27 BE lastPrediction | SL-31 | ✅ |
+| T2.28 revocación | SL-37 | ✅ | T2.29 pairing persist | SL-24 | ✅ |
+| T2.30 push Web fallback | SL-39 | ✅ | T2.31 users UI | SL-40 | ✅ |
+| **T2.INT** MVP E2E | SL-43 | ✅ | **T2.INT.b** re-verif. real | SL-43 | ✅ |
 
 #### 🟠 Avanzado — Fase 3 — ⏳ 3/9 (~33%)
 
@@ -141,22 +147,21 @@
 | ALL | **T2.INT MVP E2E** (`make smoke-mvp`) — alerta 291ms, push 325ms, export TRUE_FALL | SL-43 / T2.INT |
 | ALL | **T0.INT clone limpio** (`git clone` → `make up` → verify 6/6 → Flutter APK debug) | SL-15 / T0.INT |
 
-### 0c. Estado de mocks Flutter — ✅ MOCK-OFF COMPLETO (verificado en código)
+### 0c. Estado de mocks Flutter — ✅ MOCKS ELIMINADOS POR COMPLETO (lun 13)
 
-| Servicio | Runtime (`lib/`) | Dev/test |
+> Ya no existe modo mock ni datos fake en la app. Todos los servicios solo hablan con el backend Java real mediante un `http.Client` **inyectable**; los tests usan `MockClient` de `package:http/testing` (test doble HTTP que ejercita el código de producción contra JSON controlado). Se eliminaron: `AppConfig.useMock`, el flag `USE_MOCK`, los datos `_mock*`, el tester sintético legacy (`home_screen.dart` + `api_service.dart`) y `docs/mock_services.md`.
+
+| Servicio | Fuente de datos | Test |
 |---|---|---|
-| `auth_service.dart` | `false` ✅ | mock en tests |
-| `api_service.dart` | `false` ✅ | mock en tests |
-| `update_service.dart` | siempre real ✅ | — |
-| `telemetry_service.dart` | `false` ✅ | mock en tests |
-| `monitored_service.dart` | `false` ✅ | mock en tests |
-| `alerts_service.dart` | `false` ✅ | mock en tests |
-| `devices_service.dart` | `false` ✅ | mock en tests |
-| `admin_service.dart` | `false` ✅ | mock en tests |
+| `auth_service.dart` | backend Java real | `MockClient` |
+| `monitored_service.dart` | backend Java real | `MockClient` |
+| `telemetry_service.dart` | backend Java real | `MockClient` |
+| `alerts_service.dart` | backend Java real | `MockClient` |
+| `devices_service.dart` | backend Java real | `MockClient` |
+| `admin_service.dart` | backend Java real | `MockClient` |
+| `update_service.dart` | backend Java real (OTA) | — |
 
-**Activación mock (solo dev):** `flutter run --dart-define=USE_MOCK=true` o `useMock: true` en constructores de test. Ningún archivo en `frontend/lib/` pasa `useMock: true`.
-
-Cableado real verificado: consentimiento API (T2.20 ✅) · pairing MONITORED (T2.21 ✅) · push-token CAREGIVER (T2.22 ✅) · JWT headers (T2.19 ✅).
+Cableado real verificado: consentimiento API (T2.20 ✅) · pairing MONITORED (T2.21 ✅) · push-token CAREGIVER (T2.22 ✅) · JWT headers (T2.19 ✅). Contratos FE↔BE cubiertos por `test/services_http_test.dart` (nivel HTTP real).
 
 ### 🔲 Siguiente en cola — mar 14 + mié 15 (solo Fase 3–4)
 
@@ -437,7 +442,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 
 | Campo | Valor |
 |---|---|
-| Estado | v5.4 — lun 13: tablero §0 sincronizado con `4_task.md` — Esencial 18/18 · Medio 19/19 ✅ |
+| Estado | v5.5 — lun 13: auditoría FE↔BE **cerrada** (T2.23–T2.31 + T2.INT.b re-verificados E2E contra backend real) — Esencial ✅ · Medio ✅ (Fase 2 + 2b) |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Próxima revisión obligatoria | Al completar cada SL — actualizar §0 y §4 antes del PR |

@@ -351,4 +351,36 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get transparencyBody =>
       'Tus predicciones y el feedback que proporciones se utilizan para reentrenar y mejorar el modelo de detección de caídas. Los datos se procesan de forma segura y solo con tu consentimiento activo.';
+
+  @override
+  String get revokeConsent => 'Revocar consentimiento';
+
+  @override
+  String get revokeConsentConfirm =>
+      '¿Seguro que quieres revocar el consentimiento? Se detendrá la monitorización y no se enviarán más datos.';
+
+  @override
+  String get consentRevoked => 'Consentimiento revocado.';
+
+  @override
+  String get consentRevokeError =>
+      'No se pudo revocar el consentimiento. Inténtalo de nuevo.';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get pairingCodeShare => 'Código de vinculación';
+
+  @override
+  String get userActive => 'Activo';
+
+  @override
+  String get userInactive => 'Inactivo';
+
+  @override
+  String get userStatusUpdated => 'Estado del usuario actualizado.';
+
+  @override
+  String get userStatusError => 'No se pudo actualizar el estado del usuario.';
 }

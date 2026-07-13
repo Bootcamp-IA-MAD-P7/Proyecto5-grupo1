@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../models/monitored_person.dart';
+import '../models/user.dart';
 import '../services/admin_service.dart';
 import '../services/auth_session.dart';
 import 'app_shell.dart';
@@ -131,23 +133,59 @@ class _ExportTab extends StatelessWidget {
   }
 }
 
-class _UsersTab extends StatelessWidget {
+class _UsersTab extends StatefulWidget {
   final AdminService admin;
   const _UsersTab({required this.admin});
 
   @override
+  State<_UsersTab> createState() => _UsersTabState();
+}
+
+class _UsersTabState extends State<_UsersTab> {
+  late Future<PagedResponse<User>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.admin.getUsers();
+  }
+
+  Future<void> _toggle(User user, bool active) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    try {
+      await widget.admin.setUserActive(user.id, active: active);
+      if (!mounted) return;
+      setState(() => _future = widget.admin.getUsers());
+      messenger.showSnackBar(SnackBar(content: Text(l10n.userStatusUpdated)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l10n.userStatusError)));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: admin.getUsers(),
+    final l10n = context.l10n;
+    return FutureBuilder<PagedResponse<User>>(
+      future: _future,
       builder: (context, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final users = snap.data!.content;
         return ListView.builder(
-          itemCount: snap.data!.content.length,
+          itemCount: users.length,
           itemBuilder: (_, i) {
-            final u = snap.data!.content[i];
-            return ListTile(
+            final u = users[i];
+            return SwitchListTile(
+              value: u.active,
+              onChanged: (v) => _toggle(u, v),
               title: Text(u.fullName),
-              subtitle: Text('${u.email} · ${u.role.name}'),
+              subtitle: Text(
+                '${u.email} · ${u.role.name} · '
+                '${u.active ? l10n.userActive : l10n.userInactive}',
+              ),
             );
           },
         );

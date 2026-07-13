@@ -9,7 +9,7 @@ import 'caregiver_home_screen.dart';
 import 'it_admin_screen.dart';
 import 'monitored_screen.dart';
 
-/// SL-11 — Navegación por rol tras login (contra mock).
+/// SL-11 — Navegación por rol tras el login real contra el backend Java.
 class AppShell extends StatelessWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
