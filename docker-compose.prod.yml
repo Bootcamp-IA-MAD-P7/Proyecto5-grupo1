@@ -1,15 +1,15 @@
 # SentiLife — QA/Production on EC2
 #
 # Security Group inbound rules required:
-#   Port 8005  TCP  0.0.0.0/0  — Java API (reuses existing "FA: SentiLife API" rule)
-#   Port 5435  TCP  0.0.0.0/0  — PostgreSQL debug (existing "FA: SentiLife DB" rule)
-#   Port 3006  TCP  0.0.0.0/0  — Grafana dashboard  ⚠ ADD THIS RULE
-#   Port 22    TCP  (SSH key)   — SSH (existing)
+#   Port 8005  TCP  0.0.0.0/0  — Java API ("FA: SentiLife API Java")
+#   Port 5435  TCP  0.0.0.0/0  — PostgreSQL ("FA: SentiLife DB")
+#   Port 3006  TCP  0.0.0.0/0  — Grafana dashboard
+#   Port 22    TCP  (SSH key)   — SSH
 #
-# Internal only (NOT exposed externally):
+# Internal only (NOT exposed on host):
 #   FastAPI inference :8000, RabbitMQ :5672/:15672, Prometheus :9090
 #
-# Other projects on same EC2 (34.235.130.33):
+# Other projects on same EC2 (34.235.130.33) — NO TOCAR:
 #   Unicorn Valuation — frontend 3005, API 8004, Postgres 5434
 
 name: sentilife

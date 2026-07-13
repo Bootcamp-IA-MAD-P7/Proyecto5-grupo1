@@ -334,7 +334,7 @@ Flujo: push/PR a **cualquier rama** (tests) → merge a **`main`** (deploy compl
 | RabbitMQ | 5672 | — | ❌ Interno Docker |
 | Prometheus | 9090 | — | ❌ Interno Docker |
 
-Abrir en Security Group: **TCP 8005** (Java API), **TCP 5435** (Postgres debug, opcional), **TCP 3006** (Grafana).
+Abrir en Security Group: **TCP 8005** (Java API), **TCP 5435** (Postgres debug), **TCP 3006** (Grafana).
 
 ### Secrets GitHub (environment `production`)
 
