@@ -2,13 +2,13 @@
 
 Guía para configurar push notifications en **local**, **QA (EC2)** y **GitHub Actions**.
 
-Proyecto Firebase del equipo: **sentilife-a7767**
+Proyecto Firebase del equipo: **proyectoflutter-8a229**
 
 | Dato | Valor |
 |---|---|
-| Project ID | `sentilife-a7767` |
-| App ID (Android) | `1:5006516845:android:e984838c1163a68421d564` |
-| Sender ID | `5006516845` |
+| Project ID | `proyectoflutter-8a229` |
+| App ID (Android SentiLife) | `1:551135695634:android:151b8a23dbb4e7aaf9d9cb` |
+| Sender ID | `551135695634` |
 | Package Android | `com.sentilife.app` |
 
 ---
@@ -21,7 +21,7 @@ La carpeta `secrets/` está en `.gitignore`. **Nunca commitear estos archivos.**
 Proyecto5-grupo1/
 └── secrets/
     ├── google-services.json                          ← App Flutter (recibir push)
-    └── sentilife-a7767-firebase-adminsdk-....json    ← Backend Java (enviar push)
+    └── *-firebase-adminsdk-*.json    ← Backend Java (enviar push; nombre puede variar)
 ```
 
 | Archivo | Origen en Firebase Console | Quién lo usa |
@@ -51,9 +51,9 @@ FIREBASE_SERVICE_ACCOUNT_PATH=./secrets/sentilife-a7767-firebase-adminsdk-fbsvc-
 Opcional (identificadores públicos — ya vienen en `google-services.json`):
 
 ```bash
-FIREBASE_PROJECT_ID=sentilife-a7767
-FIREBASE_APP_ID=1:5006516845:android:e984838c1163a68421d564
-FIREBASE_MESSAGING_SENDER_ID=5006516845
+FIREBASE_PROJECT_ID=proyectoflutter-8a229
+FIREBASE_APP_ID=1:551135695634:android:151b8a23dbb4e7aaf9d9cb
+FIREBASE_MESSAGING_SENDER_ID=551135695634
 ```
 
 Flutter en móvil físico (misma WiFi):
@@ -127,14 +127,14 @@ Configurar en: **GitHub repo → Settings → Secrets and variables → Actions*
 |---|---|---|
 | `GOOGLE_SERVICES_JSON` | Contenido **completo** del archivo `secrets/google-services.json` | `android.yml` — build APK |
 | `FIREBASE_SERVICE_ACCOUNT` | Contenido **completo** del archivo `*-firebase-adminsdk-*.json` | `ci.yml` (EC2) + `android.yml` (App Distribution) |
-| `FIREBASE_APP_ID` | `1:5006516845:android:e984838c1163a68421d564` | `android.yml` — Firebase App Distribution |
+| `FIREBASE_APP_ID` | `1:551135695634:android:151b8a23dbb4e7aaf9d9cb` | `android.yml` — Firebase App Distribution |
 
 **Cómo copiar el contenido para los secrets:**
 
 ```bash
 # Desde la raíz del repo:
 cat secrets/google-services.json          # → pegar en GOOGLE_SERVICES_JSON
-cat secrets/sentilife-a7767-firebase-adminsdk-*.json   # → pegar en FIREBASE_SERVICE_ACCOUNT
+cat secrets/*-firebase-adminsdk-*.json   # → pegar en FIREBASE_SERVICE_ACCOUNT
 ```
 
 ### Infra / deploy (ya deberían existir)
@@ -189,7 +189,7 @@ cat secrets/sentilife-a7767-firebase-adminsdk-*.json   # → pegar en FIREBASE_S
 
 ## 6. Checklist rápido
 
-- [x] Proyecto Firebase `sentilife-a7767` creado
+- [x] Proyecto Firebase `proyectoflutter-8a229` creado
 - [x] App Android `com.sentilife.app` registrada
 - [x] `secrets/google-services.json` descargado
 - [x] `secrets/*-firebase-adminsdk-*.json` descargado

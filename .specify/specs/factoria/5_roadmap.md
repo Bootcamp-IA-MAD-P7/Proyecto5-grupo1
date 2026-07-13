@@ -12,16 +12,80 @@
 
 > Esta sección es la fuente de verdad de situación para todos los agentes. Actualizar aquí **antes** de cualquier PR.
 >
-> **✅ Hitos cerrados hoy:** T0.INT (SL-15) · mock-off verificado · 🟢 Esencial + 🟡 Medio **CERRADOS**.
+> **Resumen:** Fases 0–2 → **42/42 tareas `[x]`** en `4_task.md` · 🟢 Esencial + 🟡 Medio **CERRADOS** · Fase 3 → **3/9** · Fase 4 → **3/9**.
 
 ### Semáforo por nivel bootcamp (estado REAL)
 
-| Nivel | Estado | Evidencia |
-|---|---|---|
-| 🟢 Esencial | ✅ **CERRADO** | Fase 0+1 completa · T0.INT ✅ · T1.INT ✅ (`make smoke-telemetry`) |
-| 🟡 Medio | ✅ **CERRADO** | Fase 2 completa · mock-off ✅ · T2.INT ✅ (`make smoke-mvp`) |
-| 🟠 Avanzado | ⏳ **NO cerrado** (~50%) | compose.prod+CI+Grafana ✅ · EC2/GDPR/tests/i18n/T3.INT 🔲 |
-| 🔴 Experto | ⏳ **NO cerrado** (~40%) | Registry+Retrain+A/B backend ✅ · CNN/drift/MLOps UI/T4.INT 🔲 |
+| Nivel | Estado | Progreso | Evidencia |
+|---|---|---|---|
+| 🟢 Esencial | ✅ **CERRADO** | 18/18 | Fase 0+1 · T0.INT ✅ · T1.INT ✅ (`make smoke-telemetry`) |
+| 🟡 Medio | ✅ **CERRADO** | 19/19 | Fase 2 · mock-off ✅ · T2.INT ✅ (`make smoke-mvp`) |
+| 🟠 Avanzado | ⏳ **NO cerrado** | 3/9 (~33%) | T3.1/T3.2/T3.5 ✅ · T3.3/T3.4/T3.6/T3.7/T3.8/T3.INT 🔲 |
+| 🔴 Experto | ⏳ **NO cerrado** | 3/9 (~33%) | T4.3/T4.4/T4.6 ✅ · T4.1/T4.2/T4.5/T4.7/T4.8/T4.INT 🔲 |
+
+### Tablero sincronizado con `4_task.md` (por nivel)
+
+#### 🟢 Esencial — Fase 0 + Fase 1 — ✅ CERRADO (18/18)
+
+| Tarea | SL | Estado | Tarea | SL | Estado |
+|---|---|---|---|---|---|
+| T0.1 kickoff | SL-1 | ✅ | T0.2 renombrado | SL-8 | ✅ |
+| T0.3 README | SL-4 | ✅ | T0.4 backend Java | SL-2 | ✅ |
+| T0.5 Flyway | SL-3 | ✅ | T0.6 compose | SL-5 | ✅ |
+| T0.7 observability | SL-7b | ✅ | T0.8 FastAPI inferencia | SL-7 | ✅ |
+| T0.9 i18n base | SL-9 | ✅ | T0.10 mock contratos | SL-10 | ✅ |
+| T0.11 Makefile | SL-12 | ✅ | **T0.INT** clone limpio | SL-15 | ✅ |
+| T1.1 EDA | SL-13 | ✅ | T1.2 contrato ventana | SL-14 | ✅ |
+| T1.3 pipeline features | SL-16 | ✅ | T1.4 baseline sujeto | SL-17 | ✅ |
+| T1.5 modelo + T1.6 informe | SL-18 | ✅ | T1.7 `/predict` real | SL-20 | ✅ |
+| T1.8 telemetría Java | SL-21 | ✅ | T1.9 devices pair/push | SL-22 | ✅ |
+| T1.10 sensores | SL-23 | ✅ | T1.11 MONITORED v1 | SL-24 | ✅ |
+| **T1.INT** smoke telemetría | SL-25 | ✅ | | | |
+
+#### 🟡 Medio — Fase 2 — ✅ CERRADO (19/19)
+
+| Tarea | SL | Estado | Tarea | SL | Estado |
+|---|---|---|---|---|---|
+| T2.1 ensembles | SL-41 | ✅ | T2.2 Optuna | SL-42 | ✅ |
+| T2.3 auth JWT | SL-26 | ✅ | T2.4 CRUD personas | SL-27 | ✅ |
+| T2.5 consentimiento | SL-28 | ✅ | T2.6 OTA Java | — | ✅ |
+| T2.7 RabbitMQ | — | ✅ | T2.8 alertas | SL-34 | ✅ |
+| T2.9 push FCM BE | SL-35 | ✅ | T2.10 export IT | SL-36 | ✅ |
+| T2.11 login real | SL-30 | ✅ | T2.12 consent modal | SL-37 | ✅ |
+| T2.13 transparencia | SL-38 | ✅ | T2.14 CAREGIVER | SL-31 | ✅ |
+| T2.15 alertas UI | SL-32 | ✅ | T2.16 push Flutter | SL-39 | ✅ |
+| T2.17 IT_ADMIN | SL-40 | ✅ | T2.18 mock-off | SL-61 | ✅ |
+| T2.19 JWT headers | SL-62 | ✅ | T2.20 consent API | SL-63 | ✅ |
+| T2.21 pairing UI | SL-64 | ✅ | T2.22 push-token | SL-65 | ✅ |
+| **T2.INT** MVP E2E | SL-43 | ✅ | SL-11 navegación 3 perfiles | SL-11 | ✅ |
+
+#### 🟠 Avanzado — Fase 3 — ⏳ 3/9 (~33%)
+
+| Tarea | SL | Estado | Notas |
+|---|---|---|---|
+| T3.1 `docker-compose.prod.yml` | — | ✅ | Stack EC2 definido |
+| T3.2 CI `ci.yml` | SL-44 | ✅ | mvn test + pytest + flutter test |
+| T3.3 deploy QA EC2 | SL-45 | 🔲 | Security Group 8005 |
+| T3.4 suite tests completa | SL-46 | 🔲 | Java + Python ampliados |
+| T3.5 Grafana dashboard | SL-47 | ✅ | `sentilife-pipeline.json` |
+| T3.6 GDPR supresión | SL-48 | 🔲 | Postgres + tokens |
+| T3.7 i18n completo es/en | — | 🔲 | SHOULD — textos legales |
+| T3.8 OTA dispositivo real | — | 🔲 | SHOULD — verificación Android |
+| **T3.INT** demo QA | SL-51 | 🔲 | Deploy + cronómetro + video |
+
+#### 🔴 Experto — Fase 4 — ⏳ 3/9 (~33%)
+
+| Tarea | SL | Estado | Notas |
+|---|---|---|---|
+| T4.1 MobiAct / Plan B | SL-52 | 🔲 | Post-entrega si no llega |
+| T4.2 CNN 1D/LSTM | SL-53 | 🔲 | MUST — mismo split por sujeto |
+| T4.3 registry modelos | SL-54 | ✅ | hot-reload FastAPI |
+| T4.4 retrain auto | SL-55 | ✅ | `POST /admin/retrain` |
+| T4.5 pantalla MLOps IT | SL-56 | 🔲 | SHOULD — retrain + polling |
+| T4.6 A/B testing | SL-57 | ✅ | 80/20 ACTIVE/CANDIDATE |
+| T4.7 data drift Grafana | SL-58 | 🔲 | MUST |
+| T4.8 informe + presentaciones | SL-59 | 🔲 | mié 15 |
+| **T4.INT** demo experto | SL-60 | 🔲 | Retrain + A/B + drift en vivo |
 
 ### ✅ Completado (verificado en código — en `dev`)
 
@@ -94,20 +158,24 @@
 
 Cableado real verificado: consentimiento API (T2.20 ✅) · pairing MONITORED (T2.21 ✅) · push-token CAREGIVER (T2.22 ✅) · JWT headers (T2.19 ✅).
 
-### 🔲 Pendiente — mar 14 + mié 15 (post Esencial/Medio)
+### 🔲 Siguiente en cola — mar 14 + mié 15 (solo Fase 3–4)
 
-| SL | Tarea | Stream | Día plan | Prio | Estado |
-|---|---|---|---|---|---|
-| SL-53 / T4.2 | CNN 1D/LSTM vs. ensemble (mismo split) | ML | lun 13 | MUST | 🔲 |
-| SL-56 / T4.5 | Pantalla MLOps IT Flutter (retrain + polling + historial) | FE-B | lun 13 | SHOULD | 🔲 |
-| SL-58 / T4.7 | Data drift + panel Grafana | ML | mar 14 | MUST | 🔲 |
-| SL-45 / T3.3 | Despliegue QA en EC2 (Security Group 8005 público) | ALL | mar 14 | MUST | 🔲 |
-| SL-48 / T3.6 | GDPR supresión end-to-end (Postgres + tokens) | BE-A | mar 14 | MUST | 🔲 |
-| — / T3.7 | i18n completo es/en (textos legales, push localizados) | FE | mar 14 | SHOULD | 🔲 |
-| — / T3.8 | Verificar OTA en dispositivo Android real | FE-B | mar 14 | SHOULD | 🔲 |
-| SL-46 / T3.4 | Suite tests completa Java + Python | BE | mar 14 | MUST | 🔲 |
-| SL-51 / T3.INT | Demo QA cronometrada + video respaldo | ALL | mar 14 | MUST | 🔲 |
-| SL-59 / T4.8 | Informe final + presentaciones | ALL | mié 15 | MUST | 🔲 |
+> Las tareas de Fase 0–2 ya están en ✅ arriba. Esta tabla lista **únicamente lo pendiente** para cerrar 🟠 Avanzado y 🔴 Experto.
+
+| Prioridad | SL / Tarea | Stream | Día | Estado |
+|---|---|---|---|---|
+| **MUST** | SL-45 / T3.3 deploy QA EC2 | ALL | mar 14 | 🔲 |
+| **MUST** | SL-46 / T3.4 suite tests Java+Python | BE | mar 14 | 🔲 |
+| **MUST** | SL-48 / T3.6 GDPR supresión | BE-A | mar 14 | 🔲 |
+| **MUST** | SL-51 / T3.INT demo QA + video | ALL | mar 14 | 🔲 |
+| **MUST** | SL-53 / T4.2 CNN 1D/LSTM | ML | mar 14 | 🔲 |
+| **MUST** | SL-58 / T4.7 data drift Grafana | ML | mar 14 | 🔲 |
+| **MUST** | SL-59 / T4.8 informe + presentaciones | ALL | mié 15 | 🔲 |
+| **MUST** | SL-60 / T4.INT demo experto | ALL | mié 15 | 🔲 |
+| SHOULD | SL-56 / T4.5 pantalla MLOps IT | FE-B | mar 14 | 🔲 |
+| SHOULD | — / T3.7 i18n completo es/en | FE | mar 14 | 🔲 |
+| SHOULD | — / T3.8 OTA dispositivo Android | FE-B | mar 14 | 🔲 |
+| POST | SL-52 / T4.1 MobiAct o Plan B | ML | post-entrega | 🔲 |
 
 ---
 
@@ -155,8 +223,8 @@ Cableado real verificado: consentimiento API (T2.20 ✅) · pairing MONITORED (T
 |---|---|---|
 | 🟢 Esencial | EDA completo · modelo funcional · **overfitting < 5%** · FastAPI · informe técnico completo | ✅ **CERRADO** |
 | 🟡 Medio | Ensembles (RF/GB/XGBoost) · validación cruzada por sujeto (LOSO/GroupKFold) · Optuna · feedback desde la app · recogida de datos nuevos vía API | ✅ **CERRADO** |
-| 🟠 Avanzado | Todo dockerizado · registros en BD · deploy en nube · tests unitarios | ⏳ ~50% |
-| 🔴 Experto | **Red neuronal (CNN 1D/LSTM)** · **A/B testing** · **data drift** · **auto-reemplazo por métricas** | ⏳ ~40% (A/B+retrain ✅) |
+| 🟠 Avanzado | Todo dockerizado · registros en BD · deploy en nube · tests unitarios | ⏳ 3/9 (~33%) — T3.1/T3.2/T3.5 ✅ |
+| 🔴 Experto | **Red neuronal (CNN 1D/LSTM)** · **A/B testing** · **data drift** · **auto-reemplazo por métricas** | ⏳ 3/9 (~33%) — T4.3/T4.4/T4.6 ✅ |
 
 ### Flexible (extras nuestros, NO constitución — aquí se ajusta si el tiempo aprieta)
 
@@ -189,7 +257,7 @@ Cableado real verificado: consentimiento API (T2.20 ✅) · pairing MONITORED (T
 | ALL | SL-12 flujo local (`make up` + health checks + `make flutter-local`) | Arranque local homologado |
 | ML | SL-13 EDA SisFall — **ruta crítica, prioridad absoluta** | Notebook avanzado |
 
-### 🗓 JUE 9 — Contrato de ventana + primeros endpoints · 🎯 parcial (T0.INT ✅)
+### 🗓 JUE 9 — Contrato de ventana + primeros endpoints · ✅ logrado (T0.INT lun 13)
 
 | Quién | Tareas | Entregable |
 |---|---|---|
@@ -294,6 +362,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-4 | README SentiLife + arquitectura + SDD | ALL | MUST | mié 8 | SL-8 | ✅ |
 | SL-5 | Compose completo (+Java/RabbitMQ/Prom/Grafana) | BE-B | MUST | mié 8 | SL-2 | ✅ |
 | SL-7 | FastAPI reducido a inferencia | BE-B | MUST | mié 8 | SL-1 | ✅ |
+| SL-7b | Observability Prometheus+Grafana (T0.7) | BE-B | MUST | mié 8 | SL-5 | ✅ |
 | SL-8 | Renombrado SentiLife | FE-A | MUST | mié 8 | SL-1 | ✅ |
 | SL-9 | i18n base (es) | FE-A | SHOULD | mié 8 | SL-8 | ✅ |
 | SL-10 | Mock de contratos completo (dev tool) | FE-B | MUST | mié 8 | SL-1 | ✅ |
@@ -327,20 +396,24 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 | SL-41 | Ensembles RF+GB+XGBoost (🟡) | ML | MUST | dom 12 | SL-18 | ✅ |
 | SL-42 | Optuna + informe v2 (🟡) | ML | MUST | dom 12 | SL-41 | ✅ |
 | SL-43 | T2.INT MVP completo local | ALL | MUST | lun 13 | SL-61…65, SL-39 | ✅ |
-| SL-44 | CI mvn test | BE-A | MUST | dom 12 | SL-26 | ✅ |
-| SL-45 | Deploy QA EC2 (🟠) | BE-B | MUST | lun 13 | SL-44 | 🔲 |
-| SL-46 | Tests Java suite completa (🟠) | BE-A | MUST | mar 14 | SL-43 | 🔲 |
-| SL-47 | Dashboard Grafana definitivo (🟠) | BE-B | MUST | mar 14 | SL-20 | ✅ |
-| SL-48 | Supresión GDPR (🟠) | BE-A | MUST | mar 14 | SL-28 | 🔲 |
-| SL-51 | T3/T4.INT demo QA + video respaldo | ALL | MUST | mar 14 | SL-45, SL-53…58 | 🔲 |
-| SL-53 | CNN 1D/LSTM vs. ensemble (🔴) | ML | MUST | lun 13 | SL-41 | 🔲 |
+| SL-44 | CI mvn test + pytest + flutter (T3.2) | BE-A | MUST | dom 12 | SL-26 | ✅ |
+| SL-45 | Deploy QA EC2 (T3.3 🟠) | BE-B | MUST | mar 14 | SL-44 | 🔲 |
+| SL-46 | Tests Java suite completa (T3.4 🟠) | BE-A | MUST | mar 14 | SL-43 | 🔲 |
+| SL-47 | Dashboard Grafana definitivo (T3.5 🟠) | BE-B | MUST | dom 12 | SL-20 | ✅ |
+| SL-48 | Supresión GDPR (T3.6 🟠) | BE-A | MUST | mar 14 | SL-28 | 🔲 |
+| — | `docker-compose.prod.yml` (T3.1 🟠) | BE-B | MUST | dom 12 | SL-5 | ✅ |
+| — | i18n completo es/en (T3.7 🟠) | FE | SHOULD | mar 14 | SL-9 | 🔲 |
+| — | OTA dispositivo Android (T3.8 🟠) | FE-B | SHOULD | mar 14 | T2.6 | 🔲 |
+| SL-51 | T3.INT demo QA + video (🟠) | ALL | MUST | mar 14 | SL-45 | 🔲 |
+| SL-52 | MobiAct / Plan B (T4.1 🔴) | ML | POST | post-entrega | — | 🔲 |
+| SL-53 | CNN 1D/LSTM vs. ensemble (T4.2 🔴) | ML | MUST | mar 14 | SL-41 | 🔲 |
 | SL-54 | Registry modelos + hot-reload (🔴) | BE-B | MUST | dom 12 | SL-20 | ✅ |
 | SL-55 | Retrain + auto-reemplazo (🔴) | BE-B+ML | MUST | dom 12 | SL-54, SL-36 | ✅ |
-| SL-56 | Pantalla MLOps IT Flutter (SHOULD) | FE-B | SHOULD | lun 13 | SL-55 | 🔲 |
-| SL-57 | A/B testing ~20% CANDIDATE (🔴) | BE-B | MUST | dom 12 | SL-54 | ✅ |
-| SL-58 | Data drift + panel Grafana (🔴) | ML | MUST | mar 14 | SL-55 | 🔲 |
-| SL-59 | Informe final + 2 presentaciones | ALL | MUST | mié 15 | SL-51 | 🔲 |
-| SL-60 | DEMO FINAL | ALL | MUST | mié 15 | todo | 🔲 |
+| SL-56 | Pantalla MLOps IT Flutter (T4.5 🔴) | FE-B | SHOULD | mar 14 | SL-55 | 🔲 |
+| SL-57 | A/B testing ~20% CANDIDATE (T4.6 🔴) | BE-B | MUST | dom 12 | SL-54 | ✅ |
+| SL-58 | Data drift + panel Grafana (T4.7 🔴) | ML | MUST | mar 14 | SL-55 | 🔲 |
+| SL-59 | Informe final + 2 presentaciones (T4.8 🔴) | ALL | MUST | mié 15 | SL-51 | 🔲 |
+| SL-60 | T4.INT demo experto (🔴) | ALL | MUST | mié 15 | SL-53, SL-55, SL-58 | 🔲 |
 | SL-61 | Apagar mocks Flutter (5 servicios) | FE | MUST | lun 13 | SL-26 | ✅ |
 | SL-62 | JWT SessionManager en headers servicios | FE | MUST | lun 13 | SL-30 | ✅ |
 | SL-63 | Consentimiento real API | FE-A | MUST | lun 13 | SL-62 | ✅ |
@@ -364,7 +437,7 @@ SL-2 Java → SL-3 → SL-21 telemetría → SL-26 auth → SL-28/34 alertas →
 
 | Campo | Valor |
 |---|---|
-| Estado | v5.3 — lun 13: 🟢 Esencial + 🟡 Medio CERRADOS · mock-off verificado · T0/T1/T2.INT ✅ |
+| Estado | v5.4 — lun 13: tablero §0 sincronizado con `4_task.md` — Esencial 18/18 · Medio 19/19 ✅ |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Próxima revisión obligatoria | Al completar cada SL — actualizar §0 y §4 antes del PR |
