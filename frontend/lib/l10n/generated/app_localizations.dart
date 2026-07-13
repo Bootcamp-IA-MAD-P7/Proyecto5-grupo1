@@ -745,6 +745,66 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Tus predicciones y el feedback que proporciones se utilizan para reentrenar y mejorar el modelo de detección de caídas. Los datos se procesan de forma segura y solo con tu consentimiento activo.'**
   String get transparencyBody;
+
+  /// No description provided for @revokeConsent.
+  ///
+  /// In es, this message translates to:
+  /// **'Revocar consentimiento'**
+  String get revokeConsent;
+
+  /// No description provided for @revokeConsentConfirm.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Seguro que quieres revocar el consentimiento? Se detendrá la monitorización y no se enviarán más datos.'**
+  String get revokeConsentConfirm;
+
+  /// No description provided for @consentRevoked.
+  ///
+  /// In es, this message translates to:
+  /// **'Consentimiento revocado.'**
+  String get consentRevoked;
+
+  /// No description provided for @consentRevokeError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo revocar el consentimiento. Inténtalo de nuevo.'**
+  String get consentRevokeError;
+
+  /// No description provided for @cancel.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar'**
+  String get cancel;
+
+  /// No description provided for @pairingCodeShare.
+  ///
+  /// In es, this message translates to:
+  /// **'Código de vinculación'**
+  String get pairingCodeShare;
+
+  /// No description provided for @userActive.
+  ///
+  /// In es, this message translates to:
+  /// **'Activo'**
+  String get userActive;
+
+  /// No description provided for @userInactive.
+  ///
+  /// In es, this message translates to:
+  /// **'Inactivo'**
+  String get userInactive;
+
+  /// No description provided for @userStatusUpdated.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado del usuario actualizado.'**
+  String get userStatusUpdated;
+
+  /// No description provided for @userStatusError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo actualizar el estado del usuario.'**
+  String get userStatusError;
 }
 
 class _AppLocalizationsDelegate

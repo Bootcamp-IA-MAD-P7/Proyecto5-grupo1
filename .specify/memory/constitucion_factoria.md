@@ -81,7 +81,7 @@ data/
 1. Un dataset = **misma carpeta** en `raw/` y `processed/` (ej. `sisfall/`, `mobiact/`).
 2. **Prohibido** mezclar CSVs de distintas fuentes en la raíz de `processed/`.
 3. Datasets combinados van **solo** en `processed/combined/`, nunca en crudo.
-4. Datos mock/sintéticos para desarrollo van **solo en Flutter** (`api_service.dart`), no en `data/`.
+4. **Prohibidos los datos mock/sintéticos en la app**: los servicios Flutter solo consumen el backend real; los tests usan test doubles (`MockClient`). Nunca datos fake en `data/`.
 5. Detalle operativo: `Backend/data/README.md`.
 
 ## 6. CRITERIOS DE DATASETS (OBLIGATORIO — FACTORÍA F5 Y MÁSTER IA SANITARIA)

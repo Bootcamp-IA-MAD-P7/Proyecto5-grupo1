@@ -112,5 +112,15 @@
   "acceptConsent": "I accept",
   "decline": "Decline",
   "dataTransparency": "Data transparency",
-  "transparencyBody": "Your predictions and feedback are used to retrain and improve the fall detection model. Data is processed securely and only with your active consent."
+  "transparencyBody": "Your predictions and feedback are used to retrain and improve the fall detection model. Data is processed securely and only with your active consent.",
+  "revokeConsent": "Revoke consent",
+  "revokeConsentConfirm": "Are you sure you want to revoke consent? Monitoring will stop and no more data will be sent.",
+  "consentRevoked": "Consent revoked.",
+  "consentRevokeError": "Could not revoke consent. Please try again.",
+  "cancel": "Cancel",
+  "pairingCodeShare": "Pairing code",
+  "userActive": "Active",
+  "userInactive": "Inactive",
+  "userStatusUpdated": "User status updated.",
+  "userStatusError": "Could not update the user status."
 }

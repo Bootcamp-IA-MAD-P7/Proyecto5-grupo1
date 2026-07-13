@@ -1,9 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sentilife/models/user.dart';
 import 'package:sentilife/services/device_id_service.dart';
 import 'package:sentilife/services/devices_service.dart';
 import 'package:sentilife/services/push_registration_service.dart';
 import 'package:sentilife/services/session_manager.dart';
+
+/// DevicesService que responde 200 a POST /push-token (backend real simulado).
+DevicesService _devices() => DevicesService(
+      client: MockClient((req) async => http.Response('', 200)),
+    );
 
 void main() {
   group('PushRegistrationService', () {
@@ -19,7 +26,7 @@ void main() {
 
       await expectLater(
         PushRegistrationService(
-          devicesService: DevicesService(useMock: true),
+          devicesService: _devices(),
         ).registerForCaregiver(locale: 'es'),
         completes,
       );
@@ -31,7 +38,7 @@ void main() {
 
       await expectLater(
         PushRegistrationService(
-          devicesService: DevicesService(useMock: true),
+          devicesService: _devices(),
         ).registerForCaregiver(locale: 'es'),
         completes,
       );
@@ -44,7 +51,7 @@ void main() {
 
       await expectLater(
         PushRegistrationService(
-          devicesService: DevicesService(useMock: true),
+          devicesService: _devices(),
         ).registerForCaregiver(locale: 'en'),
         completes,
       );

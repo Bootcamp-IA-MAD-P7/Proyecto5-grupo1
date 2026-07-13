@@ -55,7 +55,14 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     _pipeline = TelemetryPipelineService(
       onTelemetryError: _handleTelemetryError,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowConsent());
+    _hydrateContext();
+  }
+
+  Future<void> _hydrateContext() async {
+    await _contextStore.load();
+    if (!mounted) return;
+    setState(() => _consentAccepted = _contextStore.consentActive);
+    await _maybeShowConsent();
   }
 
   void _handleTelemetryError(TelemetryException error) {
@@ -141,6 +148,54 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.consentError)),
+      );
+    } finally {
+      if (mounted) setState(() => _consentInFlight = false);
+    }
+  }
+
+  Future<void> _revokeConsent() async {
+    final personId = _contextStore.monitoredPersonId;
+    if (personId == null || _consentInFlight) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.revokeConsent),
+        content: Text(ctx.l10n.revokeConsentConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(ctx.l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(ctx.l10n.revokeConsent),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _consentInFlight = true);
+    try {
+      await _monitoredService.revokeConsent(personId);
+      await _stopMonitoring();
+      _contextStore.setConsentActive(false);
+      if (!mounted) return;
+      setState(() => _consentAccepted = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.consentRevoked)),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.consentRevokeError)),
       );
     } finally {
       if (mounted) setState(() => _consentInFlight = false);
@@ -331,6 +386,14 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
                   _monitoring ? l10n.stopMonitoring : l10n.startMonitoring),
             ),
           ),
+          if (isPaired && _consentAccepted) ...[
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: _consentInFlight ? null : _revokeConsent,
+              icon: const Icon(Icons.privacy_tip_outlined),
+              label: Text(l10n.revokeConsent),
+            ),
+          ],
         ],
       ),
     );

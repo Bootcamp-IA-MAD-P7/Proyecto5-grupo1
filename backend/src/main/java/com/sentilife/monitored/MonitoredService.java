@@ -7,13 +7,16 @@ import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.Consent;
 import com.sentilife.consent.ConsentRepository;
 import com.sentilife.devices.PairedDeviceRepository;
+import com.sentilife.telemetry.TelemetryWindow;
 import com.sentilife.telemetry.TelemetryWindowRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -139,7 +142,23 @@ public class MonitoredService {
     @Transactional
     public MonitoredDtos.ConsentResponse revokeConsent(UUID caregiverId, UUID personId) {
         findOwned(caregiverId, personId);
+        return revokeActiveConsent(personId);
+    }
 
+    /**
+     * Self-revocation from the MONITORED profile (RF-07).
+     * The monitored person can withdraw consent for their own device without
+     * going through the caregiver.
+     */
+    @Transactional
+    public MonitoredDtos.ConsentResponse revokeConsentByMonitored(UUID personId) {
+        if (!repository.existsById(personId)) {
+            throw DomainExceptions.NotFoundException.of("Person not found");
+        }
+        return revokeActiveConsent(personId);
+    }
+
+    private MonitoredDtos.ConsentResponse revokeActiveConsent(UUID personId) {
         Consent consent = consentRepository
                 .findByMonitoredPersonIdAndStatus(personId, DomainConstants.CONSENT_ACTIVE)
                 .orElseThrow(() -> DomainExceptions.NotFoundException.of("No active consent found"));
@@ -169,12 +188,36 @@ public class MonitoredService {
         p.setEmergencyContact(r.emergencyContact());
     }
 
+    /** Ventana de tiempo tras la última muestra en la que se considera activa la monitorización. */
+    private static final Duration MONITORING_ACTIVE_WINDOW = Duration.ofMinutes(5);
+
     private MonitoredDtos.MonitoredResponse toResponse(MonitoredPerson person) {
-        String consentStatus = consentRepository
-                .existsByMonitoredPersonIdAndStatus(person.getId(), DomainConstants.CONSENT_ACTIVE)
+        boolean consentActive = consentRepository
+                .existsByMonitoredPersonIdAndStatus(person.getId(), DomainConstants.CONSENT_ACTIVE);
+        String consentStatus = consentActive
                 ? DomainConstants.CONSENT_ACTIVE : DomainConstants.CONSENT_PENDING;
-        return MonitoredDtos.MonitoredResponse.from(person, consentStatus,
-                DomainConstants.MONITORING_INACTIVE);
+
+        Optional<TelemetryWindow> lastWindow =
+                telemetryRepository.findLastByMonitoredPersonId(person.getId());
+
+        Instant lastSeenAt = lastWindow.map(TelemetryWindow::getWindowStart).orElse(null);
+
+        MonitoredDtos.LastPredictionDto lastPrediction = lastWindow
+                .filter(w -> w.getFallDetected() != null)
+                .map(w -> new MonitoredDtos.LastPredictionDto(
+                        w.getFallDetected(),
+                        w.getConfidence() != null ? w.getConfidence().doubleValue() : 0.0,
+                        w.getModelVersion() != null ? w.getModelVersion() : "unknown",
+                        w.getWindowEnd() != null ? w.getWindowEnd() : w.getWindowStart()))
+                .orElse(null);
+
+        boolean recent = lastSeenAt != null
+                && lastSeenAt.isAfter(Instant.now().minus(MONITORING_ACTIVE_WINDOW));
+        String monitoringStatus = (consentActive && recent)
+                ? DomainConstants.MONITORING_ACTIVE : DomainConstants.MONITORING_INACTIVE;
+
+        return MonitoredDtos.MonitoredResponse.from(person, consentStatus, monitoringStatus,
+                lastSeenAt, lastPrediction);
     }
 
     private MonitoredDtos.ConsentResponse toConsentResponse(Consent c) {

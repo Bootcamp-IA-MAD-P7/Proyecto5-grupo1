@@ -89,8 +89,14 @@ public class MonitoredController {
 
     @DeleteMapping("/{id}/consent")
     public ResponseEntity<MonitoredDtos.ConsentResponse> revokeConsent(
-            @AuthenticationPrincipal User caregiver,
+            @AuthenticationPrincipal User user,
             @PathVariable UUID id) {
-        return ResponseEntity.ok(service.revokeConsent(caregiver.getId(), id));
+        MonitoredDtos.ConsentResponse response;
+        if (DomainConstants.ROLE_MONITORED.equals(user.getRole())) {
+            response = service.revokeConsentByMonitored(id);
+        } else {
+            response = service.revokeConsent(user.getId(), id);
+        }
+        return ResponseEntity.ok(response);
     }
 }

@@ -100,14 +100,14 @@
 
 ### Stream FE-B (caregiver + IT)
 
-- [x] **T2.14** `FE-B` — Perfil CAREGIVER: formulario de registro de persona, lista con estado. *(RF-21)*
-- [x] **T2.15** `FE-B` — Alertas en app: pantalla de detalle, confirmar/descartar con comentario. *(RF-15, RF-17)*
+- [x] **T2.14** `FE-B` — Perfil CAREGIVER: formulario de registro de persona, lista con estado. *(RF-21)* — UI + CRUD + `monitoringStatus`/`lastPrediction` reales (backend embebe estado tras **T2.27**) + `pairingCode` visible (**T2.29**). *(verificado E2E lun 13)*
+- [x] **T2.15** `FE-B` — Alertas en app: pantalla de detalle, confirmar/descartar con comentario. *(RF-15, RF-17)* — bug de contrato PATCH (`FeedbackResponse`≠`Alert`) corregido en **T2.24**; *(verificado E2E lun 13: `make smoke-mvp` PATCH feedback OK)*.
 - [x] **T2.16** `FE-B` — **Push en Flutter**: `firebase_messaging`, registro de token en login, notificación en background/terminated, tap → `AlertDetailScreen`. *(RF-27…RF-29)* (T2.9)
-- [x] **T2.17** `FE-B` — Perfil IT_ADMIN: historial global, export, usuarios. *(RF-22)*
+- [x] **T2.17** `FE-B` — Perfil IT_ADMIN: historial global, export, usuarios. *(RF-22)* — bug de contrato historial (`alertId` sin `fallDetected`) corregido en **T2.25**; UI de activar/desactivar usuarios añadida en **T2.31**. *(verificado E2E lun 13)*
 
 ### Cableado real (eliminar mocks — bloqueante para T1.INT y T2.INT)
 
-> **Estado código lun 13 — ✅ MOCK-OFF COMPLETO:** los 8 servicios Flutter usan backend real en runtime (`AppConfig.useMock = false`; `AuthService._useMock = false`). Los bloques mock permanecen solo como herramienta dev/test (`USE_MOCK=true` o tests unitarios). Ver `5_roadmap.md §0c`.
+> **Estado código lun 13 — ✅ MOCKS ELIMINADOS:** los servicios Flutter solo hablan con el backend Java real vía `http.Client` inyectable; ya no existe modo mock ni datos fake (`AppConfig.useMock`, `USE_MOCK`, `_mock*`, tester sintético legacy y `docs/mock_services.md` eliminados). Los tests usan `MockClient` de `package:http/testing`. Ver `5_roadmap.md §0c`.
 
 - [x] **T2.18** `FE-A`+`FE-B` — Apagar `_useMock` en `telemetry_service`, `monitored_service`, `alerts_service`, `devices_service`, `admin_service`; flag central en `AppConfig.useMock` (default `false`). *(verificado: ningún `useMock: true` en `frontend/lib/`)*
 - [x] **T2.19** `FE-A`+`FE-B` — Inyectar `SessionManager.accessToken` en `_headers()` vía `api_headers.dart` (sustituir `Bearer mock-access-token`).
@@ -118,6 +118,23 @@
 ### Integración
 
 - [x] **T2.INT** `ALL` — End-to-end real con cronómetro: cuidador registra persona → consentimiento → caída → **push en el móvil del cuidador < 5 s** → confirma → export IT contiene la muestra etiquetada. *(smoke: `make smoke-mvp` — alerta 291ms, push 325ms, export TRUE_FALL)*
+
+---
+
+## Fase 2b — Auditoría de contrato FE↔BE (lun 13) 🔴 CORRECCIÓN
+
+> **Post-mortem honesto:** varias tareas de Fase 2 se marcaron `[x]` habiendo verificado solo la **UI contra mock**, no el **contrato real contra el backend Java**. Una auditoría del lun 13 encontró incompatibilidades que hacían fallar las pantallas contra el backend real. Estas tareas corrigen esos bugs y añaden lo que faltaba. **Regla reforzada:** una tarea FE que consume API no es `[x]` hasta verificar el JSON real (no el mock).
+
+- [x] **T2.23** `FE-A`+`FE-B` — **Paginación**: todos los list services (`alerts`, `monitored`, `admin` history/users) leían `json['page']`, pero Spring `Page` serializa `number`. Ahora `page: json['page'] ?? json['number']`. *(afectaba SL-31/32/40 y lista de personas)*
+- [x] **T2.24** `FE-B` — **SL-32**: `AlertsService.review()` parseaba `Alert.fromJson` sobre la respuesta del PATCH, pero el backend responde `{ alertId, status, feedbackLabelId }` (spec §6.5). Ahora no reconstruye `Alert`; devuelve `void`.
+- [x] **T2.25** `FE-B` — **SL-40**: `HistoryEntry.fromJson` esperaba `id` + `fallDetected`; el backend envía `alertId` sin `fallDetected`. Ahora usa `alertId` y tolera la ausencia de `fallDetected`.
+- [x] **T2.26** `FE-A` — **SL-31 (frontend)**: `TelemetryService.getStatus()` ignoraba `lastPrediction`; ahora lo parsea (formato plano de spec §6.3, sin `windowId` ni objeto `prediction` anidado).
+- [x] **T2.27** `BE-A` — **SL-31 (backend)**: `MonitoredResponse` embebe `lastSeenAt` + `lastPrediction` (`{fallDetected,confidence,modelVersion,timestamp}`, spec §6.2/§6.3) y calcula `monitoringStatus` real (ACTIVE si consentimiento activo **y** última ventana < 5 min). `MonitoredService.toResponse` consulta `TelemetryWindowRepository` + 2 tests (`MonitoredServiceTest`). *(verificado E2E lun 13: `GET /monitored-persons/{id}` → `monitoringStatus=ACTIVE`, `lastPrediction.modelVersion=baseline-v1`, `timestamp` presente; alineado 1-a-1 con `LastPrediction.fromJson`)*
+- [x] **T2.28** `FE-A` — **SL-37**: UI de **revocación de consentimiento** en pantalla MONITORED (botón → `MonitoredService.revokeConsent()`, detiene monitorización). Backend: nuevo `revokeConsentByMonitored()` + rama por rol en `DELETE /{id}/consent` para permitir **self-revoke** del MONITORED (antes solo CAREGIVER) + test. *(verificado E2E lun 13: DELETE por MONITORED → 200 `status=REVOKED`; `monitoringStatus` pasa a INACTIVE)*
+- [x] **T2.29** `FE-A`+`FE-B` — **SL-24**: `pairingCode` visible en la tarjeta del cuidador; **pairing persistido** en disco (`MonitoredContextStore` usa `shared_preferences` con `load()`/`_persist()`, tolerante a Web/tests) → sobrevive al reinicio de la app.
+- [x] **T2.30** `FE-B` — **SL-39**: `FirebaseBootstrap` deja de tragar el error en silencio: en Web sin `firebase_options` deshabilita push explícitamente (`pushDisabled=true`) y registra el motivo; en fallo de init marca `pushDisabled`. *(verificación en dispositivo Android físico con `google-services.json` queda como QA manual de campo — no automatizable en CI)*
+- [x] **T2.31** `FE-B` — **SL-40**: UI para activar/desactivar usuarios (`SwitchListTile` en pestaña IT → `AdminService.setUserActive()` → `PATCH /admin/users/{id}`); modelo `User` incorpora `active` + test mock. *(verificado E2E lun 13: PATCH active=false/true → 200 con `active` actualizado)*
+- [x] **T2.INT.b** `ALL` — **Re-verificado E2E contra backend real** (no mock) lun 13: `make up` (6/6 healthy) → `make smoke-mvp` **PASS** (registro→pairing→consentimiento→caída→alerta 331ms→push RabbitMQ 380ms→PATCH feedback→export IT con `TRUE_FALL`) + script de verificación de contratos nuevos (T2.27/T2.28/T2.31) **PASS**. Backend `mvn test` 23/23 ✅ · Flutter `flutter test` 82/82 ✅ · `flutter analyze` limpio.
 
 ---
 
@@ -156,7 +173,7 @@
 | Nivel bootcamp | Fases | Estado real | Qué falta para cerrarlo |
 |---|---|---|---|
 | 🟢 Esencial | Fase 0–1 | ✅ **CERRADO** | — |
-| 🟡 Medio | 2 | ✅ **CERRADO** | — |
+| 🟡 Medio | 2 | ✅ **CERRADO (re-verificado E2E lun 13)** | Auditoría FE↔BE resuelta: bugs de contrato (T2.23–T2.26) + huecos (T2.27 lastPrediction/monitoringStatus real · T2.28 revocación self-revoke · T2.29 pairing persist + code · T2.30 fallback push Web · T2.31 users UI). **T2.INT.b** re-verificado contra backend real (`make smoke-mvp` PASS + contratos nuevos PASS; 23 BE + 82 FE tests, analyze limpio). Nota: QA push en Android físico (T2.30) y verificación OTA física (T3.8) son de campo. |
 | 🟠 Avanzado | 3 | ⏳ **~33% · NO cerrado** | T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.7 i18n · T3.8 OTA · T3.INT |
 | 🔴 Experto | 4 | ⏳ **~33% · NO cerrado** | T4.1 MobiAct · T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.8 informe · T4.INT |
 
@@ -166,7 +183,7 @@
 |---|---|---|---|---|
 | Semana 1 | T2.3 auth | T2.7 colas | T2.11 login | T2.14 caregiver |
 | Semana 2 | T2.4/T2.5 personas+consent | T2.8/T2.9 alertas+push | T2.12/T2.13 modales | T2.15/T2.16 alertas+push |
-| Cierre | T2.6 OTA ✅ · T2.18/19/20/21 ✅ | T2.10 admin | — | T2.17 IT ✅ · T2.22 push-token ✅ |
+| Cierre | T2.6 OTA ✅ · T2.18/19/20/21 ✅ · T2.27/28 ✅ | T2.10 admin | T2.29 pairing ✅ | T2.17 IT ✅ · T2.22 push-token ✅ · T2.30/31 ✅ |
 | Juntos | | | | **T2.INT** |
 
 ---
@@ -175,7 +192,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v1.6 — lun 13: roadmap §0 sincronizado (Esencial 18/18 · Medio 19/19 ✅) |
+| Estado | v1.8 — lun 13: auditoría FE↔BE **cerrada**. Esencial 18/18 ✅ · **Medio CERRADO** (T2.23–T2.31 + T2.INT.b re-verificados E2E contra backend real: `make smoke-mvp` PASS, 23 BE + 82 FE tests, analyze limpio) |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |

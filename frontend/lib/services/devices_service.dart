@@ -22,17 +22,14 @@ class PairResult {
   }
 }
 
-/// Servicio de gestión de dispositivos — spec §6.4
+/// Servicio de gestión de dispositivos — spec §6.4 (backend Java real).
+///
+/// [client] es inyectable para tests (`MockClient` de `package:http/testing`).
 class DevicesService {
-  DevicesService({bool? useMock}) : _useMock = useMock ?? AppConfig.useMock;
+  DevicesService({http.Client? client}) : _client = client ?? http.Client();
 
-  final bool _useMock;
+  final http.Client _client;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/devices';
-
-  static const Map<String, String> _mockPairingCodes = {
-    'SL-84F2K9': 'uuid-person-001',
-    'SL-77X3M1': 'uuid-person-002',
-  };
 
   /// POST /pair — vincula dispositivo del monitoreado con su pairingCode
   Future<PairResult> pair({
@@ -40,20 +37,7 @@ class DevicesService {
     required String deviceId,
     String platform = 'ANDROID',
   }) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      final personId = _mockPairingCodes[pairingCode];
-      if (personId == null) {
-        throw const DeviceException(
-            404, 'INVALID_CODE', 'Código de vinculación inválido o expirado.');
-      }
-      return PairResult(
-        monitoredPersonId: personId,
-        deviceToken: 'mock-device-token-$personId',
-      );
-    }
-
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/pair'),
       headers: apiJsonHeaders(requireAuth: false),
       body: jsonEncode({
@@ -73,12 +57,7 @@ class DevicesService {
     String platform = 'ANDROID',
     String locale = 'es',
   }) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      return;
-    }
-
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/push-token'),
       headers: _headers(),
       body: jsonEncode({

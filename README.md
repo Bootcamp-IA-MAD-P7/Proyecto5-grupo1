@@ -204,14 +204,11 @@ frontend/
 │   ├── main.dart                     # Entrada, tema Material, chequeo OTA al arrancar
 │   ├── config/
 │   │   └── app_config.dart         # API_BASE_URL vía --dart-define
-│   ├── models/
-│   │   └── prediction_result.dart    # Resultado + snapshot de sensores
-│   ├── screens/
-│   │   ├── home_screen.dart          # Monitor en tiempo real, stream de sensores
-│   │   └── result_screen.dart        # Alerta visual si caída detectada
-│   ├── services/
-│   │   ├── api_service.dart          # POST /predict (API local o AWS)
-│   │   └── update_service.dart       # GET /app/latest-version — OTA Android
+│   ├── models/                       # alert, user, monitored_person, prediction_result, retrain_status
+│   ├── l10n/                          # ARB es/en + localizaciones generadas
+│   ├── screens/                       # login → app_shell (por rol): monitored, caregiver, alerts, it_admin
+│   ├── services/                      # auth, monitored, telemetry, alerts, devices, admin (backend Java real)
+│   │   └── update_service.dart        # GET /app/latest-version — OTA Android
 │   └── widgets/
 │       └── update_dialog.dart        # Diálogo descarga APK desde GitHub Releases
 ├── android/                          # Plataforma principal (release + Firebase)
@@ -229,7 +226,6 @@ frontend/
 | QA (EC2) | `make flutter-qa` + `.env.qa` | http://34.235.130.33:8005 |
 | Local — emulador | `make flutter-local` | http://10.0.2.2:8080 |
 | Local — móvil físico | `make flutter-phone` | http://\<IP-LAN\>:8080 |
-| Offline | `_useMock = true` en servicios | Sin backend |
 
 ```bash
 cd frontend && flutter pub get && flutter run
@@ -407,7 +403,7 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 ## Deuda técnica
 
-- ~~Mocks Flutter~~ — todos los servicios en backend real (`AppConfig.useMock=false`) ✅
+- ~~Mocks Flutter~~ — **eliminados por completo**: servicios solo contra backend Java real (`http.Client` inyectable); los tests usan `MockClient` de `package:http/testing` ✅
 - **No regenerar** `processed/` hasta SDD
 - MobiAct pendiente de respuesta BMI
 - Endpoint OTA `/app/register-version` pendiente en Java (CI android.yml)

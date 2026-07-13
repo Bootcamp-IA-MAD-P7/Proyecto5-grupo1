@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
 import 'package:sentilife/services/monitored_service.dart';
 
@@ -23,14 +25,18 @@ void main() {
     });
   });
 
-  group('MonitoredService acceptConsent (mock)', () {
-    test('acceptConsent completes without error in mock mode', () async {
-      final service = MonitoredService(useMock: true);
+  group('MonitoredService acceptConsent (HTTP real)', () {
+    test('acceptConsent (POST /consent) completes without error', () async {
+      final service = MonitoredService(
+        client: MockClient((req) async {
+          expect(req.method, 'POST');
+          expect(req.url.path, endsWith('/consent'));
+          return http.Response('', 200);
+        }),
+      );
+
       await expectLater(
-        service.acceptConsent(
-          'uuid-person-001',
-          policyVersion: '1.0-es',
-        ),
+        service.acceptConsent('uuid-person-001', policyVersion: '1.0-es'),
         completes,
       );
     });

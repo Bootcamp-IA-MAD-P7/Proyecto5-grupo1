@@ -134,9 +134,11 @@ class _PersonCard extends StatelessWidget {
           child: Icon(Icons.person, color: statusColor),
         ),
         title: Text(person.fullName),
+        isThreeLine: true,
         subtitle: Text(
           '${l10n.age}: ${person.age} · ${l10n.consent}: ${person.consentStatus.value}\n'
-          '${person.lastPrediction != null ? l10n.lastEvaluation : l10n.noEvaluationYet}',
+          '${person.lastPrediction != null ? l10n.lastEvaluation : l10n.noEvaluationYet}'
+          '${person.pairingCode != null ? '\n${l10n.pairingCodeShare}: ${person.pairingCode}' : ''}',
         ),
         trailing: person.lastPrediction?.fallDetected == true
             ? const Icon(Icons.warning, color: Colors.red)

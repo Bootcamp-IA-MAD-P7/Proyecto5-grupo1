@@ -1,8 +1,39 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sentilife/services/device_id_service.dart';
 import 'package:sentilife/services/devices_service.dart';
 import 'package:sentilife/services/exceptions.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
+
+/// DevicesService cuyo POST /pair resuelve un pairingCode conocido.
+DevicesService _pairingDevices() => DevicesService(
+      client: MockClient((req) async {
+        final body = jsonDecode(req.body) as Map<String, dynamic>;
+        const codes = {
+          'SL-84F2K9': 'uuid-person-001',
+          'SL-77X3M1': 'uuid-person-002',
+        };
+        final personId = codes[body['pairingCode']];
+        if (personId == null) {
+          return http.Response(
+            jsonEncode({'error': 'INVALID_CODE', 'message': 'Código inválido'}),
+            404,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'monitoredPersonId': personId,
+            'deviceToken': 'device-token-$personId',
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
 
 void main() {
   group('DeviceIdService', () {
@@ -17,11 +48,11 @@ void main() {
     });
   });
 
-  group('Monitored pairing flow (mock DevicesService)', () {
+  group('Monitored pairing flow (HTTP real)', () {
     tearDown(() => MonitoredContextStore().clear());
 
     test('pair stores monitoredPersonId and deviceId in context store', () async {
-      final devices = DevicesService(useMock: true);
+      final devices = _pairingDevices();
       final store = MonitoredContextStore();
       const deviceId = 'android-test-pair-001';
 
@@ -42,7 +73,7 @@ void main() {
     });
 
     test('invalid pairing code does not update store', () async {
-      final devices = DevicesService(useMock: true);
+      final devices = _pairingDevices();
       final store = MonitoredContextStore();
 
       await expectLater(

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/user.dart';
 
-/// Sesión JWT en memoria (mock hasta que Java BE esté disponible).
+/// Sesión JWT en memoria, poblada tras el login real contra el backend Java.
 class AuthSession extends ChangeNotifier {
   AuthTokens? _tokens;
 

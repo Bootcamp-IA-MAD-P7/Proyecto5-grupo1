@@ -34,11 +34,14 @@ class HistoryEntry {
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) {
     return HistoryEntry(
-      id: json['id'] as String,
+      // Backend (spec §6.6) envía 'alertId'.
+      id: (json['alertId'] ?? json['id']) as String,
       monitoredPersonId: json['monitoredPersonId'] as String,
       monitoredPersonName: json['monitoredPersonName'] as String,
       detectedAt: DateTime.parse(json['detectedAt'] as String),
-      fallDetected: json['fallDetected'] as bool,
+      // El backend no envía 'fallDetected': una entrada del historial es una
+      // alerta y las alertas solo se crean cuando hubo caída detectada.
+      fallDetected: json['fallDetected'] as bool? ?? true,
       confidence: (json['confidence'] as num).toDouble(),
       modelVersion: json['modelVersion'] as String,
       alertStatus: AlertStatusX.fromString(json['alertStatus'] as String),
@@ -47,73 +50,14 @@ class HistoryEntry {
   }
 }
 
-/// Servicio de administración IT — spec §6.6
+/// Servicio de administración IT — spec §6.6 (backend Java real).
+///
+/// [client] es inyectable para tests (`MockClient` de `package:http/testing`).
 class AdminService {
-  AdminService({bool? useMock}) : _useMock = useMock ?? AppConfig.useMock;
+  AdminService({http.Client? client}) : _client = client ?? http.Client();
 
-  final bool _useMock;
+  final http.Client _client;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/admin';
-
-  // ── Mock data ──────────────────────────────────────────────────────────────
-
-  final List<HistoryEntry> _mockHistory = [
-    HistoryEntry(
-      id: 'uuid-hist-001',
-      monitoredPersonId: 'uuid-person-001',
-      monitoredPersonName: 'Manuel Pérez',
-      detectedAt: DateTime.now().subtract(const Duration(minutes: 15)),
-      fallDetected: true,
-      confidence: 0.92,
-      modelVersion: 'xgb-1.2.0',
-      alertStatus: AlertStatus.pending,
-    ),
-    HistoryEntry(
-      id: 'uuid-hist-002',
-      monitoredPersonId: 'uuid-person-001',
-      monitoredPersonName: 'Manuel Pérez',
-      detectedAt: DateTime.now().subtract(const Duration(hours: 3)),
-      fallDetected: true,
-      confidence: 0.87,
-      modelVersion: 'xgb-1.2.0',
-      alertStatus: AlertStatus.confirmed,
-      feedbackLabel: 'TRUE_FALL',
-    ),
-    HistoryEntry(
-      id: 'uuid-hist-003',
-      monitoredPersonId: 'uuid-person-001',
-      monitoredPersonName: 'Manuel Pérez',
-      detectedAt: DateTime.now().subtract(const Duration(days: 1)),
-      fallDetected: true,
-      confidence: 0.61,
-      modelVersion: 'xgb-1.2.0',
-      alertStatus: AlertStatus.dismissed,
-      feedbackLabel: 'FALSE_ALARM',
-    ),
-  ];
-
-  RetrainJobStatus _mockRetrainStatus = const RetrainJobStatus(
-    status: RetrainStatus.idle,
-  );
-
-  final List<User> _mockUsers = [
-    User(
-        id: 'uuid-caregiver-001',
-        email: 'caregiver@test.com',
-        fullName: 'Ana García',
-        role: UserRole.caregiver),
-    User(
-        id: 'uuid-monitored-001',
-        email: 'monitored@test.com',
-        fullName: 'Manuel Pérez',
-        role: UserRole.monitored),
-    User(
-        id: 'uuid-admin-001',
-        email: 'admin@test.com',
-        fullName: 'IT Admin',
-        role: UserRole.itAdmin),
-  ];
-
-  // ── Interfaz pública ───────────────────────────────────────────────────────
 
   /// GET /history — historial global paginado (RF-18)
   Future<PagedResponse<HistoryEntry>> getHistory({
@@ -122,17 +66,6 @@ class AdminService {
     DateTime? from,
     DateTime? to,
   }) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return PagedResponse(
-        content: _mockHistory,
-        page: page,
-        size: size,
-        totalElements: _mockHistory.length,
-        totalPages: 1,
-      );
-    }
-
     final params = <String, String>{
       'page': '$page',
       'size': '$size',
@@ -140,7 +73,7 @@ class AdminService {
       if (to != null) 'to': to.toUtc().toIso8601String(),
     };
     final uri = Uri.parse('$_base/history').replace(queryParameters: params);
-    final res = await http.get(uri, headers: _headers());
+    final res = await _client.get(uri, headers: _headers());
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     final content = (json['content'] as List)
@@ -148,21 +81,16 @@ class AdminService {
         .toList();
     return PagedResponse(
       content: content,
-      page: json['page'] as int,
+      page: (json['page'] ?? json['number'] ?? 0) as int,
       size: json['size'] as int,
       totalElements: json['totalElements'] as int,
       totalPages: json['totalPages'] as int,
     );
   }
 
-  /// GET /export — dataset etiquetado para reentrenamiento (RF-19)
+  /// GET /export — dataset etiquetado para reentrenamiento (RF-19).
   /// Devuelve la URL de descarga del CSV.
   Future<String> getExportUrl({DateTime? from, DateTime? to}) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      return 'mock://export/labeled_dataset.csv';
-    }
-
     final params = <String, String>{
       'format': 'csv',
       if (from != null) 'from': from.toUtc().toIso8601String(),
@@ -174,18 +102,7 @@ class AdminService {
 
   /// GET /users — listado de usuarios (RF-04)
   Future<PagedResponse<User>> getUsers({int page = 0, int size = 20}) async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return PagedResponse(
-        content: _mockUsers,
-        page: page,
-        size: size,
-        totalElements: _mockUsers.length,
-        totalPages: 1,
-      );
-    }
-
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/users?page=$page&size=$size'),
       headers: _headers(),
     );
@@ -196,58 +113,27 @@ class AdminService {
         .toList();
     return PagedResponse(
       content: content,
-      page: json['page'] as int,
+      page: (json['page'] ?? json['number'] ?? 0) as int,
       size: json['size'] as int,
       totalElements: json['totalElements'] as int,
       totalPages: json['totalPages'] as int,
     );
   }
 
+  /// PATCH /users/{id} — activar/desactivar usuario (RF-04)
+  Future<User> setUserActive(String userId, {required bool active}) async {
+    final res = await _client.patch(
+      Uri.parse('$_base/users/$userId'),
+      headers: _headers(),
+      body: jsonEncode({'active': active}),
+    );
+    _checkStatus(res);
+    return User.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
   /// POST /retrain — lanzar reentrenamiento (RF-33)
   Future<void> startRetrain() async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (_mockRetrainStatus.status == RetrainStatus.running) {
-        throw const AdminException(
-            409, 'RETRAIN_RUNNING', 'Ya hay un reentrenamiento en curso.');
-      }
-      _mockRetrainStatus = RetrainJobStatus(
-        status: RetrainStatus.running,
-        phase: 'drift',
-        message: 'Analizando distribución de features...',
-        startedAt: DateTime.now(),
-      );
-      // Simular progreso en background
-      Future.delayed(const Duration(seconds: 3), () {
-        _mockRetrainStatus = RetrainJobStatus(
-          status: RetrainStatus.running,
-          phase: 'training',
-          message: 'Entrenando con datos reales etiquetados...',
-          startedAt: _mockRetrainStatus.startedAt,
-        );
-      });
-      Future.delayed(const Duration(seconds: 8), () {
-        _mockRetrainStatus = RetrainJobStatus(
-          status: RetrainStatus.completed,
-          phase: null,
-          message:
-              'Modelo promovido a producción (recall 0.91 → 0.94). La API ya sirve el nuevo modelo.',
-          startedAt: _mockRetrainStatus.startedAt,
-          finishedAt: DateTime.now(),
-          decision: 'promoted',
-          details: const RetrainDetails(
-            currentRecall: 0.91,
-            newRecall: 0.94,
-            overfittingGap: 0.03,
-            driftDetected: false,
-            modelReloaded: true,
-          ),
-        );
-      });
-      return;
-    }
-
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/retrain'),
       headers: _headers(),
     );
@@ -256,12 +142,7 @@ class AdminService {
 
   /// GET /retrain/status — estado del job de reentrenamiento (RF-33)
   Future<RetrainJobStatus> getRetrainStatus() async {
-    if (_useMock) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      return _mockRetrainStatus;
-    }
-
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/retrain/status'),
       headers: _headers(),
     );
