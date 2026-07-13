@@ -256,13 +256,26 @@ jobs:
             docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 
             POSTGRES_USER="${{ secrets.POSTGRES_USER }}"
+            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
             POSTGRES_DB="${{ secrets.POSTGRES_DB }}"
+            POSTGRES_USER="${POSTGRES_USER:-fallsentinel}"
+            POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-fallsentinel123}"
+            POSTGRES_DB="${POSTGRES_DB:-fallsentinel}"
 
-            # Flyway V1 crea users; el init legacy (db/init) solo dejó app_versions.
-            # Si users no existe pero hay restos legacy o flyway_schema_history → reset pgdata.
-            if docker volume inspect sentilife_pgdata >/dev/null 2>&1; then
+            reset_pgdata_if_corrupt() {
+              local pg_volume="sentilife_pgdata"
+              if ! docker volume inspect "$pg_volume" >/dev/null 2>&1; then
+                echo "→ Sin volumen pgdata previo (instalación limpia)"
+                return 0
+              fi
+
               echo "=== Comprobando estado Flyway en pgdata ==="
-              docker compose -f docker-compose.prod.yml up -d db
+              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+              POSTGRES_USER="$POSTGRES_USER" \
+              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+              POSTGRES_DB="$POSTGRES_DB" \
+                docker compose -f docker-compose.prod.yml up -d db
+
               for i in $(seq 1 30); do
                 if docker exec sentilife-db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
                   break
@@ -271,21 +284,43 @@ jobs:
               done
 
               USERS_OK=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
-                "SELECT to_regclass('public.users') IS NOT NULL;" 2>/dev/null || echo "f")
-              LEGACY=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
-                "SELECT to_regclass('public.app_versions') IS NOT NULL;" 2>/dev/null || echo "f")
-              FLYWAY_ROWS=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
-                "SELECT count(*) FROM flyway_schema_history;" 2>/dev/null || echo "0")
+                "SELECT to_regclass('public.users') IS NOT NULL;" 2>/dev/null | tr -d '[:space:]' || echo "f")
+              PUBLIC_TABLES=$(docker exec sentilife-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null | tr -d '[:space:]' || echo "0")
 
-              if [ "$USERS_OK" != "t" ] && { [ "$LEGACY" = "t" ] || [ "${FLYWAY_ROWS:-0}" -gt 0 ]; }; then
-                echo "→ pgdata corrupto (users ausente, legacy o Flyway parcial). Reseteando volumen..."
-                docker compose -f docker-compose.prod.yml down --remove-orphans
-                docker volume rm sentilife_pgdata
-              else
-                echo "→ pgdata OK o vacío (users=${USERS_OK}, legacy=${LEGACY}, flyway_rows=${FLYWAY_ROWS})"
-                docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+              echo "→ Diagnóstico pgdata: users=${USERS_OK}, public_tables=${PUBLIC_TABLES}"
+
+              docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+
+              # BD con tablas pero sin users = Flyway legacy/baseline roto → borrar volumen
+              if [ "$USERS_OK" != "t" ] && [ "${PUBLIC_TABLES:-0}" -gt 0 ]; then
+                echo "→ pgdata CORRUPTO. Borrando volumen ${pg_volume}..."
+                docker volume rm "$pg_volume"
               fi
-            fi
+            }
+
+            reset_pgdata_if_corrupt
+
+            deploy_stack() {
+              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+              POSTGRES_USER="$POSTGRES_USER" \
+              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+              POSTGRES_DB="$POSTGRES_DB" \
+              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+                docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            }
+
+            wait_for_backend() {
+              echo "→ Esperando backend (Flyway V1–V5 + arranque Spring, hasta ~4 min)..."
+              for i in $(seq 1 24); do
+                if curl --fail --silent http://localhost:8005/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
+                  echo "→ Backend UP tras ${i}0s"
+                  return 0
+                fi
+                sleep 10
+              done
+              return 1
+            }
 
             # Respaldo: cualquier contenedor que aún publique esos puertos
             for port in 5435 8005 3006; do
@@ -298,26 +333,25 @@ jobs:
               done
             done
 
-            DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
-            POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
-            POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
-            POSTGRES_DB="${{ secrets.POSTGRES_DB }}" \
-            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            deploy_stack
 
-            echo "→ Esperando backend (Flyway V1–V4 + arranque Spring, hasta ~2 min)..."
-            for i in $(seq 1 24); do
-              if curl --fail --silent http://localhost:8005/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
-                echo "→ Backend UP tras ${i}0s"
-                break
-              fi
-              if [ "$i" -eq 24 ]; then
-                echo "→ Backend no respondió a tiempo. Logs:"
-                docker logs sentilife-backend --tail 80
+            if ! wait_for_backend; then
+              if docker logs sentilife-backend 2>&1 | tail -120 | grep -q 'relation "users" does not exist'; then
+                echo "→ Flyway roto detectado en logs. Reseteando pgdata y reintentando..."
+                docker compose -f docker-compose.prod.yml down --remove-orphans
+                docker volume rm sentilife_pgdata 2>/dev/null || true
+                deploy_stack
+                if ! wait_for_backend; then
+                  echo "→ Backend sigue caído tras reset. Logs:"
+                  docker logs sentilife-backend --tail 120
+                  exit 1
+                fi
+              else
+                echo "→ Backend no respondió. Logs:"
+                docker logs sentilife-backend --tail 120
                 exit 1
               fi
-              sleep 10
-            done
+            fi
 
             echo "→ Contenedores SentiLife:"
             docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
