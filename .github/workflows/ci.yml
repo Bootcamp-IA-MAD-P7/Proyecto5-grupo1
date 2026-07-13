@@ -162,11 +162,39 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up SSH key
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${EC2_HOST:-}" ]; then
+            echo "::error::EC2_HOST está vacío. El job deploy usa environment 'production':"
+            echo "  Settings → Environments → production → Environment secrets"
+            echo "  (o Repository secrets, si no hay override vacío en production)."
+            exit 1
+          fi
+          if [ -z "${EC2_SSH_KEY:-}" ]; then
+            echo "::error::EC2_SSH_KEY está vacío. Misma ubicación que EC2_HOST."
+            exit 1
+          fi
+
+          EC2_HOST="$(printf '%s' "$EC2_HOST" | tr -d '[:space:]')"
+
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 700 ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key.pem
           chmod 600 ~/.ssh/ec2_key.pem
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+          if ! ssh-keyscan -T 15 -H "$EC2_HOST" >> ~/.ssh/known_hosts 2> /tmp/ssh-keyscan.err; then
+            echo "::error::ssh-keyscan falló para EC2_HOST=${EC2_HOST}"
+            echo "  → Security Group: inbound TCP 22 desde GitHub Actions (0.0.0.0/0 para CI)."
+            echo "  → EC2_HOST debe ser solo IP o hostname (sin http:// ni :8005)."
+            cat /tmp/ssh-keyscan.err
+            exit 1
+          fi
+
+          echo "SSH listo para ${EC2_HOST}"
 
       - name: Upload compose and configs to EC2
         run: |
