@@ -1,7 +1,6 @@
 name: Android Release
 
-# Triggers only when SentiLife CI completes successfully on main.
-# All three test suites (Java, Python, Flutter) must have passed first.
+# Se dispara cuando SentiLife CI termina con éxito en main (API+DB ya desplegados).
 on:
   workflow_run:
     workflows: ["SentiLife CI"]
@@ -10,20 +9,49 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Guard: only proceed if the triggering CI workflow succeeded
   gate:
-    name: CI passed — proceed with release
+    name: Check backend deploy succeeded
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     steps:
-      - run: echo "✓ SentiLife CI OK — building Android release"
+      - run: echo "✓ Backend deploy OK — continuando con Android"
 
-  # Build signed APK and publish GitHub Release + Firebase distribution
-  build-and-release:
+  validate:
     runs-on: ubuntu-latest
     needs: gate
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+  build-and-release:
+    runs-on: ubuntu-latest
+    needs: validate
     defaults:
       run:
         working-directory: frontend
@@ -31,7 +59,7 @@ jobs:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -90,6 +118,25 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GH_PAT }}
+
+  notify-backend:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    steps:
+      - name: Register APK version in Postgres (OTA)
+        run: |
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version_code\": ${{ github.run_number }},
+              \"version_name\": \"1.0.${{ github.run_number }}\",
+              \"apk_url\": \"${APK_URL}\",
+              \"release_notes\": \"Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}\"
+            }" \
+            "http://${{ secrets.EC2_HOST }}:8005/app/register-version"
+          echo "✓ Versión registrada en Postgres (OTA)"
 
   firebase-distribute:
     runs-on: ubuntu-latest

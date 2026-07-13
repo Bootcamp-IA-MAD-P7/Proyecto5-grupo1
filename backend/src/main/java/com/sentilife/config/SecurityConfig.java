@@ -42,6 +42,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 // Device pairing — public (uses pairingCode)
                 .requestMatchers("/api/v1/devices/pair").permitAll()
+                // OTA Android — public (Flutter + CI)
+                .requestMatchers("/app/**").permitAll()
                 // Telemetry — open until device JWT is implemented (Phase 2)
                 .requestMatchers("/api/v1/telemetry/**").permitAll()
                 // Everything else requires a valid JWT

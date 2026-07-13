@@ -212,16 +212,28 @@ jobs:
 
             cd ~/sentilife
 
-            # El deploy falla si 5435/8005/3006 ya están en uso por un stack anterior.
-            # Primero bajamos el compose actual y detenemos contenedores en esos puertos.
-            echo "→ Deteniendo stack SentiLife anterior..."
-            docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
-            for port in 5435 8005 3006; do
-              ids=$(docker ps -q --filter "publish=${port}")
-              if [ -n "$ids" ]; then
-                echo "→ Liberando puerto ${port} (contenedores: $ids)"
-                docker stop $ids
+            echo "=== Pre-deploy: liberar puertos SentiLife (5435, 8005, 3006) ==="
+
+            # Stack Python legacy — sigue ocupando 8005/5435 si no se detiene explícitamente
+            for c in fallsentinel_api fallsentinel_db; do
+              if docker ps -a --format '{{.Names}}' | grep -qx "$c"; then
+                echo "→ Deteniendo legacy $c"
+                docker rm -f "$c"
               fi
+            done
+
+            # Stack SentiLife anterior (mismo compose)
+            docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+
+            # Respaldo: cualquier contenedor que aún publique esos puertos
+            for port in 5435 8005 3006; do
+              for id in $(docker ps -q); do
+                if docker port "$id" 2>/dev/null | grep -qE ":${port}($|->)"; then
+                  name=$(docker inspect --format '{{.Name}}' "$id" | sed 's#^/##')
+                  echo "→ Deteniendo ${name} (puerto ${port})"
+                  docker rm -f "$id"
+                fi
+              done
             done
 
             DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
@@ -232,12 +244,20 @@ jobs:
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             sleep 25
+            echo "→ Contenedores SentiLife:"
+            docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+
             echo "→ Checking Java backend health (host :8005)..."
             curl --fail --silent http://localhost:8005/actuator/health | grep '"status":"UP"'
+
             echo "→ Checking inference health (container interno)..."
             docker exec sentilife-inference python -c \
               "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"
-            echo "✅ All services healthy"
+
+            echo "→ Checking Grafana (host :3006)..."
+            curl --fail --silent http://localhost:3006/api/health | grep -q ok
+
+            echo "✅ Stack completo desplegado (Java + inference + DB + Grafana)"
           ENDSSH
 
       - name: External smoke test
