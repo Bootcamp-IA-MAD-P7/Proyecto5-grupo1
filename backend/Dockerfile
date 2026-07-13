@@ -16,8 +16,10 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Crear usuario no-root
-RUN addgroup -S spring && adduser -S spring -G spring
+# wget necesario para healthcheck (compose + Dockerfile)
+RUN apk add --no-cache wget \
+    && addgroup -S spring && adduser -S spring -G spring
+
 USER spring:spring
 
 # Copiar el JAR desde el stage de build
@@ -26,9 +28,9 @@ COPY --from=build /build/target/*.jar app.jar
 # Exponer puerto
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+# Health check (liveness — no depende de RabbitMQ)
+HEALTHCHECK --interval=15s --timeout=10s --retries=12 --start-period=180s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health/liveness || exit 1
 
 # Comando de entrada
 ENTRYPOINT ["java", "-jar", "app.jar"]
