@@ -299,6 +299,47 @@ class AppLocalizationsEs extends AppLocalizations {
       'Autorizo el uso de mis datos de sensores para detectar caídas y mejorar el modelo de SentiLife. Puedo revocar este consentimiento en cualquier momento desde Ajustes.';
 
   @override
+  String get consentSaved => 'Consentimiento registrado correctamente.';
+
+  @override
+  String get consentError =>
+      'No se pudo registrar el consentimiento. Inténtalo de nuevo.';
+
+  @override
+  String get consentRequired =>
+      'Se requiere consentimiento activo para enviar datos de sensores.';
+
+  @override
+  String get pairingRequired =>
+      'Vincula el dispositivo con el código del cuidador antes de aceptar el consentimiento.';
+
+  @override
+  String get pairingTitle => 'Vincular dispositivo';
+
+  @override
+  String get pairingCodeLabel => 'Código del cuidador';
+
+  @override
+  String get pairingCodeHint => 'SL-XXXXXX';
+
+  @override
+  String get pairDevice => 'Vincular';
+
+  @override
+  String get pairingSuccess => 'Dispositivo vinculado correctamente.';
+
+  @override
+  String get pairingError =>
+      'No se pudo vincular el dispositivo. Inténtalo de nuevo.';
+
+  @override
+  String get deviceLinked => 'Dispositivo vinculado';
+
+  @override
+  String get deviceLinkedSubtitle =>
+      'Este móvil está asociado a tu perfil monitorizado.';
+
+  @override
   String get acceptConsent => 'Acepto';
 
   @override

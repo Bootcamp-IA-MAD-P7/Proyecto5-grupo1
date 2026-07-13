@@ -1,10 +1,10 @@
 package com.sentilife.devices;
 
+import com.sentilife.users.User;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 /**
  * Device pairing controller — spec §6.4.
@@ -34,14 +34,13 @@ public class DeviceController {
 
     /**
      * Registers or updates the caregiver's FCM token.
-     * Authenticated — requires JWT (Phase 2).
-     * Temporarily accepts userId as a request header until JWT is complete.
+     * Requires authenticated CAREGIVER JWT (T2.22).
      */
     @PostMapping("/push-token")
     public ResponseEntity<Void> registerPushToken(
-            @RequestHeader("X-User-Id") UUID userId,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody DeviceDtos.PushTokenRequest request) {
-        service.registerPushToken(userId, request);
+        service.registerPushToken(user.getId(), request);
         return ResponseEntity.noContent().build();
     }
 }

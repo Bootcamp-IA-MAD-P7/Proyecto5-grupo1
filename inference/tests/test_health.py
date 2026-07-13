@@ -41,11 +41,12 @@ def test_model_info():
     assert "features_count" in data
 
 
-def test_predict_no_model_returns_503_or_200():
-    """If model is loaded, predict returns 200; if not, returns 503."""
-    # Send a minimal payload — model may or may not be loaded in test env
-    response = client.post("/predict", json={"features": {}})
-    # Either 503 (no model) or 422 (missing features) are acceptable
+def test_predict_no_model_returns_503_or_422():
+    """If model is loaded, predict returns 422 (missing samples); if not, 503."""
+    response = client.post(
+        "/predict",
+        json={"windowId": "w1", "monitoredId": "m1", "sampleRateHz": 50, "samples": {}},
+    )
     assert response.status_code in (503, 422)
 
 

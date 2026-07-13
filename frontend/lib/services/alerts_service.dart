@@ -3,11 +3,14 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/alert.dart';
 import '../models/monitored_person.dart';
+import 'api_headers.dart';
 import 'exceptions.dart';
 
 /// Servicio de alertas — spec §6.5
 class AlertsService {
-  static const bool _useMock = true;
+  AlertsService({bool? useMock}) : _useMock = useMock ?? AppConfig.useMock;
+
+  final bool _useMock;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/alerts';
 
   // ── Mock data ──────────────────────────────────────────────────────────────
@@ -95,6 +98,23 @@ class AlertsService {
     );
   }
 
+  /// Obtiene una alerta por ID (p. ej. navegación desde push FCM).
+  Future<Alert?> getById(String id) async {
+    if (_useMock) {
+      await Future.delayed(const Duration(milliseconds: 150));
+      for (final alert in _mockAlerts) {
+        if (alert.id == id) return alert;
+      }
+      return null;
+    }
+
+    final page = await list(size: 100);
+    for (final alert in page.content) {
+      if (alert.id == id) return alert;
+    }
+    return null;
+  }
+
   /// PATCH /{id} — confirmar o descartar alerta (RF-17)
   Future<Alert> review(
     String id, {
@@ -127,10 +147,7 @@ class AlertsService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-access-token',
-      };
+  Map<String, String> _headers() => apiJsonHeaders();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

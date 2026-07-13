@@ -118,6 +118,36 @@ class MonitoredServiceTest {
     }
 
     @Test
+    void acceptConsentByMonitored_withoutPairing_throwsForbidden() {
+        when(repository.existsById(personId)).thenReturn(true);
+        when(pairedDeviceRepository.existsByMonitoredPersonId(personId)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.acceptConsentByMonitored(personId,
+                new MonitoredDtos.ConsentRequest("1.0-es", "MONITORED")))
+                .isInstanceOf(DomainExceptions.ForbiddenException.class);
+    }
+
+    @Test
+    void acceptConsentByMonitored_withPairing_createsActiveConsent() {
+        when(repository.existsById(personId)).thenReturn(true);
+        when(pairedDeviceRepository.existsByMonitoredPersonId(personId)).thenReturn(true);
+        when(consentRepository.findByMonitoredPersonIdAndStatus(personId,
+                DomainConstants.CONSENT_ACTIVE)).thenReturn(Optional.empty());
+
+        Consent saved = new Consent();
+        saved.setMonitoredPersonId(personId);
+        saved.setPolicyVersion("1.0-es");
+        saved.setStatus(DomainConstants.CONSENT_ACTIVE);
+        when(consentRepository.save(any())).thenReturn(saved);
+
+        var result = service.acceptConsentByMonitored(personId,
+                new MonitoredDtos.ConsentRequest("1.0-es", "MONITORED"));
+
+        assertThat(result.status()).isEqualTo(DomainConstants.CONSENT_ACTIVE);
+        verify(consentRepository).save(any());
+    }
+
+    @Test
     void revokeConsent_noActiveConsent_throwsNotFound() {
         when(repository.findById(personId)).thenReturn(Optional.of(person));
         when(consentRepository.findByMonitoredPersonIdAndStatus(personId,

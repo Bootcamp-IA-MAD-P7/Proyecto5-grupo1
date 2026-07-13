@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/monitored_person.dart';
+import 'api_headers.dart';
 import 'exceptions.dart';
 
 /// Servicio de personas monitorizadas — spec §6.2
 class MonitoredService {
-  static const bool _useMock = true;
+  MonitoredService({bool? useMock})
+      : _useMock = useMock ?? AppConfig.useMock;
+
+  final bool _useMock;
   static const String _base =
       '${AppConfig.apiBaseUrl}/api/v1/monitored-persons';
 
@@ -201,11 +205,7 @@ class MonitoredService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        // TODO: inyectar token JWT real desde AuthSession
-        'Authorization': 'Bearer mock-access-token',
-      };
+  Map<String, String> _headers() => apiJsonHeaders();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

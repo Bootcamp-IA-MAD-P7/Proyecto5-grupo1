@@ -67,6 +67,8 @@ El diseño completo y sus decisiones están en
 | `make flutter-local` | Flutter → Java API local (`:8080`) |
 | `make flutter-phone` | Igual + usa `API_HOST` y `DEVICE` del `.env` |
 | `make flutter-qa` | Flutter → Java API en EC2 (`:8005`) |
+| `make smoke-telemetry` | **T1.INT / SL-25** — smoke E2E telemetría real (requiere `make up`) |
+| `make smoke-mvp` | **T2.INT / SL-43** — MVP E2E: caída → alerta → push → confirmar → export IT |
 
 ### Variables en `.env`
 
@@ -93,6 +95,45 @@ make flutter-phone
 ```
 
 Emulador: `cd frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080`
+
+### Smoke telemetría real (T1.INT / SL-25)
+
+Verifica el pipeline completo **sin móvil**: CAREGIVER registra persona → MONITORED empareja → consentimiento → `POST /telemetry/windows` → Java → FastAPI `/predict` (modelo XGBoost real).
+
+```bash
+make up
+make smoke-telemetry
+```
+
+**Latencia medida 2026-07-13** (stack local, `docker compose`):
+
+| Métrica | Valor |
+|---|---|
+| E2E `POST /telemetry/windows` (ventana ADL) | **197 ms** |
+| E2E `POST /telemetry/windows` (caída simulada) | **61 ms** |
+| FastAPI `/predict` (inferencia ML) | **16 ms** |
+| Modelo servido | `baseline-v1` (XGBoost) |
+
+En móvil físico: `make flutter-phone` → login MONITORED → pairing `SL-XXXXXX` → consentimiento → iniciar monitorización; la pantalla MONITORED muestra `fallDetected`, `confidence` y `modelVersion` de la última evaluación.
+
+### MVP end-to-end (T2.INT / SL-43)
+
+Flujo completo vía API: CAREGIVER registra persona → MONITORED empareja + consentimiento → caída simulada → alerta + push FCM → confirmar con comentario → IT_ADMIN export con muestra `TRUE_FALL`.
+
+```bash
+make up
+make smoke-mvp
+```
+
+**Latencia medida 2026-07-13:**
+
+| Métrica | Valor |
+|---|---|
+| Alerta visible (`GET /alerts`) | **291 ms** |
+| Push pipeline (RabbitMQ → FCM) | **325 ms** |
+| Export IT con `TRUE_FALL` | ✅ |
+
+En móvil: login CAREGIVER en un dispositivo + MONITORED en otro (o emulador); tras caída simulada el push debe llegar en < 5 s (`make flutter-phone` en ambos).
 
 ### URLs locales (desarrollo)
 
@@ -366,7 +407,7 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 ## Deuda técnica
 
-- Varios servicios Flutter aún usan `_useMock = true` (alertas, dispositivos, telemetría admin)
+- ~~Mocks Flutter~~ — todos los servicios en backend real (`AppConfig.useMock=false`) ✅
 - **No regenerar** `processed/` hasta SDD
 - MobiAct pendiente de respuesta BMI
 - Endpoint OTA `/app/register-version` pendiente en Java (CI android.yml)

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'api_headers.dart';
 import 'exceptions.dart';
 
 /// Resultado del emparejamiento de dispositivo (spec §6.4)
@@ -23,7 +24,9 @@ class PairResult {
 
 /// Servicio de gestión de dispositivos — spec §6.4
 class DevicesService {
-  static const bool _useMock = true;
+  DevicesService({bool? useMock}) : _useMock = useMock ?? AppConfig.useMock;
+
+  final bool _useMock;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/devices';
 
   static const Map<String, String> _mockPairingCodes = {
@@ -52,7 +55,7 @@ class DevicesService {
 
     final res = await http.post(
       Uri.parse('$_base/pair'),
-      headers: {'Content-Type': 'application/json'},
+      headers: apiJsonHeaders(requireAuth: false),
       body: jsonEncode({
         'pairingCode': pairingCode,
         'deviceId': deviceId,
@@ -88,10 +91,7 @@ class DevicesService {
     _checkStatus(res);
   }
 
-  Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-access-token',
-      };
+  Map<String, String> _headers() => apiJsonHeaders();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

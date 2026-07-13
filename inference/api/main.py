@@ -125,22 +125,31 @@ def _record_latency(seconds: float):
             _latency_bucket_counts[i] += 1
 
 
-# ── Request/Response schemas ──────────────────────────────────────────────────
+# ── Request/Response schemas (spec §6.8) ─────────────────────────────────────
 
-class WindowFeatures(BaseModel):
-    """Features of a single telemetry window, sent by Java backend."""
-    features: dict = Field(
+from api.inference.features import extract_features
+
+REQUIRED_SIGNALS = ("accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ")
+REQUIRED_SAMPLE_COUNT = 125
+
+
+class PredictRequest(BaseModel):
+    """Telemetry window payload sent by Java InferenceClient — spec §6.8."""
+    windowId: str
+    monitoredId: str
+    sampleRateHz: int = Field(..., ge=1)
+    samples: dict[str, list[float]] = Field(
         ...,
-        description="Dictionary of feature_name -> value. Must match model's expected features.",
+        description="accX/Y/Z (m/s²) and gyroX/Y/Z (deg/s), 125 samples each.",
     )
+    subjectFeatures: dict = Field(default_factory=dict)
 
 
 class PredictionResponse(BaseModel):
-    prediction: str = Field(..., description="'FALL' or 'ADL'")
-    confidence: float = Field(..., description="Probability of the predicted class")
-    model_name: str
-    model_version: str
-    threshold: float
+    fallDetected: bool
+    confidence: float = Field(..., description="Probability of the predicted class (0–1)")
+    modelVersion: str
+    latencyMs: int
 
 
 class ModelInfoResponse(BaseModel):
@@ -197,14 +206,31 @@ def health():
     }
 
 
+def _validate_samples(samples: dict[str, list[float]]) -> tuple[list[float], ...]:
+    """Ensure all required signals are present with exactly 125 samples."""
+    missing = [s for s in REQUIRED_SIGNALS if s not in samples]
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Missing required signals: {missing}",
+        )
+    lengths = {s: len(samples[s]) for s in REQUIRED_SIGNALS}
+    bad = [s for s, n in lengths.items() if n != REQUIRED_SAMPLE_COUNT]
+    if bad:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Each signal must have {REQUIRED_SAMPLE_COUNT} samples; invalid: {bad}",
+        )
+    return tuple(samples[s] for s in REQUIRED_SIGNALS)
+
+
 @app.post("/predict", response_model=PredictionResponse)
-def predict(window: WindowFeatures):
-    """Classify a telemetry window as FALL or ADL."""
+def predict(window: PredictRequest):
+    """Classify a telemetry window — spec §6.8 (samples in, fallDetected out)."""
     with _model_lock:
         model = _model_state["model"]
         threshold = _model_state["threshold"]
         numeric_features = _model_state["numeric_features"]
-        model_name = _model_state["model_name"]
         version = _model_state["version"]
 
     if model is None:
@@ -217,28 +243,29 @@ def predict(window: WindowFeatures):
     start = time.perf_counter()
 
     try:
+        accX, accY, accZ, gyroX, gyroY, gyroZ = _validate_samples(window.samples)
+        feat = extract_features(accX, accY, accZ, gyroX, gyroY, gyroZ)
+
         feature_values = {}
-        for feat in numeric_features:
-            if feat not in window.features:
+        for feat_name in numeric_features:
+            if feat_name not in feat:
                 raise HTTPException(
                     status_code=422,
-                    detail=f"Missing required feature: '{feat}'.",
+                    detail=f"Missing required feature: '{feat_name}'.",
                 )
-            feature_values[feat] = [window.features[feat]]
+            feature_values[feat_name] = [feat[feat_name]]
 
         df = pd.DataFrame(feature_values)
         proba = model.predict_proba(df)[0]
         fall_prob = float(proba[1])
         is_fall = fall_prob >= threshold
-
-        prediction = "FALL" if is_fall else "ADL"
         confidence = fall_prob if is_fall else (1.0 - fall_prob)
 
     except HTTPException:
         raise
     except Exception as e:
         _metrics["prediction_errors"] += 1
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}") from e
 
     elapsed = time.perf_counter() - start
     _record_latency(elapsed)
@@ -249,11 +276,10 @@ def predict(window: WindowFeatures):
         _metrics["predictions_no_fall"] += 1
 
     return PredictionResponse(
-        prediction=prediction,
+        fallDetected=is_fall,
         confidence=round(confidence, 4),
-        model_name=model_name,
-        model_version=version,
-        threshold=threshold,
+        modelVersion=version,
+        latencyMs=int(elapsed * 1000),
     )
 
 

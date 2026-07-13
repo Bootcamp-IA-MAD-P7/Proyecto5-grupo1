@@ -51,3 +51,5 @@ echo ""
 LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
 echo "Flutter emulador : make flutter-local"
 echo "Flutter móvil    : API_HOST=${LAN_IP:-<IP_LAN>} DEVICE=<id> make flutter-phone"
+echo "Smoke telemetría : make smoke-telemetry   (T1.INT / SL-25)"
+echo "Smoke MVP E2E    : make smoke-mvp          (T2.INT / SL-43)"
