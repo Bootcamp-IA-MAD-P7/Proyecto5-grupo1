@@ -22,8 +22,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    # No usar baseline-on-migrate: el init legacy (app_versions) provocaba
-    # que Flyway saltara V1 y V2 fallara con "relation users does not exist".
+    baseline-on-migrate: false
+    # El init legacy (app_versions) + baseline-on-migrate saltaba V1 y V2 fallaba.
 
   # ── RabbitMQ ──────────────────────────────────────────────────
   rabbitmq:

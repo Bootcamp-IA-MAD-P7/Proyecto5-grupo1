@@ -88,17 +88,24 @@ backend/src/main/resources/db/migration/
 ├── V1__create_schema.sql      # Esquema completo (spec §5.1)
 ├── V2__seed_admin.sql         # IT_ADMIN inicial
 ├── V3__add_created_at_columns.sql
-└── V4__fix_admin_password.sql
+├── V4__fix_admin_password.sql
+└── V5__seed_demo_users.sql    # CAREGIVER + MONITORED demo QA
 ```
 
 **Reset** (volumen corrupto o error `relation "users" does not exist` en V2):
 
 ```bash
 make reset-db   # docker compose down -v
-make up         # Postgres vacío → Flyway aplica V1→V4
+make up         # Postgres vacío → Flyway aplica V1→V5
 ```
 
-Credenciales por defecto IT_ADMIN tras V4: `admin@sentilife.com` / `Admin1234!`
+**Usuarios demo tras V5** (contraseña `Admin1234!` para los tres):
+
+| Email | Rol |
+|---|---|
+| `admin@sentilife.com` | IT_ADMIN |
+| `caregiver@sentilife.com` | CAREGIVER |
+| `monitored@sentilife.com` | MONITORED |
 
 ## Endpoints
 
