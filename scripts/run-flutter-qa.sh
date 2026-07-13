@@ -15,6 +15,8 @@ if [[ -f "$ROOT/.env.qa" ]]; then
   set +a
 fi
 
+bash "$ROOT/scripts/setup-firebase.sh" || true
+
 API_URL="${API_BASE_URL:-http://${QA_API_HOST:-34.235.130.33}:${QA_API_PORT:-8005}}"
 
 echo "→ QA API_BASE_URL=$API_URL"
@@ -25,6 +27,9 @@ flutter pub get
 flutter devices
 
 ARGS=(--dart-define=API_BASE_URL="$API_URL")
+while IFS= read -r define; do
+  [[ -n "$define" ]] && ARGS+=("$define")
+done < <(bash "$ROOT/scripts/firebase-dart-defines.sh")
 [[ -n "$DEVICE" ]] && ARGS+=(-d "$DEVICE")
 
 exec flutter run "${ARGS[@]}" "$@"

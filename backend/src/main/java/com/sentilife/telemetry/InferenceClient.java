@@ -1,12 +1,18 @@
 package com.sentilife.telemetry;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,12 +28,15 @@ public class InferenceClient {
 
     private static final Logger log = LoggerFactory.getLogger(InferenceClient.class);
 
-    private final RestClient restClient;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String predictUrl;
 
-    public InferenceClient(@Value("${sentilife.inference.url}") String inferenceUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(inferenceUrl)
-                .build();
+    public InferenceClient(@Value("${sentilife.inference.url}") String inferenceUrl,
+                           ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+        this.restTemplate = new RestTemplate();
+        this.predictUrl = inferenceUrl + "/predict";
     }
 
     /**
@@ -42,22 +51,25 @@ public class InferenceClient {
             Map<String, Object> subjectFeatures) {
 
         try {
-            var request = Map.of(
-                "windowId",        windowId.toString(),
-                "monitoredId",     monitoredPersonId.toString(),
-                "sampleRateHz",    sampleRateHz,
-                "samples",         samples,
-                "subjectFeatures", subjectFeatures != null ? subjectFeatures : Map.of()
-            );
+            var request = new HashMap<String, Object>();
+            request.put("windowId", windowId.toString());
+            request.put("monitoredId", monitoredPersonId.toString());
+            request.put("sampleRateHz", sampleRateHz);
+            request.put("samples", samples);
+            request.put("subjectFeatures", subjectFeatures != null ? subjectFeatures : Map.of());
+
+            String jsonBody = objectMapper.writeValueAsString(request);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
             long start = System.currentTimeMillis();
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
-                    .uri("/predict")
-                    .body(request)
-                    .retrieve()
-                    .body(Map.class);
+            Map<String, Object> response = restTemplate.postForObject(
+                    predictUrl,
+                    new HttpEntity<>(jsonBody, headers),
+                    Map.class);
 
             long latency = System.currentTimeMillis() - start;
 
@@ -72,6 +84,9 @@ public class InferenceClient {
                 (int) latency
             );
 
+        } catch (JsonProcessingException e) {
+            log.error("Error serializing inference request: {}", e.getMessage());
+            return fallbackPrediction("serialization-error");
         } catch (RestClientException e) {
             log.error("Error calling inference service: {}", e.getMessage());
             return fallbackPrediction("inference-unavailable");

@@ -19,3 +19,5 @@ server:
 sentilife:
   inference:
     url: http://api:8000
+  firebase:
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT:/app/config/firebase-service-account.json}

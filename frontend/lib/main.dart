@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'l10n/generated/app_localizations.dart';
@@ -5,11 +7,16 @@ import 'models/user.dart';
 import 'screens/app_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_session.dart';
+import 'services/firebase_bootstrap.dart';
+import 'services/push_notification_service.dart';
+import 'services/push_registration_service.dart';
 import 'services/session_manager.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseBootstrap.initialize();
   runApp(const MyApp());
 }
 
@@ -32,6 +39,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: PushNotificationService.navigatorKey,
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       locale: _locale,
@@ -72,7 +80,10 @@ class _AppRootState extends State<_AppRoot> {
   void initState() {
     super.initState();
     widget.authSession.addListener(_onAuthChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkUpdate());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkUpdate();
+      unawaited(PushNotificationService.tryNavigateToPendingAlert());
+    });
   }
 
   @override
@@ -99,6 +110,15 @@ class _AppRootState extends State<_AppRoot> {
       // Sync locale from user preference
       final userLocale = sm.currentUser!.locale;
       widget.onLocaleChanged(Locale(userLocale));
+
+      if (sm.currentUser!.role == UserRole.caregiver) {
+        unawaited(
+          PushRegistrationService().registerForCaregiver(locale: userLocale),
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          unawaited(PushNotificationService.tryNavigateToPendingAlert());
+        });
+      }
     }
   }
 

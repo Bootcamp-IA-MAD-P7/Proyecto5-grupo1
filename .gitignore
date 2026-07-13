@@ -43,8 +43,10 @@ frontend/android/app/release
 xd.txt
 
 # Firebase - no subir en repos públicos
+secrets/
 google-services.json
 frontend/android/app/google-services.json
+backend/config/firebase-service-account.json
 
 # Android signing (local only)
 frontend/android/key.properties

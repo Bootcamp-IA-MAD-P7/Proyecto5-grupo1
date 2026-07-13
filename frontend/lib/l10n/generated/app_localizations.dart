@@ -650,6 +650,78 @@ abstract class AppLocalizations {
   /// **'Autorizo el uso de mis datos de sensores para detectar caídas y mejorar el modelo de SentiLife. Puedo revocar este consentimiento en cualquier momento desde Ajustes.'**
   String get consentBody;
 
+  /// No description provided for @consentSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Consentimiento registrado correctamente.'**
+  String get consentSaved;
+
+  /// No description provided for @consentError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo registrar el consentimiento. Inténtalo de nuevo.'**
+  String get consentError;
+
+  /// No description provided for @consentRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Se requiere consentimiento activo para enviar datos de sensores.'**
+  String get consentRequired;
+
+  /// No description provided for @pairingRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Vincula el dispositivo con el código del cuidador antes de aceptar el consentimiento.'**
+  String get pairingRequired;
+
+  /// No description provided for @pairingTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Vincular dispositivo'**
+  String get pairingTitle;
+
+  /// No description provided for @pairingCodeLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Código del cuidador'**
+  String get pairingCodeLabel;
+
+  /// No description provided for @pairingCodeHint.
+  ///
+  /// In es, this message translates to:
+  /// **'SL-XXXXXX'**
+  String get pairingCodeHint;
+
+  /// No description provided for @pairDevice.
+  ///
+  /// In es, this message translates to:
+  /// **'Vincular'**
+  String get pairDevice;
+
+  /// No description provided for @pairingSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Dispositivo vinculado correctamente.'**
+  String get pairingSuccess;
+
+  /// No description provided for @pairingError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo vincular el dispositivo. Inténtalo de nuevo.'**
+  String get pairingError;
+
+  /// No description provided for @deviceLinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Dispositivo vinculado'**
+  String get deviceLinked;
+
+  /// No description provided for @deviceLinkedSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Este móvil está asociado a tu perfil monitorizado.'**
+  String get deviceLinkedSubtitle;
+
   /// No description provided for @acceptConsent.
   ///
   /// In es, this message translates to:

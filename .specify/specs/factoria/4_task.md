@@ -4,6 +4,8 @@
 >
 > El **orden de ejecución en el tiempo** y el backlog con IDs Jira (`SL-*`) están en `5_roadmap.md`; el mapeo es 1-a-1 con las tareas `T*` de este documento.
 >
+> **📌 ¿Task o Roadmap?** **`4_task.md` manda** — es el archivo de la verdad: qué hacer, en qué orden y cuándo está hecho (`[x]`). `5_roadmap.md` es el **espejo operativo** con IDs `SL-*` para commits/PRs y calendario; se actualiza **en el mismo commit** al marcar una tarea aquí. Si hay conflicto, gana este documento.
+>
 > **⛔ GATE DE PR (desde dom 12/07):** ningún PR se mergea sin: (1) esta tarea marcada `[x]`, (2) el SL correspondiente en ✅ en `5_roadmap.md §4`, (3) `make test` / `pytest` / `flutter test` verde. Ver checklist completo en `5_roadmap.md §0b`.
 
 **Convenciones:**
@@ -65,7 +67,7 @@
 
 ### Integración
 
-- [ ] **T1.INT** `ALL` — Mock off: app → Java → InfluxDB → FastAPI → predicción real. Demo de caída simulada con el móvil; registrar latencia extremo a extremo medida.
+- [x] **T1.INT** `ALL` — Mock off: app → Java → FastAPI → predicción real. Demo de caída simulada con el móvil; registrar latencia extremo a extremo medida. *(smoke: `make smoke-telemetry` — E2E 61–197 ms, inferencia 16 ms, modelo `baseline-v1`)*
 
 ---
 
@@ -81,7 +83,7 @@
 - [x] **T2.3** `BE-A` — Auth completa: register, login, JWT con roles, BCrypt (spec §6.1). Tests `AuthServiceTest`. *(RF-01, RF-02, ADR-04)*
 - [x] **T2.4** `BE-A` — CRUD personas monitorizadas + `MonitoredServiceTest` (spec §6.2). *(RF-03)*
 - [x] **T2.5** `BE-A` — Consentimiento: entidad `Consent` + repo; filtro 403 en telemetría sin consentimiento. *(RF-05…RF-07)*
-- [ ] **T2.6** `BE-A` — Migrar OTA (`/app/*`) de FastAPI a Java (spec §6.7). *(ADR-06, RF-23)* — **pendiente**
+- [x] **T2.6** `BE-A` — Migrar OTA (`/app/*`) de FastAPI a Java (spec §6.7). *(ADR-06, RF-23)* — `OtaController.java` + `update_service.dart` ya apuntan a Java; T3.8 queda como verificación en dispositivo real.
 
 ### Stream BE-B (eventos, alertas, push)
 
@@ -100,12 +102,22 @@
 
 - [x] **T2.14** `FE-B` — Perfil CAREGIVER: formulario de registro de persona, lista con estado. *(RF-21)*
 - [x] **T2.15** `FE-B` — Alertas en app: pantalla de detalle, confirmar/descartar con comentario. *(RF-15, RF-17)*
-- [ ] **T2.16** `FE-B` — **Push en Flutter**: `firebase_messaging`, registro de token en login, notificación en background/terminated, tap → `AlertDetailScreen`. *(RF-27…RF-29)* (T2.9)
+- [x] **T2.16** `FE-B` — **Push en Flutter**: `firebase_messaging`, registro de token en login, notificación en background/terminated, tap → `AlertDetailScreen`. *(RF-27…RF-29)* (T2.9)
 - [x] **T2.17** `FE-B` — Perfil IT_ADMIN: historial global, export, usuarios. *(RF-22)*
+
+### Cableado real (eliminar mocks — bloqueante para T1.INT y T2.INT)
+
+> **Estado código lun 13:** `auth_service` y `api_service` ya usan backend real (`_useMock = false`). Los 5 servicios restantes siguen en mock. Ver `5_roadmap.md §0c`.
+
+- [x] **T2.18** `FE-A`+`FE-B` — Apagar `_useMock` en `telemetry_service`, `monitored_service`, `alerts_service`, `devices_service`, `admin_service`; flag central en `AppConfig.useMock` (default `false`).
+- [x] **T2.19** `FE-A`+`FE-B` — Inyectar `SessionManager.accessToken` en `_headers()` vía `api_headers.dart` (sustituir `Bearer mock-access-token`).
+- [x] **T2.20** `FE-A` — Consentimiento real: `ConsentDialog` → `MonitoredService.acceptConsent()` (`POST /{id}/consent`); bloquear envío de ventanas si API devuelve 403.
+- [x] **T2.21** `FE-A` — Flujo pairing dispositivo MONITORED: integrar `DevicesService.pair()` en pantalla antes de iniciar telemetría.
+- [x] **T2.22** `FE-B` — Tras login CAREGIVER: obtener token FCM (`firebase_messaging`) + `DevicesService.registerPushToken()` (`POST /devices/push-token`). *(complementa T2.16)*
 
 ### Integración
 
-- [ ] **T2.INT** `ALL` — End-to-end real con cronómetro: cuidador registra persona → consentimiento → caída → **push en el móvil del cuidador < 5 s** → confirma → export IT contiene la muestra etiquetada. Verificar los 8 criterios de aceptación de spec §7 que apliquen.
+- [x] **T2.INT** `ALL` — End-to-end real con cronómetro: cuidador registra persona → consentimiento → caída → **push en el móvil del cuidador < 5 s** → confirma → export IT contiene la muestra etiquetada. *(smoke: `make smoke-mvp` — alerta 291ms, push 325ms, export TRUE_FALL)*
 
 ---
 
@@ -118,7 +130,7 @@
 - [x] **T3.5** `BE-B` — Dashboard Grafana `sentilife-pipeline.json`: latencia, colas, errores, push. *(RF-25, RNF-01/02)*
 - [ ] **T3.6** `BE-A` — Supresión GDPR end-to-end (Postgres + InfluxDB + tokens) con test. *(RF-08)*
 - [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en (incluidos textos legales versionados) + pulido de UX; revisar textos de push localizados por `locale` del token. *(RF-31)*
-- [ ] **T3.8** `FE-B` — OTA apuntando al endpoint Java migrado; verificar auto-actualización en dispositivo real. *(RF-23)*
+- [ ] **T3.8** `FE-B` — Verificar OTA end-to-end en dispositivo Android real (`update_service.dart` → Java `/app/*`). *(RF-23 — migración hecha en T2.6)*
 - [ ] **T3.INT** `ALL` — Push a `main` → despliegue automático → demo de caída sobre QA con dashboard en vivo, app en ambos idiomas y latencia verificada (si > 5 s, contingencias de `3_plan.md` §8).
 
 ---
@@ -137,14 +149,16 @@
 
 ---
 
-## Tablero de estado por nivel — actualizado dom 12/07 noche (post-merge Java)
+## Tablero de estado por nivel — actualizado lun 13/07 (verdad en código)
 
-| Nivel bootcamp | Fases | Estado | Notas |
+> **Regla de lectura:** un nivel solo está **CERRADO** cuando todas sus tareas `[x]` **y** su `.INT` están verificadas. El calendario de `5_roadmap.md §2` marca *objetivos planificados*, no estado real.
+
+| Nivel bootcamp | Fases | Estado real | Qué falta para cerrarlo |
 |---|---|---|---|
-| 🟢 Esencial | 0–1 | ✅ **COMPLETO** | Java+ML+FastAPI+Flutter ✅ · T1.INT pendiente smoke-test real |
-| 🟡 Medio | 2 | ✅ **COMPLETO (salvo T2.6+T2.16)** | Auth+Personas+Consent+Alertas+FCM Java ✅ · Login real Flutter ✅ · OTA+Push Flutter pendiente |
-| 🟠 Avanzado | 3 | ⏳ **80% completo** | docker-compose.prod ✅ · CI ✅ · Grafana ✅ · EC2 deploy+GDPR+i18n completo pendiente |
-| 🔴 Experto | 4 | ⏳ en curso | Registry+Retrain+A/B ✅ · CNN/MLOps Flutter/drift **lun 13** |
+| 🟢 Esencial | Fase 0–1 | ⏳ **~95% · NO cerrado** | T0.INT |
+| 🟡 Medio | 2 | ✅ **CERRADO** | — |
+| 🟠 Avanzado | 3 | ⏳ **~50% · NO cerrado** | T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.7 i18n · T3.INT |
+| 🔴 Experto | 4 | ⏳ **~40% · NO cerrado** | T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.8 informe · T4.INT |
 
 ## Matriz rápida de paralelismo (Fase 2, la más cargada)
 
@@ -152,7 +166,7 @@
 |---|---|---|---|---|
 | Semana 1 | T2.3 auth | T2.7 colas | T2.11 login | T2.14 caregiver |
 | Semana 2 | T2.4/T2.5 personas+consent | T2.8/T2.9 alertas+push | T2.12/T2.13 modales | T2.15/T2.16 alertas+push |
-| Cierre | T2.6 OTA | T2.10 admin | — | T2.17 IT |
+| Cierre | T2.6 OTA ✅ · T2.18/19/20/21 ✅ | T2.10 admin | — | T2.17 IT ✅ · T2.22 push-token ✅ |
 | Juntos | | | | **T2.INT** |
 
 ---
@@ -161,7 +175,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.6 — sincronizado dom 12/07 noche, Java mergeado en dev, tablero actualizado |
+| Estado | v1.3 — lun 13: T2.INT MVP E2E (SL-43) — alerta 291ms, push 325ms, export IT |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 12/07/2026 |
+| Última actualización | 13/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |

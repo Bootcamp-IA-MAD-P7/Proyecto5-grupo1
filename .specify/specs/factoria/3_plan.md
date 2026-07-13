@@ -86,7 +86,7 @@ El repo actual tiene FastAPI como API única (`Backend/api/main.py` con `classif
 
 1. FastAPI queda **solo** como servicio de inferencia (`/predict`, `/health`, `/metrics`, `/model/info`).
 2. OTA (`/app/*`) y la tabla `app_versions` migran al backend Java. **⚠ Sprint 15/07: migración pospuesta** — OTA se queda en FastAPI para la entrega (funciona y no aporta a la demo).
-3. La lógica por umbrales `classify()` se reemplaza por `model.pkl` real (ML-04). El mock de desarrollo **solo** vive en Flutter (`api_service.dart`, `_useMock = true`) para trabajo offline — regla heredada: si cambia el contrato de predicción, actualizar backend y mock a la vez.
+3. La lógica por umbrales `classify()` se reemplaza por `model.pkl` real (ML-04). El mock de desarrollo vive en **cada servicio Flutter** (`*_service.dart`, `_useMock = true`) para trabajo offline — regla: si cambia el contrato, actualizar backend y mocks a la vez. El apagado global es T2.18 (`AppConfig.useMock = false`).
 
 ### ADR-07 — Notificaciones push con Firebase Cloud Messaging
 
@@ -236,7 +236,7 @@ Transversal (rotativo o el primero que se libere): ML/EDA (Fase 1) y observabili
 
 ### Reglas del paralelo
 
-1. **Frontend nunca espera a backend:** todo se desarrolla contra el mock de Flutter (`_useMock`), que implementa exactamente los JSON de spec §6. Cuando el endpoint real existe, se apaga el mock y debe funcionar sin cambios.
+1. **Frontend nunca espera a backend:** todo se desarrolla contra los mocks de Flutter (`_useMock` por servicio), que implementan exactamente los JSON de spec §6. Cuando el endpoint real existe, se apagan con T2.18/T2.19 y debe funcionar sin cambios.
 2. **Backend nunca espera a frontend:** cada endpoint se valida con tests + Swagger/curl contra los mismos JSON.
 3. Cada stream trabaja en su rama (`feat/be-a-auth`, `feat/fe-b-alerts`, …) → PR a `dev` con CI verde.
 4. Al final de cada fase hay una **tarea de integración** explícita (mock off, end-to-end real, cronómetro de latencia) — está en `4_task.md` como `T<fase>.INT`.
