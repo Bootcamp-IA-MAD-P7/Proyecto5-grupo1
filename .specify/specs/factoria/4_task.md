@@ -157,8 +157,8 @@
 |---|---|---|---|
 | 🟢 Esencial | Fase 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 | ✅ **CERRADO** | — |
-| 🟠 Avanzado | 3 | ⏳ **~50% · NO cerrado** | T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.7 i18n · T3.INT |
-| 🔴 Experto | 4 | ⏳ **~40% · NO cerrado** | T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.8 informe · T4.INT |
+| 🟠 Avanzado | 3 | ⏳ **~33% · NO cerrado** | T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.7 i18n · T3.8 OTA · T3.INT |
+| 🔴 Experto | 4 | ⏳ **~33% · NO cerrado** | T4.1 MobiAct · T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.8 informe · T4.INT |
 
 ## Matriz rápida de paralelismo (Fase 2, la más cargada)
 
@@ -175,7 +175,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | v1.5 — lun 13: 🟢 Esencial + 🟡 Medio CERRADOS · mock-off verificado en código |
+| Estado | v1.6 — lun 13: roadmap §0 sincronizado (Esencial 18/18 · Medio 19/19 ✅) |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 13/07/2026 |
 | Protocolo | Marcar `[x]` + actualizar `5_roadmap.md §0+§4` **en el mismo commit** del PR |
