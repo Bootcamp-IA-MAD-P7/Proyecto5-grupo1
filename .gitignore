@@ -42,9 +42,11 @@ frontend/android/app/release
 
 xd.txt
 
-# Firebase - no subir en repos públicos
+# Firebase / FCM — credenciales locales (nunca en git)
+# Proyecto activo: proyectoflutter-8a229 · app SentiLife: com.sentilife.app
 secrets/
-google-services.json
+**/google-services.json
+!frontend/android/app/google-services.json.example
 frontend/android/app/google-services.json
 backend/config/firebase-service-account.json
 

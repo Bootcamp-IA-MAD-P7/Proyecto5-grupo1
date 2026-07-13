@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "YOUR_MESSAGING_SENDER_ID",
-    "project_id": "your-firebase-project",
-    "storage_bucket": "your-firebase-project.appspot.com"
+    "project_number": "551135695634",
+    "project_id": "proyectoflutter-8a229",
+    "storage_bucket": "proyectoflutter-8a229.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:YOUR_SENDER_ID:android:YOUR_APP_HASH",
+        "mobilesdk_app_id": "1:551135695634:android:151b8a23dbb4e7aaf9d9cb",
         "android_client_info": {
           "package_name": "com.sentilife.app"
         }
