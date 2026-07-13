@@ -96,8 +96,32 @@ public class MonitoredService {
     public MonitoredDtos.ConsentResponse acceptConsent(UUID caregiverId, UUID personId,
                                                        MonitoredDtos.ConsentRequest request) {
         findOwned(caregiverId, personId);
+        return saveActiveConsent(personId, request);
+    }
 
-        // Revoke any existing active consent before creating a new one
+    /**
+     * Self-consent from the MONITORED profile (RF-06).
+     * Requires the person to have at least one paired device (T2.21).
+     */
+    @Transactional
+    public MonitoredDtos.ConsentResponse acceptConsentByMonitored(UUID personId,
+                                                                  MonitoredDtos.ConsentRequest request) {
+        if (!"MONITORED".equals(request.acceptedBy())) {
+            throw DomainExceptions.ForbiddenException.of(
+                    "acceptedBy must be MONITORED for self-consent");
+        }
+        if (!repository.existsById(personId)) {
+            throw DomainExceptions.NotFoundException.of("Person not found");
+        }
+        if (!pairedDeviceRepository.existsByMonitoredPersonId(personId)) {
+            throw DomainExceptions.ForbiddenException.of(
+                    "Device not paired for this person");
+        }
+        return saveActiveConsent(personId, request);
+    }
+
+    private MonitoredDtos.ConsentResponse saveActiveConsent(UUID personId,
+                                                            MonitoredDtos.ConsentRequest request) {
         consentRepository.findByMonitoredPersonIdAndStatus(personId, DomainConstants.CONSENT_ACTIVE)
                 .ifPresent(c -> {
                     c.setStatus(DomainConstants.CONSENT_REVOKED);

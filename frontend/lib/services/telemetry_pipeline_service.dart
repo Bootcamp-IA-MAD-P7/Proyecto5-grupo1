@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/prediction_result.dart';
 import '../models/telemetry_window.dart';
+import 'exceptions.dart';
 import 'sensor_capture_service.dart';
 import 'sliding_window_builder.dart';
 import 'telemetry_service.dart';
@@ -14,13 +15,15 @@ class TelemetryPipelineService {
     SensorCaptureService? sensorCaptureService,
     SlidingWindowBuilder? windowBuilder,
     TelemetryService? telemetryService,
-  }) : _sensorCaptureService = sensorCaptureService ?? SensorCaptureService(),
-       _windowBuilder = windowBuilder ?? SlidingWindowBuilder(),
-       _telemetryService = telemetryService ?? TelemetryService();
+    this._onTelemetryError,
+  })  : _sensorCaptureService = sensorCaptureService ?? SensorCaptureService(),
+        _windowBuilder = windowBuilder ?? SlidingWindowBuilder(),
+        _telemetryService = telemetryService ?? TelemetryService();
 
   final SensorCaptureService _sensorCaptureService;
   final SlidingWindowBuilder _windowBuilder;
   final TelemetryService _telemetryService;
+  final void Function(TelemetryException error)? _onTelemetryError;
   final StreamController<WindowPrediction> _predictionsController =
       StreamController<WindowPrediction>.broadcast();
   final Queue<_QueuedTelemetryWindow> _pendingWindows =
@@ -198,6 +201,13 @@ class TelemetryPipelineService {
             _predictionsController.add(prediction);
           }
         } catch (error, stackTrace) {
+          if (error is TelemetryException) {
+            _onTelemetryError?.call(error);
+            if (error.status == 403) {
+              _pendingWindows.clear();
+              break;
+            }
+          }
           debugPrint('TelemetryPipelineService sendWindow error: $error');
           debugPrintStack(stackTrace: stackTrace);
           break;

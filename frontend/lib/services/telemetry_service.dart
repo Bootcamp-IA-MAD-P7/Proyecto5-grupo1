@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'api_headers.dart';
 import 'exceptions.dart';
 
 /// Resultado de clasificación de una ventana (spec §6.3)
@@ -47,7 +48,10 @@ class MonitoringStatusResponse {
 
 /// Servicio de telemetría — spec §6.3
 class TelemetryService {
-  static const bool _useMock = true;
+  TelemetryService({bool? useMock})
+      : _useMock = useMock ?? AppConfig.useMock;
+
+  final bool _useMock;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/telemetry';
 
   final _random = Random();
@@ -158,10 +162,7 @@ class TelemetryService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-access-token',
-      };
+  Map<String, String> _headers() => apiJsonHeaders();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode == 403) {

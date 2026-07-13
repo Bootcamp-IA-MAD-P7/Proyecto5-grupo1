@@ -11,6 +11,15 @@ export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 export PATH="$PATH:$ANDROID_HOME/platform-tools"
 export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
 
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT/.env"
+  set +a
+fi
+
+bash "$ROOT/scripts/setup-firebase.sh" || true
+
 echo "→ API_BASE_URL=$API_BASE_URL"
 [[ -n "$DEVICE" ]] && echo "→ DEVICE=$DEVICE"
 
@@ -19,6 +28,9 @@ flutter pub get
 flutter devices
 
 ARGS=(--dart-define=API_BASE_URL="$API_BASE_URL")
+while IFS= read -r define; do
+  [[ -n "$define" ]] && ARGS+=("$define")
+done < <(bash "$ROOT/scripts/firebase-dart-defines.sh")
 [[ -n "$DEVICE" ]] && ARGS+=(-d "$DEVICE")
 
 exec flutter run "${ARGS[@]}" "$@"

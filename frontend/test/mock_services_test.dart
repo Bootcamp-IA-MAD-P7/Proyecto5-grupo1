@@ -81,7 +81,7 @@ void main() {
 
   // ── MonitoredService ───────────────────────────────────────────────────────
   group('MonitoredService (mock)', () {
-    final service = MonitoredService();
+    final service = MonitoredService(useMock: true);
 
     test('list devuelve personas del cuidador', () async {
       final result = await service.list();
@@ -160,7 +160,7 @@ void main() {
 
   // ── AlertsService ──────────────────────────────────────────────────────────
   group('AlertsService (mock)', () {
-    final service = AlertsService();
+    final service = AlertsService(useMock: true);
 
     test('list devuelve alertas', () async {
       final result = await service.list();
@@ -191,7 +191,7 @@ void main() {
 
   // ── TelemetryService ───────────────────────────────────────────────────────
   group('TelemetryService (mock)', () {
-    final service = TelemetryService();
+    final service = TelemetryService(useMock: true);
     final windowEnd = DateTime.now();
     final windowStart = windowEnd.subtract(
       const Duration(milliseconds: WindowContract.durationMs),
@@ -268,7 +268,7 @@ void main() {
 
   // ── DevicesService ─────────────────────────────────────────────────────────
   group('DevicesService (mock)', () {
-    final service = DevicesService();
+    final service = DevicesService(useMock: true);
 
     test('pair con código válido devuelve token de dispositivo', () async {
       final result = await service.pair(
@@ -308,28 +308,28 @@ void main() {
   // ── AdminService ───────────────────────────────────────────────────────────
   group('AdminService (mock)', () {
     test('getHistory devuelve entradas del historial', () async {
-      final service = AdminService();
+      final service = AdminService(useMock: true);
       final result = await service.getHistory();
       expect(result.content, isNotEmpty);
       expect(result.content.any((e) => e.feedbackLabel != null), isTrue);
     });
 
     test('getUsers devuelve los 3 roles', () async {
-      final service = AdminService();
+      final service = AdminService(useMock: true);
       final result = await service.getUsers();
       final roles = result.content.map((u) => u.role).toSet();
       expect(roles, containsAll([UserRole.caregiver, UserRole.monitored, UserRole.itAdmin]));
     });
 
     test('startRetrain inicia el job', () async {
-      final service = AdminService();
+      final service = AdminService(useMock: true);
       await service.startRetrain();
       final status = await service.getRetrainStatus();
       expect(status.status, isNot(RetrainStatus.idle));
     });
 
     test('startRetrain dos veces lanza AdminException 409', () async {
-      final service = AdminService();
+      final service = AdminService(useMock: true);
       await service.startRetrain();
       expect(
         () => service.startRetrain(),
@@ -338,7 +338,7 @@ void main() {
     });
 
     test('getRetrainStatus evoluciona a completed tras esperar', () async {
-      final service = AdminService();
+      final service = AdminService(useMock: true);
       await service.startRetrain();
       await Future.delayed(const Duration(seconds: 10));
       final status = await service.getRetrainStatus();

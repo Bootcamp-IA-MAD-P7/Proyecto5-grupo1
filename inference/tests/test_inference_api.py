@@ -5,6 +5,7 @@ Tests the inference-only API: /predict, /health, /metrics, /model/info,
 No business logic, no OTA, no database.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
@@ -29,16 +30,55 @@ def test_health_returns_status_and_model_info():
 
 # ── /predict ──────────────────────────────────────────────────────────────────
 
-def test_predict_returns_503_or_422_without_valid_features():
-    """If model is loaded, predict returns 422 (missing features).
+def test_predict_returns_503_or_422_without_valid_samples():
+    """If model is loaded, predict returns 422 (missing samples).
     If no model, returns 503."""
-    response = client.post("/predict", json={"features": {}})
+    response = client.post("/predict", json={"windowId": "w1", "monitoredId": "m1", "sampleRateHz": 50, "samples": {}})
     assert response.status_code in (503, 422)
 
 
 def test_predict_rejects_invalid_body():
     response = client.post("/predict", json={"invalid": "payload"})
     assert response.status_code == 422
+
+
+def _make_samples(n: int = N_SAMPLES, spike: bool = False) -> dict:
+    samples = {}
+    for sig in ["accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ"]:
+        arr = []
+        for i in range(n):
+            if sig.startswith("acc"):
+                if spike and i > 60:
+                    arr.append(30.0 if sig == "accY" else 8.0)
+                else:
+                    arr.append(9.8 if sig == "accY" else 0.1)
+            else:
+                arr.append(250.0 if spike and i > 60 else 2.0)
+        samples[sig] = arr
+    return samples
+
+
+def test_predict_returns_spec_response_when_model_loaded():
+    """Contract §6.8: fallDetected, confidence, modelVersion, latencyMs."""
+    health = client.get("/health").json()
+    if not health.get("model_loaded"):
+        pytest.skip("No model loaded in test env")
+
+    payload = {
+        "windowId": "00000000-0000-0000-0000-000000000001",
+        "monitoredId": "00000000-0000-0000-0000-000000000002",
+        "sampleRateHz": 50,
+        "samples": _make_samples(spike=False),
+        "subjectFeatures": {},
+    }
+    response = client.post("/predict", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert set(data.keys()) == {"fallDetected", "confidence", "modelVersion", "latencyMs"}
+    assert isinstance(data["fallDetected"], bool)
+    assert 0.0 <= data["confidence"] <= 1.0
+    assert data["modelVersion"]
+    assert data["latencyMs"] >= 0
 
 
 # ── /model/info ───────────────────────────────────────────────────────────────

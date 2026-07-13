@@ -1,5 +1,6 @@
 package com.sentilife.monitored;
 
+import com.sentilife.config.DomainConstants;
 import com.sentilife.users.User;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -74,11 +75,16 @@ public class MonitoredController {
 
     @PostMapping("/{id}/consent")
     public ResponseEntity<MonitoredDtos.ConsentResponse> acceptConsent(
-            @AuthenticationPrincipal User caregiver,
+            @AuthenticationPrincipal User user,
             @PathVariable UUID id,
             @Valid @RequestBody MonitoredDtos.ConsentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.acceptConsent(caregiver.getId(), id, request));
+        MonitoredDtos.ConsentResponse response;
+        if (DomainConstants.ROLE_MONITORED.equals(user.getRole())) {
+            response = service.acceptConsentByMonitored(id, request);
+        } else {
+            response = service.acceptConsent(user.getId(), id, request);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @DeleteMapping("/{id}/consent")

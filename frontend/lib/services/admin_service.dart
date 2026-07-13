@@ -5,6 +5,7 @@ import '../models/alert.dart';
 import '../models/monitored_person.dart';
 import '../models/retrain_status.dart';
 import '../models/user.dart';
+import 'api_headers.dart';
 import 'exceptions.dart';
 
 /// Entrada del historial global IT (spec §6.6)
@@ -48,7 +49,9 @@ class HistoryEntry {
 
 /// Servicio de administración IT — spec §6.6
 class AdminService {
-  static const bool _useMock = true;
+  AdminService({bool? useMock}) : _useMock = useMock ?? AppConfig.useMock;
+
+  final bool _useMock;
   static const String _base = '${AppConfig.apiBaseUrl}/api/v1/admin';
 
   // ── Mock data ──────────────────────────────────────────────────────────────
@@ -269,10 +272,7 @@ class AdminService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-access-token',
-      };
+  Map<String, String> _headers() => apiJsonHeaders();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

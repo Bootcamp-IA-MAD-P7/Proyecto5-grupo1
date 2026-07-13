@@ -25,7 +25,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-fallsentinel}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "${POSTGRES_HOST_PORT:-5435}:5432"
     healthcheck:
@@ -68,6 +67,9 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       JWT_SECRET: ${JWT_SECRET}
       INFERENCE_URL: http://api:8000
+      FIREBASE_SERVICE_ACCOUNT: /app/config/firebase-service-account.json
+    volumes:
+      - ./backend/config:/app/config:ro
     depends_on:
       db:
         condition: service_healthy

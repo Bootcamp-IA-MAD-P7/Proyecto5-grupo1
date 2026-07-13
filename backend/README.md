@@ -77,6 +77,27 @@ backend/
 
 Activar perfil: `--spring.profiles.active=docker` o variable `SPRING_PROFILES_ACTIVE=docker`.
 
+## Base de datos (Flyway)
+
+El esquema PostgreSQL lo gestiona **Flyway** al arrancar el backend Java — no hay scripts `db/init` en la raíz del repo.
+
+```
+backend/src/main/resources/db/migration/
+├── V1__create_schema.sql      # Esquema completo (spec §5.1)
+├── V2__seed_admin.sql         # IT_ADMIN inicial
+├── V3__add_created_at_columns.sql
+└── V4__fix_admin_password.sql
+```
+
+**Reset** (volumen corrupto o error `relation "users" does not exist` en V2):
+
+```bash
+make reset-db   # docker compose down -v
+make up         # Postgres vacío → Flyway aplica V1→V4
+```
+
+Credenciales por defecto IT_ADMIN tras V4: `admin@sentilife.com` / `Admin1234!`
+
 ## Endpoints
 
 Base path: `/api/v1`

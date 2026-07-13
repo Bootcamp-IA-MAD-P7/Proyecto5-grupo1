@@ -7,17 +7,18 @@ import '../config/app_config.dart';
 import '../models/prediction_result.dart';
 
 class ApiService {
+  ApiService({http.Client? client, bool? useMock})
+      : _client = client ?? http.Client(),
+        _useMock = useMock ?? AppConfig.useMock;
+
   static const String _baseUrl = AppConfig.apiBaseUrl;
   static const String _demoMonitoredId = 'local-demo-monitored';
   static const double _demoSampleRateHz = 50;
 
-  // false = API local/docker o remota vía --dart-define=API_BASE_URL=...
-  static const bool _useMock = false;
+  final bool _useMock;
 
   final _random = Random();
   final http.Client _client;
-
-  ApiService({http.Client? client}) : _client = client ?? http.Client();
 
   // --- API REAL ---
 

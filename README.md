@@ -61,12 +61,15 @@ El diseño completo y sus decisiones están en
 | `make verify` | Fail-fast: health checks de todos los contenedores + Java + inference |
 | `make logs` | Logs de `backend`, `api` y `db` |
 | `make down` | Para contenedores |
-| `make reset-db` | Borra volumen Postgres (`down -v`) |
+| `make reset-db` | Borra volumen Postgres (`down -v`) — Flyway reaplica V1–V4 en el próximo `make up` |
 | `make test` | Corre los 3 suites (Java + Python + Flutter), igual que CI |
 | `make test-java` / `test-python` / `test-flutter` | Suite individual |
 | `make flutter-local` | Flutter → Java API local (`:8080`) |
 | `make flutter-phone` | Igual + usa `API_HOST` y `DEVICE` del `.env` |
 | `make flutter-qa` | Flutter → Java API en EC2 (`:8005`) |
+| `make smoke-telemetry` | **T1.INT / SL-25** — smoke E2E telemetría real (requiere `make up`) |
+| `make smoke-mvp` | **T2.INT / SL-43** — MVP E2E: caída → alerta → push → confirmar → export IT |
+| Clone limpio | **T0.INT / SL-15** — ver [§Clone limpio](#0-clone-limpio-t0int--sl-15) |
 
 ### Variables en `.env`
 
@@ -93,6 +96,45 @@ make flutter-phone
 ```
 
 Emulador: `cd frontend && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080`
+
+### Smoke telemetría real (T1.INT / SL-25)
+
+Verifica el pipeline completo **sin móvil**: CAREGIVER registra persona → MONITORED empareja → consentimiento → `POST /telemetry/windows` → Java → FastAPI `/predict` (modelo XGBoost real).
+
+```bash
+make up
+make smoke-telemetry
+```
+
+**Latencia medida 2026-07-13** (stack local, `docker compose`):
+
+| Métrica | Valor |
+|---|---|
+| E2E `POST /telemetry/windows` (ventana ADL) | **197 ms** |
+| E2E `POST /telemetry/windows` (caída simulada) | **61 ms** |
+| FastAPI `/predict` (inferencia ML) | **16 ms** |
+| Modelo servido | `baseline-v1` (XGBoost) |
+
+En móvil físico: `make flutter-phone` → login MONITORED → pairing `SL-XXXXXX` → consentimiento → iniciar monitorización; la pantalla MONITORED muestra `fallDetected`, `confidence` y `modelVersion` de la última evaluación.
+
+### MVP end-to-end (T2.INT / SL-43)
+
+Flujo completo vía API: CAREGIVER registra persona → MONITORED empareja + consentimiento → caída simulada → alerta + push FCM → confirmar con comentario → IT_ADMIN export con muestra `TRUE_FALL`.
+
+```bash
+make up
+make smoke-mvp
+```
+
+**Latencia medida 2026-07-13:**
+
+| Métrica | Valor |
+|---|---|
+| Alerta visible (`GET /alerts`) | **291 ms** |
+| Push pipeline (RabbitMQ → FCM) | **325 ms** |
+| Export IT con `TRUE_FALL` | ✅ |
+
+En móvil: login CAREGIVER en un dispositivo + MONITORED en otro (o emulador); tras caída simulada el push debe llegar en < 5 s (`make flutter-phone` en ambos).
 
 ### URLs locales (desarrollo)
 
@@ -136,7 +178,6 @@ Proyecto5-grupo1/
 ├── backend/               # API Java Spring Boot 3 — puerta de entrada pública
 ├── inference/             # Servicio FastAPI — inferencia ML (interno)
 ├── contracts/             # Contrato SL-14 ventana (Flutter ↔ Java ↔ ML)
-├── db/init/               # SQL init Postgres
 ├── backend/observability/ # Prometheus + Grafana
 ├── scripts/               # verify-local.sh · run-flutter-*.sh
 ├── docker-compose.yml     # Stack completo local
@@ -149,7 +190,7 @@ Proyecto5-grupo1/
 └── .github/workflows/     # ci.yml · android.yml
 ```
 
-Documentación por módulo: [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md) · [inference/README.md](inference/README.md) · [db/README.md](db/README.md)
+Documentación por módulo: [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md) · [inference/README.md](inference/README.md)
 
 ---
 
@@ -354,10 +395,10 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 | Nivel | Estado | Pendiente clave |
 |---|---|---|
-| Esencial | ~70% | Integrar `model.pkl` en `api/inference/` |
-| Medio | ~50% | Optuna, `/feedback`, ingesta `data/feedback/` |
-| Avanzado | ~40% | Tests ampliados, telemetría DB, CI estable |
-| Experto | ~5% | LSTM/CNN, MLOps, drift, A/B testing |
+| Esencial | ✅ Cerrado | T0.INT + T1.INT verificados |
+| Medio | ✅ Cerrado | T2.INT (`make smoke-mvp`) |
+| Avanzado | ~50% | EC2 QA, tests ampliados, GDPR, i18n |
+| Experto | ~40% | CNN/LSTM, MLOps UI, drift |
 
 > El SDD formal ya está definido y enlazado en la sección
 > [Documentación](#documentación).
@@ -366,7 +407,7 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 ## Deuda técnica
 
-- Varios servicios Flutter aún usan `_useMock = true` (alertas, dispositivos, telemetría admin)
+- ~~Mocks Flutter~~ — todos los servicios en backend real (`AppConfig.useMock=false`) ✅
 - **No regenerar** `processed/` hasta SDD
 - MobiAct pendiente de respuesta BMI
 - Endpoint OTA `/app/register-version` pendiente en Java (CI android.yml)
@@ -374,6 +415,39 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 ---
 
 ## Inicio rápido — local
+
+### 0. Clone limpio (T0.INT / SL-15)
+
+Flujo verificado en máquina nueva (13/07/2026):
+
+```bash
+git clone <url-repo> Proyecto5-grupo1 && cd Proyecto5-grupo1
+cp .env.example .env          # make up también lo crea vía target env
+make up                       # build + levanta 6 servicios + verify automático
+make verify                   # re-comprobar health checks
+make flutter-local            # emulador Android → Java API en 10.0.2.2:8080
+```
+
+**Prerrequisitos:** Docker Compose v2 · Flutter SDK (3.x) · Android SDK (`ANDROID_HOME`, `JAVA_HOME` para Java 17).
+
+| Paso | Resultado esperado |
+|---|---|
+| `make up` | 6 contenedores `healthy`: db, rabbitmq, backend, api, prometheus, grafana |
+| `make verify` | HTTP OK en `:8000/health` (inference) y `:8080/actuator/health` (Java) |
+| `make flutter-local` | App SentiLife en emulador; login contra backend real |
+
+**Fricciones conocidas (no bloquean el MVP local):**
+
+| Fricción | Impacto | Mitigación |
+|---|---|---|
+| Primera build Docker ~3–5 min | Imagen inference incluye datos ML (~790 MB context) | Normal en clone nuevo; builds posteriores usan caché |
+| Primera build Flutter ~8 min | Gradle descarga NDK/SDK Android | Solo la primera vez en la máquina |
+| Sin `secrets/` Firebase | Warnings en `make up`; push FCM deshabilitado | Opcional para login/telemetría/alertas vía polling. Ver [docs/firebase-setup.md](docs/firebase-setup.md) |
+| Puertos 5433 / 5673 / 15673 | Evitan conflicto con Postgres/RabbitMQ locales | Cambiar en `.env` si ya están ocupados |
+| Emulador Android requerido | `make flutter-local` usa `10.0.2.2:8080` | Crear AVD en Android Studio o `make flutter-phone` con móvil físico |
+| `flutter` no en PATH | `make flutter-local` falla | Añadir `export PATH="$HOME/flutter/bin:$PATH"` al shell |
+
+Push FCM y smoke MVP (`make smoke-mvp`) requieren Firebase configurado — ver [docs/firebase-setup.md](docs/firebase-setup.md).
 
 ### 1. Stack completo (Docker)
 
@@ -422,7 +496,7 @@ pip install -r requirements.txt
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Detalle DB: [db/README.md](db/README.md)
+Detalle DB y Flyway: [backend/README.md](backend/README.md#base-de-datos-flyway)
 
 ---
 

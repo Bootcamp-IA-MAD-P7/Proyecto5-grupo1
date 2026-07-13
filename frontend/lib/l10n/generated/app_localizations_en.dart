@@ -298,6 +298,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'I authorize the use of my sensor data to detect falls and improve the SentiLife model. I can revoke this consent at any time from Settings.';
 
   @override
+  String get consentSaved => 'Consent recorded successfully.';
+
+  @override
+  String get consentError => 'Could not record consent. Please try again.';
+
+  @override
+  String get consentRequired =>
+      'Active consent is required to send sensor data.';
+
+  @override
+  String get pairingRequired =>
+      'Pair the device with the caregiver code before accepting consent.';
+
+  @override
+  String get pairingTitle => 'Pair device';
+
+  @override
+  String get pairingCodeLabel => 'Caregiver code';
+
+  @override
+  String get pairingCodeHint => 'SL-XXXXXX';
+
+  @override
+  String get pairDevice => 'Pair';
+
+  @override
+  String get pairingSuccess => 'Device paired successfully.';
+
+  @override
+  String get pairingError => 'Could not pair the device. Please try again.';
+
+  @override
+  String get deviceLinked => 'Device linked';
+
+  @override
+  String get deviceLinkedSubtitle =>
+      'This phone is linked to your monitored profile.';
+
+  @override
   String get acceptConsent => 'I accept';
 
   @override

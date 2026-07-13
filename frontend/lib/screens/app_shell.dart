@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../models/user.dart';
 import '../services/auth_session.dart';
+import '../services/monitored_context_store.dart';
+import '../services/session_manager.dart';
 import 'caregiver_home_screen.dart';
 import 'it_admin_screen.dart';
 import 'monitored_screen.dart';
@@ -61,6 +63,8 @@ class AppTopActions extends StatelessWidget {
           icon: const Icon(Icons.logout),
           tooltip: l10n.logout,
           onPressed: () {
+            SessionManager().logout();
+            MonitoredContextStore().clear();
             session.clear();
           },
         ),
