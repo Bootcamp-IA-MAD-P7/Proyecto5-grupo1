@@ -61,7 +61,7 @@ El diseño completo y sus decisiones están en
 | `make verify` | Fail-fast: health checks de todos los contenedores + Java + inference |
 | `make logs` | Logs de `backend`, `api` y `db` |
 | `make down` | Para contenedores |
-| `make reset-db` | Borra volumen Postgres (`down -v`) |
+| `make reset-db` | Borra volumen Postgres (`down -v`) — Flyway reaplica V1–V4 en el próximo `make up` |
 | `make test` | Corre los 3 suites (Java + Python + Flutter), igual que CI |
 | `make test-java` / `test-python` / `test-flutter` | Suite individual |
 | `make flutter-local` | Flutter → Java API local (`:8080`) |
@@ -178,7 +178,6 @@ Proyecto5-grupo1/
 ├── backend/               # API Java Spring Boot 3 — puerta de entrada pública
 ├── inference/             # Servicio FastAPI — inferencia ML (interno)
 ├── contracts/             # Contrato SL-14 ventana (Flutter ↔ Java ↔ ML)
-├── db/init/               # SQL init Postgres
 ├── backend/observability/ # Prometheus + Grafana
 ├── scripts/               # verify-local.sh · run-flutter-*.sh
 ├── docker-compose.yml     # Stack completo local
@@ -191,7 +190,7 @@ Proyecto5-grupo1/
 └── .github/workflows/     # ci.yml · android.yml
 ```
 
-Documentación por módulo: [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md) · [inference/README.md](inference/README.md) · [db/README.md](db/README.md)
+Documentación por módulo: [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md) · [inference/README.md](inference/README.md)
 
 ---
 
@@ -497,7 +496,7 @@ pip install -r requirements.txt
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Detalle DB: [db/README.md](db/README.md)
+Detalle DB y Flyway: [backend/README.md](backend/README.md#base-de-datos-flyway)
 
 ---
 

@@ -175,8 +175,7 @@ jobs:
             "mkdir -p ~/sentilife/backend/config \
                        ~/sentilife/backend/observability/grafana/provisioning/dashboards \
                        ~/sentilife/backend/observability/grafana/provisioning/datasources \
-                       ~/sentilife/backend/observability/grafana/dashboards \
-                       ~/sentilife/db/init"
+                       ~/sentilife/backend/observability/grafana/dashboards"
 
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-service-account.json
           scp -i ~/.ssh/ec2_key.pem \
@@ -187,10 +186,6 @@ jobs:
           scp -i ~/.ssh/ec2_key.pem \
             docker-compose.prod.yml \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/docker-compose.prod.yml
-
-          scp -i ~/.ssh/ec2_key.pem \
-            db/init/01_schema.sql \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/db/init/01_schema.sql
 
           scp -i ~/.ssh/ec2_key.pem \
             backend/observability/prometheus.yml \

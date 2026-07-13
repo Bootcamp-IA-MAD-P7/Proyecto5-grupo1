@@ -132,7 +132,7 @@ Proyecto5-grupo1/
 │   ├── notebooks/               # EDA
 │   ├── data/                    # raw/ · processed/ · feedback/ (constitución §5)
 │   └── tests/
-├── db/init/                     # SQL init PostgreSQL
+├── backend/                     # Java Spring Boot — esquema vía Flyway (db/migration/)
 ├── observability/               # NUEVO — prometheus.yml, grafana/ (dashboards versionados)
 ├── docker-compose.yml           # stack completo local
 ├── docker-compose.prod.yml      # despliegue QA/EC2
