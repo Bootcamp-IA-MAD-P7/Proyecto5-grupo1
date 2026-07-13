@@ -307,7 +307,28 @@ jobs:
               POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
               POSTGRES_DB="$POSTGRES_DB" \
               JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-                docker compose -f docker-compose.prod.yml up -d --remove-orphans
+                docker compose -f docker-compose.prod.yml up -d --remove-orphans --no-wait 2>/dev/null \
+                || DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+                   POSTGRES_USER="$POSTGRES_USER" \
+                   POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+                   POSTGRES_DB="$POSTGRES_DB" \
+                   JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+                     docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            }
+
+            deploy_observability() {
+              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+              POSTGRES_USER="$POSTGRES_USER" \
+              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+              POSTGRES_DB="$POSTGRES_DB" \
+              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+                docker compose -f docker-compose.prod.yml up -d prometheus grafana --no-wait 2>/dev/null \
+                || DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+                   POSTGRES_USER="$POSTGRES_USER" \
+                   POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+                   POSTGRES_DB="$POSTGRES_DB" \
+                   JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+                     docker compose -f docker-compose.prod.yml up -d prometheus grafana
             }
 
             wait_for_backend() {
@@ -365,8 +386,8 @@ jobs:
               fi
             fi
 
-            # Levanta Prometheus/Grafana (pueden quedar pendientes si el backend tardó en arrancar)
-            deploy_stack
+            # Levanta Prometheus/Grafana sin recrear todo el stack
+            deploy_observability
 
             echo "→ Contenedores SentiLife:"
             docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
