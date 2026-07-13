@@ -7,35 +7,41 @@ import 'package:sentilife/services/device_id_service.dart';
 import 'package:sentilife/services/devices_service.dart';
 import 'package:sentilife/services/exceptions.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// DevicesService cuyo POST /pair resuelve un pairingCode conocido.
 DevicesService _pairingDevices() => DevicesService(
-      client: MockClient((req) async {
-        final body = jsonDecode(req.body) as Map<String, dynamic>;
-        const codes = {
-          'SL-84F2K9': 'uuid-person-001',
-          'SL-77X3M1': 'uuid-person-002',
-        };
-        final personId = codes[body['pairingCode']];
-        if (personId == null) {
-          return http.Response(
-            jsonEncode({'error': 'INVALID_CODE', 'message': 'Código inválido'}),
-            404,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return http.Response(
-          jsonEncode({
-            'monitoredPersonId': personId,
-            'deviceToken': 'device-token-$personId',
-          }),
-          200,
-          headers: {'content-type': 'application/json'},
-        );
+  client: MockClient((req) async {
+    final body = jsonDecode(req.body) as Map<String, dynamic>;
+    const codes = {
+      'SL-84F2K9': 'uuid-person-001',
+      'SL-77X3M1': 'uuid-person-002',
+    };
+    final personId = codes[body['pairingCode']];
+    if (personId == null) {
+      return http.Response(
+        jsonEncode({'error': 'INVALID_CODE', 'message': 'Código inválido'}),
+        404,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    return http.Response(
+      jsonEncode({
+        'monitoredPersonId': personId,
+        'deviceToken': 'device-token-$personId',
       }),
+      200,
+      headers: {'content-type': 'application/json'},
     );
+  }),
+);
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    MonitoredContextStore().resetInMemoryForTests();
+  });
+
   group('DeviceIdService', () {
     tearDown(DeviceIdService.resetForTests);
 
@@ -51,26 +57,31 @@ void main() {
   group('Monitored pairing flow (HTTP real)', () {
     tearDown(() => MonitoredContextStore().clear());
 
-    test('pair stores monitoredPersonId and deviceId in context store', () async {
-      final devices = _pairingDevices();
-      final store = MonitoredContextStore();
-      const deviceId = 'android-test-pair-001';
+    test(
+      'pair stores monitoredPersonId and deviceId in context store',
+      () async {
+        final devices = _pairingDevices();
+        final store = MonitoredContextStore();
+        const deviceId = 'android-test-pair-001';
 
-      final result = await devices.pair(
-        pairingCode: 'SL-84F2K9',
-        deviceId: deviceId,
-      );
+        final result = await devices.pair(
+          pairingCode: 'SL-84F2K9',
+          deviceId: deviceId,
+        );
 
-      store.setPairing(
-        personId: result.monitoredPersonId,
-        deviceId: deviceId,
-      );
+        await store.setPairing(
+          personId: result.monitoredPersonId,
+          deviceId: deviceId,
+          deviceToken: result.deviceToken,
+        );
 
-      expect(store.isPaired, isTrue);
-      expect(store.monitoredPersonId, 'uuid-person-001');
-      expect(store.deviceId, deviceId);
-      expect(store.consentActive, isFalse);
-    });
+        expect(store.isPaired, isTrue);
+        expect(store.monitoredPersonId, 'uuid-person-001');
+        expect(store.deviceId, deviceId);
+        expect(store.deviceToken, 'device-token-uuid-person-001');
+        expect(store.consentActive, isFalse);
+      },
+    );
 
     test('invalid pairing code does not update store', () async {
       final devices = _pairingDevices();
@@ -84,13 +95,58 @@ void main() {
       expect(store.isPaired, isFalse);
     });
 
-    test('paired state skips re-pairing requirement', () {
-      final store = MonitoredContextStore()
-        ..setPairing(personId: 'person-1', deviceId: 'device-1');
+    test('paired state skips re-pairing requirement', () async {
+      final store = MonitoredContextStore();
+      await store.setPairing(
+        personId: 'person-1',
+        deviceId: 'device-1',
+        deviceToken: 'token-1',
+      );
 
       expect(store.isPaired, isTrue);
       expect(store.monitoredPersonId, 'person-1');
       expect(store.deviceId, 'device-1');
+      expect(store.deviceToken, 'token-1');
     });
+
+    test(
+      'pairing is restored from SharedPreferences after process restart',
+      () async {
+        final store = MonitoredContextStore();
+        await store.setPairing(
+          personId: 'person-persisted',
+          deviceId: 'device-persisted',
+          deviceToken: 'token-persisted',
+        );
+
+        store.resetInMemoryForTests();
+        await store.load();
+
+        expect(store.isPaired, isTrue);
+        expect(store.monitoredPersonId, 'person-persisted');
+        expect(store.deviceId, 'device-persisted');
+        expect(store.deviceToken, 'token-persisted');
+      },
+    );
+
+    test(
+      'legacy preferences without token require controlled re-pairing',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'monitored_person_id': 'legacy-person',
+          'monitored_device_id': 'legacy-device',
+          'monitored_consent_active': true,
+        });
+        final store = MonitoredContextStore()..resetInMemoryForTests();
+
+        await store.load();
+
+        expect(store.monitoredPersonId, 'legacy-person');
+        expect(store.deviceId, 'legacy-device');
+        expect(store.deviceToken, isNull);
+        expect(store.requiresRepairing, isTrue);
+        expect(store.isPaired, isFalse);
+      },
+    );
   });
 }

@@ -22,6 +22,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
 
       expect(pipeline.isRunning, isTrue);
@@ -39,10 +40,12 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-2',
         deviceId: 'device-2',
+        deviceToken: 'device-token-2',
       );
 
       expect(pipeline.isRunning, isTrue);
@@ -61,6 +64,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       final snapshot = _snapshot();
       sensorCaptureService.emit(snapshot);
@@ -87,6 +91,7 @@ void main() {
         await pipeline.startMonitoring(
           monitoredPersonId: 'person-1',
           deviceId: 'device-1',
+          deviceToken: 'device-token-1',
         );
         sensorCaptureService.emit(_snapshot());
         await Future<void>.delayed(Duration.zero);
@@ -95,6 +100,7 @@ void main() {
         expect(telemetryService.sendCount, 1);
         expect(telemetryService.lastMonitoredPersonId, 'person-1');
         expect(telemetryService.lastDeviceId, 'device-1');
+        expect(telemetryService.lastDeviceToken, 'device-token-1');
         expect(telemetryService.lastWindow, isNotNull);
       },
     );
@@ -119,6 +125,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       sensorCaptureService.emit(_snapshot());
 
@@ -150,6 +157,7 @@ void main() {
         await pipeline.startMonitoring(
           monitoredPersonId: 'person-1',
           deviceId: 'device-1',
+          deviceToken: 'device-token-1',
         );
         sensorCaptureService.emit(_snapshot());
         await Future<void>.delayed(Duration.zero);
@@ -173,6 +181,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       await pipeline.stopMonitoring();
 
@@ -194,6 +203,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       await pipeline.dispose();
 
@@ -219,6 +229,7 @@ void main() {
           pipeline.startMonitoring(
             monitoredPersonId: 'person-1',
             deviceId: 'device-1',
+            deviceToken: 'device-token-1',
           ),
           throwsA(isA<StateError>()),
         );
@@ -244,6 +255,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
 
       await expectLater(pipeline.dispose(), throwsA(isA<StateError>()));
@@ -270,6 +282,7 @@ void main() {
         pipeline.startMonitoring(
           monitoredPersonId: 'person-1',
           deviceId: 'device-1',
+          deviceToken: 'device-token-1',
         ),
         throwsA(isA<StateError>()),
       );
@@ -295,6 +308,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       sensorCaptureService.emit(_snapshot());
       await Future<void>.delayed(Duration.zero);
@@ -333,6 +347,7 @@ void main() {
         await pipeline.startMonitoring(
           monitoredPersonId: 'person-1',
           deviceId: 'device-1',
+          deviceToken: 'device-token-1',
         );
         sensorCaptureService.emit(_snapshot());
         await Future<void>.delayed(Duration.zero);
@@ -371,6 +386,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       sensorCaptureService.emit(_snapshot());
       await Future<void>.delayed(Duration.zero);
@@ -410,6 +426,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       sensorCaptureService.emit(_snapshot());
       await Future<void>.delayed(Duration.zero);
@@ -450,6 +467,7 @@ void main() {
       await pipeline.startMonitoring(
         monitoredPersonId: 'person-1',
         deviceId: 'device-1',
+        deviceToken: 'device-token-1',
       );
       sensorCaptureService.emit(_snapshot());
       await Future<void>.delayed(Duration.zero);
@@ -488,7 +506,7 @@ class _FakeSensorCaptureService implements SensorCaptureService {
   bool get hasListener => _controller.hasListener;
 
   @override
-  void start() {
+  Future<void> start() async {
     startCount++;
     if (startError != null) {
       throw startError!;
@@ -547,12 +565,14 @@ class _FakeTelemetryService implements TelemetryService {
   int maxConcurrentSends = 0;
   String? lastMonitoredPersonId;
   String? lastDeviceId;
+  String? lastDeviceToken;
   TelemetryWindow? lastWindow;
 
   @override
   Future<WindowPrediction> sendWindow({
     required String monitoredPersonId,
     required String deviceId,
+    required String deviceToken,
     required DateTime windowStart,
     required DateTime windowEnd,
     required int sampleRateHz,
@@ -566,6 +586,7 @@ class _FakeTelemetryService implements TelemetryService {
     }
     lastMonitoredPersonId = monitoredPersonId;
     lastDeviceId = deviceId;
+    lastDeviceToken = deviceToken;
     lastWindow = TelemetryWindow(
       windowStart: windowStart,
       windowEnd: windowEnd,

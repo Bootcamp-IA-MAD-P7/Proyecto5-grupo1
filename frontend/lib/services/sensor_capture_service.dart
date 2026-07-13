@@ -26,8 +26,11 @@ class SensorCaptureService {
 
   bool get isRunning => _running;
 
-  void start() {
-    if (_disposed || _running) return;
+  Future<void> start() async {
+    if (_disposed) {
+      throw StateError('SensorCaptureService is disposed');
+    }
+    if (_running) return;
 
     final samplingPeriod = Duration(
       microseconds:
@@ -36,24 +39,44 @@ class SensorCaptureService {
 
     StreamSubscription<AccelerometerEvent>? accelerometerSubscription;
     StreamSubscription<GyroscopeEvent>? gyroscopeSubscription;
+    final accelerometerReady = Completer<void>();
+    final gyroscopeReady = Completer<void>();
 
     try {
       accelerometerSubscription =
           accelerometerEventStream(samplingPeriod: samplingPeriod).listen(
-            (event) => _lastAccelerometer = event,
-            onError: _handleSensorError,
+            (event) {
+              _lastAccelerometer = event;
+              if (!accelerometerReady.isCompleted) {
+                accelerometerReady.complete();
+              }
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              _forwardSensorError(error, stackTrace, accelerometerReady);
+            },
             cancelOnError: false,
           );
 
       gyroscopeSubscription =
           gyroscopeEventStream(samplingPeriod: samplingPeriod).listen(
-            (event) => _lastGyroscope = event,
-            onError: _handleSensorError,
+            (event) {
+              _lastGyroscope = event;
+              if (!gyroscopeReady.isCompleted) {
+                gyroscopeReady.complete();
+              }
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              _forwardSensorError(error, stackTrace, gyroscopeReady);
+            },
             cancelOnError: false,
           );
 
       _accelerometerSubscription = accelerometerSubscription;
       _gyroscopeSubscription = gyroscopeSubscription;
+      await Future.wait([
+        accelerometerReady.future,
+        gyroscopeReady.future,
+      ]).timeout(const Duration(seconds: 5));
       _samplingTimer = Timer.periodic(samplingPeriod, (_) => _emitIfReady());
       _running = true;
     } catch (error, stackTrace) {
@@ -70,6 +93,22 @@ class SensorCaptureService {
       _lastAccelerometer = null;
       _lastGyroscope = null;
       _running = false;
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+  }
+
+  void _forwardSensorError(
+    Object error,
+    StackTrace stackTrace,
+    Completer<void> readiness,
+  ) {
+    _handleSensorError(error, stackTrace);
+    if (!readiness.isCompleted) {
+      readiness.completeError(error, stackTrace);
+      return;
+    }
+    if (!_controller.isClosed) {
+      _controller.addError(error, stackTrace);
     }
   }
 
