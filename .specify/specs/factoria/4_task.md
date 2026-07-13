@@ -71,6 +71,17 @@ T3.4 tests (+ roles!) + T3.6 GDPR → T3.INT   |   CI/CD deploy ya ✅
 2. Hotfix deuda residual roles (T3.4) si da tiempo AM.
 3. Cola Experto: T4.2 → T4.7 → T4.4 → T4.5.
 
+### QA — pantallas por rol (revalidado)
+
+| Rol | Login seed | Pantalla raíz | Flujos conectados a Java |
+|---|---|---|---|
+| `MONITORED` | `monitored@sentilife.com` / `Admin1234!` | `MonitoredScreen` | pair → consent → sensores → `POST /telemetry/windows` |
+| `CAREGIVER` | `caregiver@sentilife.com` / `Admin1234!` | `CaregiverHomeScreen` | personas CRUD · tab alertas · PATCH feedback · push-token |
+| `IT_ADMIN` | `admin@sentilife.com` / `Admin1234!` | `ItAdminScreen` | historial · export URL · users on/off |
+
+Navegación: `AppShell` switch por `user.role` tras login real. **0 mocks** en `frontend/lib/`.
+APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abierto temporal (`CorsConfig`) — requiere redeploy backend en EC2.
+
 ---
 
 ## Fase 0 — Fundaciones

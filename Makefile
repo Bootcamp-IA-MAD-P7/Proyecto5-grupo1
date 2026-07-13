@@ -2,7 +2,7 @@
 
 .PHONY: up down logs verify \
         test-java test-python test-flutter test \
-        flutter-local flutter-phone \
+        flutter-local flutter-phone flutter-qa apk-qa \
         env env-qa reset-db smoke-telemetry smoke-mvp
 
 # ── Entorno local ─────────────────────────────────────────────────────────────
@@ -73,3 +73,14 @@ flutter-qa: env-qa
 	@set -a && . ./.env.qa; set +a; \
 	 DEVICE=$${DEVICE:-} \
 	 bash scripts/run-flutter-qa.sh
+
+# APK release apuntando a Java API en EC2 QA (:8005)
+# Sin key.properties firma con debug (apto QA). Con keystore CI → firma release.
+apk-qa:
+	@API_URL=$${API_BASE_URL:-http://100.52.221.179:8005}; \
+	 echo "→ Building APK QA → $$API_URL"; \
+	 cd frontend && flutter pub get && \
+	 flutter build apk --release \
+	   --dart-define=API_BASE_URL=$$API_URL && \
+	 ls -lh build/app/outputs/flutter-apk/app-release.apk && \
+	 echo "✅ APK: frontend/build/app/outputs/flutter-apk/app-release.apk"
