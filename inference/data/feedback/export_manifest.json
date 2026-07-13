@@ -1,0 +1,19 @@
+{
+  "task": "SL-36 / T2.10",
+  "exported_at": "2026-07-12T13:43:06.899177+00:00",
+  "format": "csv",
+  "records": 2,
+  "path": "data/feedback/labeled_feedback_sample.csv",
+  "columns": [
+    "alert_id",
+    "monitored_person_id",
+    "detected_at",
+    "fall_detected",
+    "confidence",
+    "model_version",
+    "feedback_label",
+    "reviewed_by",
+    "comment"
+  ],
+  "note": "En producci\u00f3n este CSV se genera desde feedback_labels en Postgres"
+}

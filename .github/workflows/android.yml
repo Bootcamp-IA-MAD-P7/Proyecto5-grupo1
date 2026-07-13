@@ -1,9 +1,9 @@
 name: Android Release
 
-# Se dispara cuando backend-ci termina con éxito en main (API+DB ya desplegados).
+# Se dispara cuando SentiLife CI termina con éxito en main (API+DB ya desplegados).
 on:
   workflow_run:
-    workflows: ["Deploy Fall-Sentinel API to EC2"]
+    workflows: ["SentiLife CI"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     needs: gate
     defaults:
       run:
-        working-directory: Frontend
+        working-directory: frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,6 +41,7 @@ jobs:
         with:
           flutter-version: '3.44.4'
           channel: stable
+          cache: true
 
       - name: Get dependencies
         run: flutter pub get
@@ -53,7 +54,7 @@ jobs:
     needs: validate
     defaults:
       run:
-        working-directory: Frontend
+        working-directory: frontend
     env:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
 
@@ -89,6 +90,7 @@ jobs:
         with:
           flutter-version: '3.44.4'
           channel: stable
+          cache: true
 
       - name: Get dependencies
         run: flutter pub get
@@ -103,7 +105,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: Frontend/build/app/outputs/flutter-apk/app-release.apk
+          path: frontend/${{ env.APK_PATH }}
           retention-days: 7
 
       - name: Create GitHub Release
@@ -112,7 +114,7 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: "Release v1.0.${{ github.run_number }}"
           body: "Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}"
-          files: ${{ env.APK_PATH }}
+          files: frontend/${{ env.APK_PATH }}
           draft: false
           prerelease: false
           token: ${{ secrets.GH_PAT }}

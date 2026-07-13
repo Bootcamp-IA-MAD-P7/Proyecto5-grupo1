@@ -1,0 +1,17 @@
+{
+  "task": "SL-42 / T2.2",
+  "algorithm": "XGBoost",
+  "n_trials": 10,
+  "best_params": {
+    "n_estimators": 221,
+    "max_depth": 8,
+    "learning_rate": 0.050301088221746504,
+    "subsample": 0.6686658877124959,
+    "colsample_bytree": 0.8902685543665002
+  },
+  "best_cv_pr_auc": 0.9298,
+  "test_pr_auc": 0.9161,
+  "test_f1_fall": 0.8231,
+  "threshold": 0.69,
+  "model_path": "ml/models/model_tuned.pkl"
+}

@@ -10,7 +10,7 @@
   - `auth_service.dart`, `monitored_service.dart`, `telemetry_service.dart`, `alerts_service.dart`, `devices_service.dart`, `admin_service.dart`
   - Models: `User`, `MonitoredPerson`, `Alert`, `RetrainJobStatus` + `exceptions.dart`
   - 32 unit tests passing
-- **SL-2 (Java structure)** — Created `backend-java/` from scratch: Spring Boot 3 + Java 21, Dockerfile, `/actuator/health`
+- **SL-2 (Java structure)** — Created `backend/` from scratch: Spring Boot 3 + Java 21, Dockerfile, `/actuator/health`
 - **SL-3 (Flyway migrations)** — V1 full schema (9 tables) + V2 seed IT_ADMIN
 - **SL-21 (Telemetry ingestion)** — POST /telemetry/windows: persist → inference sync → prediction
 - **SL-22 (/devices/pair)** — Device pairing with pairingCode
@@ -29,7 +29,7 @@
 
 ### What did I do?
 
-- **SL-44 (CI pipeline)** — Created `.github/workflows/backend-ci.yml`:
+- **SL-44 (CI pipeline)** — Created `.github/workflows/ci.yml`:
   - `test-java`: JDK 21 + `mvn test` on push to feature/backend and main
   - `test-python`: pytest for inference service
   - `build-and-push`: Docker images for Java + FastAPI (on main merge)
@@ -81,5 +81,5 @@
 - **Code quality refactor** — Extracted model status constants to `DomainConstants`
 - **Merged dev into feature/backend** — Reconciled team's ML and FE work
 - **Fixed Python CI** — Updated `test_inference_api.py` to match new inference contract
-- **Docs** — Created `docs/backend-java.md` (architecture, setup, tech justifications)
+- **Docs** — Created `docs/backend.md` (architecture, setup, tech justifications)
 - **PR #34** opened: `feature/backend` → `dev`

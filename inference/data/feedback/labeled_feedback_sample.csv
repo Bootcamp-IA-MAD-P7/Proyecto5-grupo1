@@ -1,0 +1,3 @@
+alert_id,monitored_person_id,detected_at,fall_detected,confidence,model_version,feedback_label,reviewed_by,comment
+uuid-alert-002,uuid-person-001,2026-07-12T10:43:06.889815+00:00,True,0.87,xgboost-v1.0.0,TRUE_FALL,caregiver@test.com,Caída confirmada en el salón
+uuid-alert-003,uuid-person-001,2026-07-12T08:43:06.889815+00:00,True,0.61,xgboost-v1.0.0,FALSE_ALARM,caregiver@test.com,Se agachó a recoger algo

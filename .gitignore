@@ -26,8 +26,8 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-Frontend/build/
-/coverage/
+frontend/build/
+coverage/
 
 # Symbolication related
 app.*.symbols
@@ -36,32 +36,32 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
-Frontend/android/app/debug
-Frontend/android/app/profile
-Frontend/android/app/release
+frontend/android/app/debug
+frontend/android/app/profile
+frontend/android/app/release
 
 xd.txt
 
 # Firebase - no subir en repos públicos
 google-services.json
-Frontend/android/app/google-services.json
+frontend/android/app/google-services.json
 
 # Android signing (local only)
-Frontend/android/key.properties
-Frontend/android/app/release.jks
+frontend/android/key.properties
+frontend/android/app/release.jks
 
 # ---------------------------------------------------
-# BACKEND (Python / ML)
+# INFERENCE (Python / ML)
 # ---------------------------------------------------
-Backend/.venv/
-Backend/__pycache__/
-Backend/**/__pycache__/
-Backend/**/*.pyc
-Backend/.pytest_cache/
+inference/.venv/
+inference/__pycache__/
+inference/**/__pycache__/
+inference/**/*.pyc
+inference/.pytest_cache/
 
 # Solo feedback generado en runtime por la app (no es dataset de entrenamiento)
-Backend/data/feedback/*
-!Backend/data/feedback/.gitkeep
+inference/data/feedback/*
+!inference/data/feedback/.gitkeep
 
 # Credenciales locales (nunca en git)
 kaggle.json
