@@ -57,12 +57,22 @@ jobs:
         working-directory: frontend
     env:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
+      # URL embebida en el APK (compile-time). EC2_HOST = solo IP/hostname, sin http:// ni :puerto.
+      API_BASE_URL: http://${{ secrets.EC2_HOST }}:8005
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Guard EC2_HOST
+        run: |
+          if [ -z "${{ secrets.EC2_HOST }}" ]; then
+            echo "::error::EC2_HOST vacío — el APK no sabría a qué API apuntar"
+            exit 1
+          fi
+          echo "API_BASE_URL=${{ env.API_BASE_URL }}"
 
       - name: Write google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
@@ -71,13 +81,14 @@ jobs:
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.jks
 
       - name: Write key.properties
+        # Sin indentación en el heredoc: Properties no tolera espacios en las keys.
         run: |
-          cat > android/key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=release.jks
-          EOF
+          {
+            echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}"
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}"
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}"
+            echo "storeFile=release.jks"
+          } > android/key.properties
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -95,11 +106,13 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build APK (API = EC2 :8005)
         run: |
+          echo "→ Compilando APK contra ${API_BASE_URL}"
           flutter build apk --release \
             --build-number=${{ github.run_number }} \
-            --build-name=1.0.${{ github.run_number }}
+            --build-name=1.0.${{ github.run_number }} \
+            --dart-define=API_BASE_URL=${API_BASE_URL}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -113,7 +126,9 @@ jobs:
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: "Release v1.0.${{ github.run_number }}"
-          body: "Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}"
+          body: |
+            Build automático desde commit `${{ github.event.workflow_run.head_sha || github.sha }}`
+            API: `http://${{ secrets.EC2_HOST }}:8005`
           files: frontend/${{ env.APK_PATH }}
           draft: false
           prerelease: false
@@ -155,4 +170,4 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
           file: apk/app-release.apk
-          releaseNotes: "Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}"
+          releaseNotes: "Build automático · API http://${{ secrets.EC2_HOST }}:8005 · commit ${{ github.event.workflow_run.head_sha || github.sha }}"

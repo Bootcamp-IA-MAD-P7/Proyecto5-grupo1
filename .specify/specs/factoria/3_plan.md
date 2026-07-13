@@ -60,13 +60,13 @@
 - **Motivo:** desacople, resiliencia, y perfil profesional del proyecto (mensajería asíncrona real).
 - **Camino crítico:** para cumplir RNF-01 (< 5 s), la ingesta puede clasificar de forma **síncrona** (Java → HTTP → FastAPI) y usar la cola para lo no crítico (persistencia, notificación, feedback). Se decide en Fase 2 midiendo latencias.
 - **Fallback documentado:** si RabbitMQ compromete el MVP, todo el flujo pasa a HTTP síncrono manteniendo los mismos contratos de spec §5.3; la cola se reintroduce después.
-- **⚠ Decisión sprint 15/07 (`5_roadmap.md` §1):** camino crítico de predicción **síncrono HTTP** desde el día 1; RabbitMQ se usa solo para `alert.created` → notificador push.
+- **⚠ Decisión sprint (`4_task.md` · ADR-02):** camino crítico de predicción **síncrono HTTP**; RabbitMQ solo para `alert.created` → notificador push.
 
 ### ADR-03 — InfluxDB para telemetría, con fallback
 
 - **Decisión:** InfluxDB 2.x para `sensor_window` y `prediction` (predicción en segundos ⇒ series temporales de alta frecuencia).
 - **Fallback:** tabla particionada en PostgreSQL (`telemetry_windows`) si InfluxDB añade demasiada complejidad. El contrato `telemetry_window_ref` (spec §5.1) es agnóstico al motor.
-- **⚠ Decisión sprint 15/07 (`5_roadmap.md` §1):** **fallback activado** — telemetría en PostgreSQL para la entrega; InfluxDB pasa a evolución post-entrega.
+- **⚠ Decisión sprint (`4_task.md` · ADR-03):** **fallback activado** — telemetría en PostgreSQL; InfluxDB post-Factoría / CEMP.
 
 ### ADR-04 — JWT emitido y validado por el backend Java
 
@@ -165,10 +165,10 @@ El `package ID` (`com.jzelada.proyecto_flutter`) es independiente del nombre vis
 | ID | Fuente | Estado | Uso |
 |---|---|---|---|
 | DS-01 | SisFall (Sucerquia et al., *Sensors* 2017) | **Activo** — 4.396 ensayos, 38 sujetos en repo | Entrenamiento y benchmark principal |
-| DS-02 | MobiAct / MobiFall (BMI HMU) | Candidato — pendiente respuesta bmi@hmu.gr | Cross-dataset, generalización smartphone |
-| DS-C | Combinado | Bloqueado hasta validar DS-02 | `processed/combined/` con unión documentada |
+| DS-02 | MobiAct / MobiFall (BMI HMU) | ✂ **Fuera Factoría** → CEMP | No bloquea este sprint |
+| DS-C | Combinado | ✂ Factoría | Solo si CEMP lo reactiva |
 
-- **Plan B** si MobiAct no llega: solo SisFall (suficiente para Factoría F5, documentando el sesgo de edad), con UniMiB SHAR y FARSEEING como reservas académicas.
+- **Factoría:** SisFall (DS-01) es el dataset activo; documentar sesgo de edad en informe. MobiAct no forma parte del alcance Factoría.
 - **Reglas activas:** no confiar en el `model.pkl` actual; no regenerar `processed/` hasta ejecutar el pipeline definido en `4_task.md`; split **siempre por sujeto** (ML-07); criterios de fuentes en constitución §6.
 - **Limitación conocida:** caídas de SisFall simuladas casi exclusivamente por adultos jóvenes → documentar en informe (`processed/sisfall/eda_output/analisis_sesgo.md`).
 
@@ -289,10 +289,10 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos r
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make up` + `make smoke-telemetry` |
 | 🟡 Medio | 2 | ✅ **CERRADO** | T2.18–T2.22 mock-off · T2.INT · `make smoke-mvp` |
-| 🟠 Avanzado | 3 | ⏳ ~50% | T3.1/T3.2/T3.5 ✅ · T3.3 EC2 · T3.4 tests · T3.6 GDPR · T3.INT 🔲 |
-| 🔴 Experto | 4 | ⏳ ~40% | T4.3/T4.4/T4.6 ✅ · T4.2 CNN · T4.5 MLOps UI · T4.7 drift · T4.INT 🔲 |
+| 🟠 Avanzado | 3 | ⏳ ~44% | T3.1/T3.2/T3.3/T3.5 ✅ · T3.4 tests · T3.6 GDPR · T3.INT 🔲 |
+| 🔴 Experto | 4 | ⏳ ~25% | T4.3/T4.6 ✅ · T4.4 stub≠hecho · T4.1 ✂ CEMP · T4.2 CNN · T4.5 UI · T4.7 drift · T4.INT 🔲 |
 
-**Mocks Flutter:** apagados en producción (`AppConfig.useMock = false`). Bloques mock conservados para dev offline y tests unitarios.
+**Mocks Flutter:** eliminados; servicios solo contra Java real. **MobiAct:** fuera de alcance Factoría (CEMP).
 
 ---
 

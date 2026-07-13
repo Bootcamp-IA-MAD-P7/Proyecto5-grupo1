@@ -51,8 +51,14 @@ android {
 
     buildTypes {
         release {
-            // Firma con el keystore fijo en lugar del debug key por defecto.
-            signingConfig = signingConfigs.getByName("release")
+            // Keystore de release si existe key.properties; si no, debug (APK QA local).
+            signingConfig = if (keyPropertiesFile.exists() &&
+                keyProperties["storeFile"] != null
+            ) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
 
             // Minificación deshabilitada por defecto para no romper plugins.
             // Habilita cuando tengas un proguard-rules.pro configurado.
