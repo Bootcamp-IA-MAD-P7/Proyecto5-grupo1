@@ -311,10 +311,22 @@ jobs:
             }
 
             wait_for_backend() {
-              echo "→ Esperando backend (Flyway V1–V5 + arranque Spring, hasta ~4 min)..."
-              for i in $(seq 1 24); do
-                if curl --fail --silent http://localhost:8005/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
+              echo "→ Esperando backend (Flyway + Spring en EC2 lento, hasta ~6 min)..."
+              for i in $(seq 1 36); do
+                if curl --fail --silent http://localhost:8005/actuator/health/liveness 2>/dev/null | grep -q '"status":"UP"'; then
                   echo "→ Backend UP tras ${i}0s"
+                  return 0
+                fi
+                sleep 10
+              done
+              return 1
+            }
+
+            wait_for_grafana() {
+              echo "→ Esperando Grafana (:3006, hasta ~2 min)..."
+              for i in $(seq 1 12); do
+                if curl --fail --silent http://localhost:3006/api/health 2>/dev/null | grep -q ok; then
+                  echo "→ Grafana OK tras ${i}0s"
                   return 0
                 fi
                 sleep 10
@@ -353,25 +365,31 @@ jobs:
               fi
             fi
 
+            # Levanta Prometheus/Grafana (pueden quedar pendientes si el backend tardó en arrancar)
+            deploy_stack
+
             echo "→ Contenedores SentiLife:"
             docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 
-            echo "→ Checking Java backend health (host :8005)..."
-            curl --fail --silent http://localhost:8005/actuator/health | grep '"status":"UP"'
+            echo "→ Checking Java backend liveness (host :8005)..."
+            curl --fail --silent http://localhost:8005/actuator/health/liveness | grep '"status":"UP"'
 
             echo "→ Checking inference health (container interno)..."
             docker exec sentilife-inference python -c \
               "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"
 
-            echo "→ Checking Grafana (host :3006)..."
-            curl --fail --silent http://localhost:3006/api/health | grep -q ok
+            if wait_for_grafana; then
+              echo "→ Grafana OK"
+            else
+              echo "::warning::Grafana no respondió a tiempo (API Java sí). Revisar: docker logs sentilife-grafana"
+            fi
 
-            echo "✅ Stack completo desplegado (Java + inference + DB + Grafana)"
+            echo "✅ Stack desplegado (Java + inference + DB; Grafana opcional en EC2 lento)"
           ENDSSH
 
       - name: External smoke test
         run: |
           echo "→ Verifying Java API on port 8005..."
-          curl --fail --silent --retry 3 --retry-delay 5 \
-            "http://${{ secrets.EC2_HOST }}:8005/actuator/health" | grep '"status":"UP"'
+          curl --fail --silent --retry 5 --retry-delay 10 \
+            "http://${{ secrets.EC2_HOST }}:8005/actuator/health/liveness" | grep '"status":"UP"'
           echo "✅ SentiLife live on EC2:8005"

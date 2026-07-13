@@ -16,6 +16,17 @@ spring:
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
+# En EC2 compartido RabbitMQ puede ir lento; no debe marcar el API como DOWN
+# (bloquea healthcheck Docker, Prometheus/Grafana y el job de deploy en CI).
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    rabbit:
+      enabled: false
+
 server:
   port: 8080
 

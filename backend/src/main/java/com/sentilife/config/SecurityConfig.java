@@ -43,7 +43,7 @@ public class SecurityConfig {
                     "/v3/api-docs/**"
                 ).permitAll()
                 // Actuator — public
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
                 // Auth — public
                 .requestMatchers("/api/v1/auth/**").permitAll()

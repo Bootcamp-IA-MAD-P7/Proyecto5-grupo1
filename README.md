@@ -142,6 +142,8 @@ En móvil: login CAREGIVER en un dispositivo + MONITORED en otro (o emulador); t
 |---|---|---|
 | **Java API** (pública) | http://localhost:8080/actuator/health | Flutter + clientes |
 | Java REST | http://localhost:8080/api/v1/... | Auth, telemetría, alertas |
+| **Swagger UI** (Java) | http://localhost:8080/swagger-ui.html | Probar endpoints REST |
+| OpenAPI JSON (Java) | http://localhost:8080/v3/api-docs | Spec OpenAPI 3 |
 | Inference ML (interno) | http://localhost:8000/health | Solo Java / dev |
 | Inference Swagger | http://localhost:8000/docs | Solo desarrollo |
 | Grafana | http://localhost:3000 | Dashboards (`admin`/`admin`) |
@@ -156,6 +158,8 @@ En móvil: login CAREGIVER en un dispositivo + MONITORED en otro (o emulador); t
 |---|---|---|
 | **Java API** (pública) | http://100.52.221.179:8005/actuator/health | Flutter + clientes |
 | Java REST | http://100.52.221.179:8005/api/v1/... | Auth, telemetría, alertas |
+| **Swagger UI** (Java) | http://100.52.221.179:8005/swagger-ui.html | Probar endpoints REST |
+| OpenAPI JSON (Java) | http://100.52.221.179:8005/v3/api-docs | Spec OpenAPI 3 |
 | Postgres (debug) | `100.52.221.179:5435` | Solo admin (DBeaver/psql) |
 | Grafana | http://100.52.221.179:3006 | Dashboards (`admin`/`admin`) |
 | Inference ML | interno `:8000` | No expuesto — Java lo consume |
@@ -365,6 +369,7 @@ Flujo: push/PR a **cualquier rama** (tests) → merge a **`main`** (deploy compl
 | Servicio | Puerto host | URL | Expuesto |
 |---|---|---|---|
 | **Java API** | **8005** | http://100.52.221.179:8005 | ✅ Sí — Flutter + clientes |
+| Swagger UI (Java) | **8005** | http://100.52.221.179:8005/swagger-ui.html | ✅ Sí — docs REST |
 | Postgres (debug) | **5435** | `100.52.221.179:5435` | ✅ Sí — solo admin |
 | Grafana | **3006** | http://100.52.221.179:3006 | ✅ Sí — dashboards |
 | Inference FastAPI | 8000 | — | ❌ Interno Docker |
