@@ -231,7 +231,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 ### Calidad de inferencia
 
 - [x] **T2c.4** `ML`+`FE-A` — Fixtures etiquetados en `inference/data/fixtures/mobile/` (4 ventanas: ADL móvil, spike caída, SisFall ADL/caida). Script reproducible `parity_diagnosis.py` + `generate_mobile_fixtures.py`. Informe causa raíz en `inference/docs/informe_paridad_movil_sisfall.md` (GRAVITY_AXIS + PEAK_SHAPE). **Evidencia 14/07:** `pytest tests/test_parity_diagnosis.py` 5/5 ✅ · paridad features.py↔training OK · `threshold_change_allowed=false`. *(ML-20, ADR-11)*
-- [ ] **T2c.5** `ML` — Corregir el pipeline, recalibrar el umbral o reentrenar según T2c.4. Versionar artefacto, threshold y métricas (recall, precision, F1, falsos positivos). Añadir replay automatizado de actividad normal. *(ML-02…ML-05, ML-20)* (T2c.4)
+- [x] **T2c.5** `ML` — Corregir el pipeline, recalibrar el umbral o reentrenar según T2c.4. Versionar artefacto, threshold y métricas (recall, precision, F1, falsos positivos). Añadir replay automatizado de actividad normal. **Evidencia 14/07:** `pytest tests/` 34 passed, 1 skipped ✅ · `gravity_align.py` (Alineación a marco SisFall antes de features) · reentreno XGBoost `model.pkl` `xgboost-v1.1.0-mobile-aligned` · threshold **0.35** · test recall **0.89** · precision **0.74** · F1 **0.81** · PR-AUC **0.914** · `adl_replay` 3 ventanas **0 FP** · `ml/artifacts/t2c5_metrics.json` · `retrain_t2c5.py`. *(ML-02…ML-05, ML-20)* (T2c.4)
 
 ### Agregación y control de spam
 

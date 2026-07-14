@@ -1,7 +1,7 @@
 {
   "task": "SL-16 / T1.3",
   "source_dataset": "SisFall",
-  "script": "Backend/ml/build_sisfall_window_features.py",
+  "script": "inference/ml/build_sisfall_window_features.py",
   "window_contract_schema_version": "1.0.0",
   "source_rate_hz": 200,
   "sample_rate_hz": 50,

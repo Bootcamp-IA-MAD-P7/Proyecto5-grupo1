@@ -57,20 +57,22 @@ def _fixture(
 
 
 def _mobile_adl_rest_portrait() -> dict:
-    """Smoke-like ADL: phone upright, gravity on accY (field false-positive pattern)."""
+    """Smoke-like ADL: phone upright with realistic sensor noise (T2c.5)."""
+    rng = np.random.default_rng(42)
     samples = {}
     for signal in WINDOW_CONTRACT.required_signal_keys:
-        arr = [0.1] * N
         if signal == "accY":
-            arr = [9.8] * N
-        elif signal == "accZ":
-            arr = [0.2] * N
+            arr = (9.8 + rng.normal(0, 0.12, N)).tolist()
+        elif signal.startswith("acc"):
+            arr = (0.1 + rng.normal(0, 0.08, N)).tolist()
+        else:
+            arr = rng.normal(0, 2.5, N).tolist()
         samples[signal] = arr
     return _fixture(
         label="MOBILE_ADL_REST_PORTRAIT",
-        description="Reposo simulado móvil — gravedad en accY como smoke E2E",
+        description="Reposo móvil portrait con micro-variación realista",
         samples=samples,
-        source="synthetic:smoke-telemetry-e2e",
+        source="synthetic:mobile-adl-noisy",
     )
 
 
@@ -115,6 +117,11 @@ def main() -> None:
             SISFALL_ROOT / "SA02" / "D05_SA02_R03.txt",
             "SISFALL_ADL_WALK",
             start_seconds=0.0,
+        ),
+        _sisfall_window_fixture(
+            SISFALL_ROOT / "SA02" / "D01_SA02_R01.txt",
+            "SISFALL_ADL_STAND",
+            start_seconds=1.0,
         ),
         _sisfall_window_fixture(
             SISFALL_ROOT / "SA02" / "F04_SA02_R01.txt",

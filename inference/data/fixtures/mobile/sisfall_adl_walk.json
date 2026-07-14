@@ -3,8 +3,8 @@
   "description": "Ventana SisFall D05_SA02_R03.txt @ 0.0s (cintur\u00f3n, 200\u219250 Hz)",
   "source": "sisfall:D05_SA02_R03.txt",
   "sampleRateHz": 50,
-  "windowStart": "2026-07-14T16:39:45.336510Z",
-  "windowEnd": "2026-07-14T16:39:45Z",
+  "windowStart": "2026-07-14T19:30:11.244732Z",
+  "windowEnd": "2026-07-14T19:30:11Z",
   "samples": {
     "accX": [
       0.19153613281249998,

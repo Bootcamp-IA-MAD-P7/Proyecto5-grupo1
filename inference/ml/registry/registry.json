@@ -1,11 +1,11 @@
 {
-  "active": "xgboost-v1.0.0",
+  "active": "xgboost-v1.1.0-mobile-aligned",
   "models": [
     {
       "id": "xgboost-v1.0.0",
       "path": "ml/models/model.pkl",
       "algorithm": "XGBoost",
-      "status": "ACTIVE",
+      "status": "CANDIDATE",
       "metrics": {
         "pr_auc_test": 0.901,
         "recall_fall_test": 0.832
@@ -30,6 +30,22 @@
         "subsample": 0.6686658877124959,
         "colsample_bytree": 0.8902685543665002
       }
+    },
+    {
+      "id": "xgboost-v1.1.0-mobile-aligned",
+      "path": "ml/models/model.pkl",
+      "algorithm": "XGBoost",
+      "status": "ACTIVE",
+      "metrics": {
+        "pr_auc_test": 0.9141129293318415,
+        "recall_fall_test": 0.8903088391906283,
+        "f1_fall_test": 0.8077294685990338,
+        "precision_fall_test": 0.7391688770999116,
+        "adl_false_positives": 0
+      },
+      "threshold": 0.35,
+      "trainedAt": "2026-07-14",
+      "gravity_alignment": "align_to_sisfall_reference_before_features"
     }
   ]
 }

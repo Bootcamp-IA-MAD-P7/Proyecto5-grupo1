@@ -1,0 +1,60 @@
+{
+  "task": "T2c.5",
+  "model_id": "xgboost-v1.1.0-mobile-aligned",
+  "model_version": "baseline-v1.1-mobile-aligned",
+  "model_path": "ml/models/model.pkl",
+  "gravity_alignment": "align_to_sisfall_reference_before_features",
+  "optuna_params": {
+    "n_estimators": 221,
+    "max_depth": 8,
+    "learning_rate": 0.050301088221746504,
+    "subsample": 0.6686658877124959,
+    "colsample_bytree": 0.8902685543665002
+  },
+  "validation": {
+    "threshold": 0.35,
+    "precision_fall": 0.8635798632691113,
+    "recall_fall": 0.8421212121212122,
+    "f1_fall": 0.8527155569193003,
+    "pr_auc": 0.9394039272323311,
+    "false_positives": 439,
+    "false_negatives": 521
+  },
+  "test": {
+    "threshold": 0.35,
+    "precision_fall": 0.7391688770999116,
+    "recall_fall": 0.8903088391906283,
+    "f1_fall": 0.8077294685990338,
+    "pr_auc": 0.9141129293318415,
+    "false_positives": 590,
+    "false_negatives": 206
+  },
+  "adl_replay": {
+    "total_windows": 3,
+    "false_positives": 0,
+    "windows": [
+      {
+        "fixture_name": "mobile_adl_rest_portrait",
+        "label": "MOBILE_ADL_REST_PORTRAIT",
+        "fall_detected": false,
+        "confidence": 0.9158294200897217,
+        "fall_probability": 0.08417057991027832
+      },
+      {
+        "fixture_name": "sisfall_adl_stand",
+        "label": "SISFALL_ADL_STAND",
+        "fall_detected": false,
+        "confidence": 0.9823223054409027,
+        "fall_probability": 0.01767769455909729
+      },
+      {
+        "fixture_name": "sisfall_adl_walk",
+        "label": "SISFALL_ADL_WALK",
+        "fall_detected": false,
+        "confidence": 0.9737279508262873,
+        "fall_probability": 0.02627204917371273
+      }
+    ]
+  },
+  "feature_windows": 56313
+}

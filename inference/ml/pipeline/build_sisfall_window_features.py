@@ -29,6 +29,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from ml.pipeline.gravity_align import align_window_values
 from ml.pipeline.window_contract import WINDOW_CONTRACT
 
 
@@ -191,6 +192,7 @@ def statistical_features(window: pd.DataFrame) -> dict[str, float]:
 def statistical_features_from_matrix(
     window_values: np.ndarray, signals: list[str]
 ) -> dict[str, float]:
+    window_values = align_window_values(window_values, signals)
     features: dict[str, float] = {}
 
     for index, signal in enumerate(signals):

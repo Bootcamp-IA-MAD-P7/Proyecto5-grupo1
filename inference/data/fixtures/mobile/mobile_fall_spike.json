@@ -3,8 +3,8 @@
   "description": "Ca\u00edda simulada m\u00f3vil \u2014 spike post-muestra 60 como smoke MVP",
   "source": "synthetic:smoke-mvp-e2e",
   "sampleRateHz": 50,
-  "windowStart": "2026-07-14T16:39:45.234009Z",
-  "windowEnd": "2026-07-14T16:39:45Z",
+  "windowStart": "2026-07-14T19:30:11.183564Z",
+  "windowEnd": "2026-07-14T19:30:11Z",
   "samples": {
     "accX": [
       0.1,

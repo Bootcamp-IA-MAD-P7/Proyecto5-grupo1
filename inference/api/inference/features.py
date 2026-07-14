@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from ml.pipeline.gravity_align import align_window_to_sisfall_frame
+
 
 # ---------------------------------------------------------------------------
 # Helpers (identical to ml/build_sisfall_window_features.py)
@@ -59,6 +61,9 @@ def extract_features(
     Returns a dict with one key per feature name, matching the exact names
     expected by ``model.pkl``.
     """
+    accX, accY, accZ, gyroX, gyroY, gyroZ = align_window_to_sisfall_frame(
+        accX, accY, accZ, gyroX, gyroY, gyroZ
+    )
     window_values = np.array(
         [accX, accY, accZ, gyroX, gyroY, gyroZ], dtype=float
     ).T  # shape (n_samples, 6)
