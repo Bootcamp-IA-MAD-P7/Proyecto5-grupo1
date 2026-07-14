@@ -15,13 +15,13 @@
 
 ## Estado actual
 
-> **QA de campo 14/07/2026:** Fase 2c cerrada. Fase 3 Avanzado casi completa — T3.INT verificado en EC2; T3.8 OTA pendiente de 1 paso manual MIUI en dispositivo físico.
+> **QA de campo 14/07/2026:** Nivel Avanzado **CERRADO** (9/9). OTA verificado en dispositivo físico Xiaomi; T3.INT smoke EC2 PASS.
 
 | Nivel | Estado | Progreso | Evidencia / pendiente |
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
-| 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 — `docs/daily/t2c7-t2cint-regression-20260714.md` |
-| 🟠 Avanzado | ⏳ | **8/9 (~89%)** | ✅ T3.1–T3.7, T3.INT · 🔲 **T3.8** (OTA MIUI — ver `docs/daily/t3.8-t3int-20260714.md`) |
+| 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 |
+| 🟠 Avanzado | ✅ **CERRADO** | **9/9** | T3.1–T3.8 + T3.INT ✅ — `docs/daily/t3.8-t3int-20260714.md` |
 | 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
 ### Checklist Esencial + Medio (certeza)
@@ -62,7 +62,6 @@
 
 **Ruta crítica pendiente:**
 ```
-T3.8 OTA físico (MIUI install) → cierre Nivel Avanzado
 T4.2 CNN/LSTM → T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
 ```
 
@@ -247,7 +246,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 - [x] **T3.3** `BE-B` — Despliegue QA en EC2 vía CI/CD (`ci.yml` deploy on `main`, Security Group 8005 público, resto interno). *(ML-13)* — **CI/CD cerrado**
 - [x] **T3.5** `BE-B` — Dashboard Grafana `sentilife-pipeline.json`: latencia, colas, errores, push. *(RF-25, RNF-01/02)*
 
-### Pendiente (cerrar Avanzado)
+### Hecho (Nivel Avanzado cerrado 14/07)
 
 - [x] **T3.4** `BE-A`+`BE-B` — Suite de tests ampliada **+ enforcement de roles**. *(ML-14, RF-02)* **Evidencia 14/07:** `@EnableMethodSecurity` + `@PreAuthorize` en `/admin/**`, `/admin/models/**`, `/admin/retrain/**` (`IT_ADMIN`), `/alerts/**`, CRUD `/monitored-persons/**` y push-token (`CAREGIVER`), consent (`CAREGIVER|MONITORED`) · JSON 401/403 en `SecurityConfig` + `GlobalExceptionHandler` · `ApiSecurityIntegrationTest` 9 escenarios MockMvc (matriz roles, consent 403 sin pairing, alert PATCH) · `test_inference_api.py` +3 contratos `/predict` · `mvn test` 57/57 ✅ · `pytest tests/` verde.
 
@@ -255,10 +254,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 - [x] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)* **Evidencia 14/07:** `login_screen.dart` y `update_service.dart` migrados a ARB (`app_es.arb` / `app_en.arb`, +22 keys login/OTA) · `UpdateService.setLocale()` sincronizado con `MaterialApp.locale` · `FallAlertPushMessages` localiza FCM por `PushToken.locale` (es/en) · tests `login_screen_test.dart` (locale `en` sin textos ES) + `FallAlertPushMessagesTest` · `flutter test` 102/102 ✅ · `flutter analyze` limpio · `mvn test` 61/61 ✅.
 
-- [ ] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)*
-  - **Evidencia 14/07 (parcial):** APK v1 (code=1) + v100 registrado en EC2 · servidor LAN `:8765` · `GET /app/latest-version` → 100 · APK en `/sdcard/Download/sentilife-v1.apk` · dispositivo `OJLNRO8PNFLNNBFA` (Xiaomi API 35).
-  - **Bloqueante:** `INSTALL_FAILED_USER_RESTRICTED` (MIUI) — activar **Instalar vía USB** en Opciones de desarrollador.
-  - **Pendiente:** instalar v1 → diálogo OTA → descargar → instalar v100 → captura. Acta: `docs/daily/t3.8-t3int-20260714.md`.
+- [x] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)* **Evidencia 14/07:** Xiaomi `OJLNRO8PNFLNNBFA` (API 35) · v1 (`version_code=1`) instalado vía adb · diálogo **Actualización disponible** v1.0.100 · descarga APK (`adb reverse :8765`) · instalador MIUI aceptado · `dumpsys package` → **versionCode=100** / `1.0.100` · acta `docs/daily/t3.8-t3int-20260714.md`.
 
 - [x] **T3.INT** `ALL` — Demo QA sobre EC2. **Evidencia 14/07:** `make smoke-qa-ec2` PASS · health UP · OTA `version_code=100` · MVP E2E remoto (sin mocks) alerta **755 ms** · export `TRUE_FALL` ✅ · Grafana `:3000` no accesible desde red pública (SG interno, documentado). Acta: `docs/daily/t3.8-t3int-20260714.md`.
 
@@ -313,14 +309,13 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 | # | Tarea | Stream | Bloquea |
 |---|---|---|---|
-| 1 | **T3.8** OTA físico (1 paso MIUI) | FE-B | Cierre Avanzado |
-| 2 | **T4.2** CNN/LSTM | ML | T4.INT, informe |
-| 3 | **T4.7** drift real + Grafana | ML | T4.4, T4.INT |
-| 4 | **T4.4** retrain real (matar stub) | BE+ML | T4.5, T4.INT |
-| 5 | **T4.5** MLOps UI | FE-B | T4.INT |
-| 6 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
+| 1 | **T4.2** CNN/LSTM | ML | T4.INT, informe |
+| 2 | **T4.7** drift real + Grafana | ML | T4.4, T4.INT |
+| 3 | **T4.4** retrain real (matar stub) | BE+ML | T4.5, T4.INT |
+| 4 | **T4.5** MLOps UI | FE-B | T4.INT |
+| 5 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
 
-Hecho (no reabrir): Fases 0–2c · T3.1–T3.7 · T3.INT · T4.3 · T4.6 · T4.1 ✂ CEMP.
+Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.3 · T4.6 · T4.1 ✂ CEMP.
 
 ---
 
@@ -332,7 +327,7 @@ Hecho (no reabrir): Fases 0–2c · T3.1–T3.7 · T3.INT · T4.3 · T4.6 · T4.
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
-| 🟠 Avanzado | 3 | ⏳ **8/9 (~89%)** | **T3.8** (OTA MIUI) |
+| 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | — |
 | 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
 ---
@@ -341,7 +336,7 @@ Hecho (no reabrir): Fases 0–2c · T3.1–T3.7 · T3.INT · T4.3 · T4.6 · T4.
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.5 — Fase 3 Avanzado casi cerrada (T3.INT ✅, T3.8 pendiente MIUI) |
+| Estado | v2.6 — Nivel Avanzado CERRADO (9/9) |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — T3.INT EC2 smoke PASS · T3.8 OTA prep en dispositivo físico |
+| Última actualización | 14/07/2026 — T3.8 OTA físico ✅ · T3.INT EC2 ✅ |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |
