@@ -15,13 +15,13 @@
 
 ## Estado actual
 
-> **QA de campo 14/07/2026:** el flujo técnico funciona, pero se reabre Medio por registro sin selector de rol, fichas monitorizadas huérfanas, falsos positivos masivos, spam de alertas, sesión volátil y contaminación de procesos al cambiar de cuenta.
+> **QA de campo 14/07/2026:** Fase 2c cerrada. Fase 3 Avanzado casi completa — T3.INT verificado en EC2; T3.8 OTA pendiente de 1 paso manual MIUI en dispositivo físico.
 
 | Nivel | Estado | Progreso | Evidencia / pendiente |
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
-| 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 — ver `docs/daily/t2c7-t2cint-regression-20260714.md` |
-| 🟠 Avanzado | ⏳ | **6/9 (~67%)** | ✅ T3.1–3.4, T3.5, T3.6 · 🔲 **T3.7 · T3.8 · T3.INT** |
+| 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 — `docs/daily/t2c7-t2cint-regression-20260714.md` |
+| 🟠 Avanzado | ⏳ | **8/9 (~89%)** | ✅ T3.1–T3.7, T3.INT · 🔲 **T3.8** (OTA MIUI — ver `docs/daily/t3.8-t3int-20260714.md`) |
 | 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
 ### Checklist Esencial + Medio (certeza)
@@ -40,20 +40,15 @@
 | Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
 | Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
 
-**Veredicto actualizado:** Fase 2c cerrada 14/07 con regresión ALL verde y demo documentada. Listo para retomar Fase 3/4.
+**Veredicto actualizado:** Fase 2c cerrada 14/07. Fase 3 Avanzado: T3.INT ✅ en EC2; T3.8 bloqueado por permiso MIUI en dispositivo físico.
 
-### Deuda residual (NO es Fase 3, pero no es “100% RF Medio”)
+### Deuda residual (post-demo, no bloquea Avanzado)
 
-> No bloquean el flujo demo caída→alerta→export. Sí bloquean afirmar cumplimiento literal de cada RF. **Meter en T3.4 / hotfixes mañana AM si hay hueco.**
-
-| ID | Hueco | Dónde | Acción sugerida |
-|---|---|---|---|
-| RF-02 / RF-22 | Comentarios dicen “IT_ADMIN only” pero **no hay `@PreAuthorize`** — cualquier JWT válido llega a `/admin/*` | `SecurityConfig` · `AdminController` | Añadir `hasRole('IT_ADMIN')` / CAREGIVER en endpoints (encaja en **T3.4**) |
-| RF-30 | Push solo `FALL_ALERT` — no hay push de consent/monitor start/stop | `NotificationService` | Implementar o documentar como post-demo (spec Medio) |
-| Sec | `/api/v1/telemetry/**` es `permitAll` (comentario “hasta device JWT”) | `SecurityConfig:55` | Bloqueante T2c.11: validar token y vínculo persona/dispositivo |
-| UX IT | Export muestra URL; no descarga autenticada con Bearer | `it_admin_screen.dart` | GET autenticado + save file |
-| UX sesión | JWT solo en memoria · `refresh()` existe pero no se llama | `SessionManager` · `AuthService` | Bloqueante T2c.8: sesión única, secure storage y refresh |
-| Docs | Task decía 82 FE tests · repo tiene **~85** `test(` | `frontend/test/` | Corregir número al correr `flutter test` |
+| ID | Hueco | Estado |
+|---|---|---|
+| RF-30 | Push solo `FALL_ALERT` — no push consent/monitor | Documentado post-demo |
+| UX IT | Export muestra URL; no descarga autenticada | Post-demo |
+| Grafana EC2 | `:3000` interno en SG — no accesible desde red pública | T3.INT verificado vía smoke API |
 
 **Decisiones de alcance (no renegociar cada día):**
 - InfluxDB → Postgres (ADR-03). RabbitMQ solo `alert.created` → push; predicción HTTP síncrona.
@@ -67,20 +62,9 @@
 
 **Ruta crítica pendiente:**
 ```
-T2c.1–T2c.3 identidad → T2c.7
-T2c.4 diagnóstico ML → T2c.5 corrección modelo → T2c.7
-T2c.6 agregación/cooldown → T2c.7 → T2c.INT
-T2c.8 sesión → T2c.9 background → T2c.10 aislamiento logout/push → T2c.7
-T2c.11 autorización device token → T2c.7
-T2c.INT bloquea retomar Fase 3–4
-T4.2 CNN + T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
-T3.4 tests (+ roles!) + T3.6 GDPR → T3.INT   |   CI/CD deploy ya ✅
+T3.8 OTA físico (MIUI install) → cierre Nivel Avanzado
+T4.2 CNN/LSTM → T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
 ```
-
-**Arranque actual (sin cuello de botella):**
-1. Aprobar esta actualización SDD y congelar los contratos de Fase 2c.
-2. En paralelo: identidad (T2c.1–3), diagnóstico ML (T2c.4), alertas (T2c.6), sesión (T2c.8) y autorización de dispositivo (T2c.11).
-3. Corregir modelo (T2c.5), cerrar background/aislamiento (T2c.9–10), ejecutar regresión E2E (T2c.7) y cerrar T2c.INT.
 
 ### QA — pantallas por rol (revalidado)
 
@@ -272,13 +256,11 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 - [x] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)* **Evidencia 14/07:** `login_screen.dart` y `update_service.dart` migrados a ARB (`app_es.arb` / `app_en.arb`, +22 keys login/OTA) · `UpdateService.setLocale()` sincronizado con `MaterialApp.locale` · `FallAlertPushMessages` localiza FCM por `PushToken.locale` (es/en) · tests `login_screen_test.dart` (locale `en` sin textos ES) + `FallAlertPushMessagesTest` · `flutter test` 102/102 ✅ · `flutter analyze` limpio · `mvn test` 61/61 ✅.
 
 - [ ] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)*
-  - **Hoy:** código listo (`update_service.dart` → Java `OtaController` `/app/*`; CI `android.yml` registra versión). Sin verificación en móvil físico ni test OTA.
-  - **Hacer:** en Android físico: arrancar app → detectar versión → descargar APK → instalar. Anotar resultado en `docs/daily/`.
-  - **CA:** flujo OTA ejecutado una vez en dispositivo real (o video corto).
+  - **Evidencia 14/07 (parcial):** APK v1 (code=1) + v100 registrado en EC2 · servidor LAN `:8765` · `GET /app/latest-version` → 100 · APK en `/sdcard/Download/sentilife-v1.apk` · dispositivo `OJLNRO8PNFLNNBFA` (Xiaomi API 35).
+  - **Bloqueante:** `INSTALL_FAILED_USER_RESTRICTED` (MIUI) — activar **Instalar vía USB** en Opciones de desarrollador.
+  - **Pendiente:** instalar v1 → diálogo OTA → descargar → instalar v100 → captura. Acta: `docs/daily/t3.8-t3int-20260714.md`.
 
-- [ ] **T3.INT** `ALL` — Demo QA sobre EC2.
-  - **Hacer:** merge/`main` → deploy automático → caída simulada contra `:8005` → alerta cuidador < 5 s → Grafana vivo → (ideal) app es/en.
-  - **CA:** smoke QA documentado (latencias + URL health) + video o acta en `docs/daily/`.
+- [x] **T3.INT** `ALL` — Demo QA sobre EC2. **Evidencia 14/07:** `make smoke-qa-ec2` PASS · health UP · OTA `version_code=100` · MVP E2E remoto (sin mocks) alerta **755 ms** · export `TRUE_FALL` ✅ · Grafana `:3000` no accesible desde red pública (SG interno, documentado). Acta: `docs/daily/t3.8-t3int-20260714.md`.
 
 ---
 
@@ -327,25 +309,18 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ---
 
-## Cola para continuar (orden sugerido)
+## Cola activa (Fase 4 — Experto)
 
-> Cerrar Fase 2c antes de retomar Avanzado/Experto. Identidad, diagnóstico ML y agregación pueden arrancar en paralelo.
+| # | Tarea | Stream | Bloquea |
+|---|---|---|---|
+| 1 | **T3.8** OTA físico (1 paso MIUI) | FE-B | Cierre Avanzado |
+| 2 | **T4.2** CNN/LSTM | ML | T4.INT, informe |
+| 3 | **T4.7** drift real + Grafana | ML | T4.4, T4.INT |
+| 4 | **T4.4** retrain real (matar stub) | BE+ML | T4.5, T4.INT |
+| 5 | **T4.5** MLOps UI | FE-B | T4.INT |
+| 6 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
 
-| # | Tarea | SL | Stream | Bloquea |
-|---|---|---|---|---|
-| 1 | **T2c.1–T2c.3** identidad y vínculo | — | FE+BE-A | T2c.7 |
-| 2 | **T2c.4** diagnóstico móvil↔SisFall | — | ML+FE-A | T2c.5 |
-| 3 | **T2c.6** 2-de-3 + cooldown | — | BE-B | T2c.7 |
-| 4 | **T2c.8 + T2c.11** sesión + device auth | — | FE-A+BE-B | T2c.9/10/7 |
-| 5 | **T2c.5** corregir/calibrar modelo | — | ML | T2c.7 |
-| 6 | **T2c.9–T2c.10** background + aislamiento | — | FE+BE-B | T2c.7 |
-| 7 | **T2c.7 + T2c.INT** regresión y demo | — | ALL | retomar Fase 3/4 |
-| 8 | **T4.2** CNN/LSTM | SL-53 | ML | T4.INT, informe |
-| 9 | **T4.7** drift real + Grafana | SL-58 | ML | T4.4, T4.INT |
-| 10 | **T4.4** retrain real (matar stub) | SL-55 | BE+ML | T4.5, T4.INT |
-| 11 | **T4.5** MLOps UI | SL-56 | FE-B | T4.INT |
-
-Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 · T4.1 ✂ CEMP.
+Hecho (no reabrir): Fases 0–2c · T3.1–T3.7 · T3.INT · T4.3 · T4.6 · T4.1 ✂ CEMP.
 
 ---
 
@@ -357,7 +332,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
-| 🟠 Avanzado | 3 | ⏳ **6/9 (~67%)** | **T3.7** · **T3.8** · **T3.INT** |
+| 🟠 Avanzado | 3 | ⏳ **8/9 (~89%)** | **T3.8** (OTA MIUI) |
 | 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
 ---
@@ -366,7 +341,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.4 — Fase 2c añade sesión persistente, background y aislamiento de cuentas |
+| Estado | v2.5 — Fase 3 Avanzado casi cerrada (T3.INT ✅, T3.8 pendiente MIUI) |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — Fase 2c cerrada (T2c.7 + T2c.INT) |
+| Última actualización | 14/07/2026 — T3.INT EC2 smoke PASS · T3.8 OTA prep en dispositivo físico |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

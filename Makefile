@@ -3,7 +3,7 @@
 .PHONY: up down logs verify \
         test-java test-python test-flutter test \
         flutter-local flutter-phone flutter-qa apk-qa \
-        env env-qa reset-db smoke-telemetry smoke-mvp
+        env env-qa reset-db smoke-telemetry smoke-mvp smoke-qa-ec2
 
 # ── Entorno local ─────────────────────────────────────────────────────────────
 env:
@@ -52,6 +52,10 @@ smoke-telemetry: verify
 # T2.INT / SL-43 — MVP end-to-end (requiere make up + Firebase configurado)
 smoke-mvp: verify
 	bash scripts/smoke-mvp-e2e.sh
+
+# T3.INT — smoke QA contra EC2 :8005 (sin stack local)
+smoke-qa-ec2:
+	bash scripts/smoke-qa-ec2.sh
 
 # ── Flutter ───────────────────────────────────────────────────────────────────
 flutter-local: verify

@@ -9,12 +9,21 @@ fail() { echo "✗ $1" >&2; exit 1; }
 ok()   { echo "✓ $1"; }
 
 JAVA_PORT="${JAVA_PORT:-8080}"
-JAVA_URL="http://localhost:${JAVA_PORT}"
+JAVA_URL="${SMOKE_JAVA_URL:-http://localhost:${JAVA_PORT}}"
 PUSH_MAX_MS=5000
+SKIP_VERIFY="${SMOKE_SKIP_VERIFY:-0}"
+SKIP_DOCKER_LOGS="${SMOKE_SKIP_DOCKER_LOGS:-0}"
 
 echo "=== T2.INT — MVP end-to-end (SL-43) ==="
+echo "→ Java API: ${JAVA_URL}"
 
-bash scripts/verify-local.sh >/dev/null || fail "Stack no sano — ejecuta: make up"
+if [[ "$SKIP_VERIFY" != "1" ]]; then
+  bash scripts/verify-local.sh >/dev/null || fail "Stack no sano — ejecuta: make up"
+else
+  curl -sf --max-time 10 "${JAVA_URL}/actuator/health" | grep -q '"status":"UP"' \
+    || fail "Java health not UP at ${JAVA_URL}"
+  ok "Java health UP (remote)"
+fi
 
 export SMOKE_JAVA_URL="$JAVA_URL"
 RESULT="$(python3 - <<'PY'
@@ -145,25 +154,29 @@ if not alert_id:
 # ── 4. Latencia push (RabbitMQ → FCM intent) ────────────────────────────────
 push_ms = None
 push_status = "not_observed"
-deadline = time.time() + 5.0
-while time.time() < deadline:
-    logs = subprocess.run(
-        ["docker", "logs", "sentilife-backend", "--since", "30s"],
-        capture_output=True, text=True
-    ).stdout
-    for line in logs.splitlines():
-        if f"[Push] Processing alert.created: alertId={alert_id}" in line:
-            push_ms = int((time.perf_counter() - t_fall) * 1000)
-            push_status = "rabbitmq_processed"
-        if "[FCM]" in line and ("Push sent" in line or "Error sending" in line or "Token invalid" in line):
-            push_status = "fcm_attempted"
-    if push_ms is not None:
-        break
-    time.sleep(0.2)
-
-if push_ms is None:
+if os.environ.get("SMOKE_SKIP_DOCKER_LOGS") == "1":
     push_ms = int((time.perf_counter() - t_fall) * 1000)
-    push_status = "timeout_no_push_log"
+    push_status = "remote_skip_docker_logs"
+else:
+    deadline = time.time() + 5.0
+    while time.time() < deadline:
+        logs = subprocess.run(
+            ["docker", "logs", "sentilife-backend", "--since", "30s"],
+            capture_output=True, text=True
+        ).stdout
+        for line in logs.splitlines():
+            if f"[Push] Processing alert.created: alertId={alert_id}" in line:
+                push_ms = int((time.perf_counter() - t_fall) * 1000)
+                push_status = "rabbitmq_processed"
+            if "[FCM]" in line and ("Push sent" in line or "Error sending" in line or "Token invalid" in line):
+                push_status = "fcm_attempted"
+        if push_ms is not None:
+            break
+        time.sleep(0.2)
+
+    if push_ms is None:
+        push_ms = int((time.perf_counter() - t_fall) * 1000)
+        push_status = "timeout_no_push_log"
 
 # ── 5. CAREGIVER confirma alerta ────────────────────────────────────────────
 feedback = http("PATCH", f"/api/v1/alerts/{alert_id}",
