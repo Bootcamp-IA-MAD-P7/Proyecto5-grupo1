@@ -3,6 +3,10 @@
     <!-- ── Permisos de red ─────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
 
     <!--
         REQUEST_INSTALL_PACKAGES: necesario para lanzar el instalador de APKs
@@ -69,6 +73,12 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="sentilife_alerts" />
+
+        <!-- Foreground service — captura de sensores en background (T2c.9) -->
+        <service
+            android:name=".MonitoringForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="health" />
 
         <!-- Flutter embedding -->
         <meta-data

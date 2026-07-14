@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../models/prediction_result.dart';
 import '../services/auth_session.dart';
 import '../services/device_id_service.dart';
 import '../services/devices_service.dart';
 import '../services/exceptions.dart';
+import '../services/monitoring_coordinator.dart';
 import '../services/monitored_context_store.dart';
 import '../services/monitored_service.dart';
-import '../services/telemetry_pipeline_service.dart';
 import '../services/telemetry_service.dart';
 import '../widgets/consent_dialog.dart';
 import '../widgets/transparency_dialog.dart';
@@ -27,7 +28,7 @@ class MonitoredScreen extends StatefulWidget {
   final MonitoredContextStore? contextStore;
   final MonitoredService? monitoredService;
   final TelemetryService? telemetryService;
-  final TelemetryPipelineService? pipeline;
+  final MonitoringCoordinator? coordinator;
 
   const MonitoredScreen({
     super.key,
@@ -36,7 +37,7 @@ class MonitoredScreen extends StatefulWidget {
     this.contextStore,
     this.monitoredService,
     this.telemetryService,
-    this.pipeline,
+    this.coordinator,
   });
 
   @override
@@ -50,7 +51,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   final _devicesService = DevicesService();
   final _deviceIdService = DeviceIdService();
   final _pairingCodeController = TextEditingController();
-  late final TelemetryPipelineService _pipeline;
+  late final MonitoringCoordinator _coordinator;
   bool _monitoring = false;
   WindowPrediction? _lastPrediction;
   DateTime? _lastWindowAt;
@@ -59,7 +60,14 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   bool _pairingInFlight = false;
   MonitoredLinkStatus _linkStatus = MonitoredLinkStatus.loading;
 
-  StreamSubscription<WindowPrediction>? _predictionSub;
+  void _onCoordinatorChanged() {
+    if (!mounted) return;
+    setState(() {
+      _monitoring = _coordinator.isMonitoring;
+      _lastPrediction = _coordinator.lastPrediction;
+      _lastWindowAt = _coordinator.lastWindowAt;
+    });
+  }
 
   @override
   void initState() {
@@ -68,12 +76,12 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     _telemetryService = widget.telemetryService ?? TelemetryService();
     _monitoredService = widget.monitoredService ?? MonitoredService();
     _consentAccepted = _contextStore.consentActive;
-    _pipeline =
-        widget.pipeline ??
-        TelemetryPipelineService(
+    _coordinator = widget.coordinator ??
+        MonitoringCoordinator(
           onTelemetryError: _handleTelemetryError,
           onCaptureError: _handleCaptureError,
         );
+    _coordinator.addListener(_onCoordinatorChanged);
     _hydrateContext();
   }
 
@@ -143,9 +151,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _handleCaptureFailure() async {
-    await _predictionSub?.cancel();
-    _predictionSub = null;
-    await _pipeline.stopMonitoring();
+    await _coordinator.stop();
     if (!mounted) return;
     setState(() => _monitoring = false);
     ScaffoldMessenger.of(
@@ -286,9 +292,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _stopMonitoring() async {
-    await _predictionSub?.cancel();
-    _predictionSub = null;
-    await _pipeline.stopMonitoring();
+    await _coordinator.stop();
     if (mounted) setState(() => _monitoring = false);
   }
 
@@ -323,20 +327,13 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
       await _stopMonitoring();
     } else {
       try {
-        _predictionSub = _pipeline.predictions.listen((prediction) {
-          if (!mounted) return;
-          setState(() {
-            _lastPrediction = prediction;
-            _lastWindowAt = DateTime.now();
-          });
-        });
-        await _pipeline.startMonitoring(
+        await _coordinator.start(
           monitoredPersonId: personId,
           deviceId: deviceId,
           deviceToken: deviceToken,
         );
         if (!mounted) return;
-        setState(() => _monitoring = _pipeline.isRunning);
+        setState(() => _monitoring = _coordinator.isMonitoring);
       } catch (_) {
         await _handleCaptureFailure();
       }
@@ -346,9 +343,8 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   @override
   void dispose() {
     _pairingCodeController.dispose();
-    _predictionSub?.cancel();
-    _pipeline.stopMonitoring();
-    _pipeline.dispose();
+    _coordinator.removeListener(_onCoordinatorChanged);
+    unawaited(_coordinator.shutdown());
     super.dispose();
   }
 
