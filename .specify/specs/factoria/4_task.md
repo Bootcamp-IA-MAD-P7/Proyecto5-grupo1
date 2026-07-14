@@ -235,7 +235,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ### Agregación y control de spam
 
-- [ ] **T2c.6** `BE-B` — Reemplazar “una ventana positiva = una alerta” por regla atómica 2-de-3 y cooldown persistente de 60 s por persona, antes de RabbitMQ/FCM. Persistir todas las predicciones. Tests con reloj inyectable: 1/3 no alerta, 2/3 alerta, bloqueo <60 s, nueva alerta ≥60 s y concurrencia sin duplicados. *(RF-14, RF-15, ADR-11)*
+- [x] **T2c.6** `BE-B` — Regla 2-de-3 + cooldown 60 s implementada en `AlertDecisionService` (lock pesimista en `monitored_persons`, consulta últimas 3 ventanas + última alerta, `Clock` inyectable). `TelemetryService` delega antes de RabbitMQ/FCM. **Evidencia 14/07:** `mvn test` 37/37 ✅ · `AlertDecisionServiceTest` (1/3, 2/3, cooldown <60s, ≥60s, lock) · `TelemetryServiceTest` (gate allow/block) · `smoke-mvp-e2e.sh` envía 2 ventanas caída. *(RF-14, RF-15, ADR-11)*
 
 ### Sesión, background y aislamiento de cuentas
 

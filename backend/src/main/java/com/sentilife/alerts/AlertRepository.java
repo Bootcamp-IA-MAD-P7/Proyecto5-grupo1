@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface AlertRepository extends JpaRepository<Alert, UUID> {
@@ -23,6 +24,9 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             @Param("caregiverId") UUID caregiverId,
             @Param("status") String status,
             Pageable pageable);
+
+    /** Most recent alert for cooldown check (T2c.6) */
+    Optional<Alert> findTopByMonitoredPersonIdOrderByDetectedAtDesc(UUID monitoredPersonId);
 
     /** Used for GDPR suppression — get alert IDs before deleting feedback */
     List<Alert> findByMonitoredPersonId(UUID monitoredPersonId);

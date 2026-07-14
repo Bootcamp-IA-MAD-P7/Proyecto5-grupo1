@@ -1,5 +1,6 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.alerts.AlertDecisionService;
 import com.sentilife.alerts.AlertService;
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
@@ -32,6 +33,7 @@ class TelemetryServiceTest {
     @Mock InferenceClient inferenceClient;
     @Mock ConsentRepository consentRepository;
     @Mock AlertService alertService;
+    @Mock AlertDecisionService alertDecisionService;
     @Mock ABTestingService abTestingService;
 
     @InjectMocks TelemetryService service;
@@ -67,10 +69,10 @@ class TelemetryServiceTest {
         verifyNoInteractions(repository, inferenceClient);
     }
 
-    // ── fall detection ────────────────────────────────────────────────────────
+    // ── alert aggregation gate ────────────────────────────────────────────────
 
     @Test
-    void ingest_fallDetected_createsAlert() {
+    void ingest_whenDecisionAllows_createsAlert() {
         var request = buildRequest();
         when(consentRepository.existsByMonitoredPersonIdAndStatus(
                 any(), eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(true);
@@ -82,10 +84,33 @@ class TelemetryServiceTest {
                 true, 0.92, "xgb-1.0", 120);
         when(inferenceClient.predict(any(), any(), anyInt(), any(), any()))
                 .thenReturn(prediction);
+        when(alertDecisionService.shouldCreateAlert(request.monitoredPersonId()))
+                .thenReturn(true);
 
         service.ingest(request);
 
         verify(alertService).createAlert(any(), eq(0.92), eq("xgb-1.0"), any());
+    }
+
+    @Test
+    void ingest_whenDecisionBlocks_doesNotCreateAlert() {
+        var request = buildRequest();
+        when(consentRepository.existsByMonitoredPersonIdAndStatus(
+                any(), eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(true);
+
+        TelemetryWindow saved = new TelemetryWindow();
+        when(repository.save(any())).thenReturn(saved);
+
+        var prediction = new TelemetryDtos.PredictionResult(
+                true, 0.92, "xgb-1.0", 120);
+        when(inferenceClient.predict(any(), any(), anyInt(), any(), any()))
+                .thenReturn(prediction);
+        when(alertDecisionService.shouldCreateAlert(request.monitoredPersonId()))
+                .thenReturn(false);
+
+        service.ingest(request);
+
+        verifyNoInteractions(alertService);
     }
 
     @Test
@@ -101,6 +126,8 @@ class TelemetryServiceTest {
                 false, 0.03, "xgb-1.0", 80);
         when(inferenceClient.predict(any(), any(), anyInt(), any(), any()))
                 .thenReturn(prediction);
+        when(alertDecisionService.shouldCreateAlert(request.monitoredPersonId()))
+                .thenReturn(false);
 
         service.ingest(request);
 

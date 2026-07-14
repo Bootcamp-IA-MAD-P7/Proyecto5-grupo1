@@ -94,26 +94,33 @@ http("POST", "/api/v1/devices/push-token",
     {"fcmToken": fcm_token, "deviceId": f"cg-device-{ts}", "platform": "ANDROID", "locale": "es"},
     token=cg_token)
 
-# ── 3. Caída simulada + cronómetro alerta ───────────────────────────────────
+# ── 3. Caída simulada (2 ventanas positivas — regla 2-de-3 T2c.6) ───────────
 log_marker = f"mvp-smoke-{ts}"
 now = datetime.now(timezone.utc)
-start = now
-end = start + timedelta(milliseconds=2500)
-fall_window = {
-    "monitoredPersonId": person_id,
-    "deviceId": device_id,
-    "windowStart": start.isoformat().replace("+00:00", "Z"),
-    "windowEnd": end.isoformat().replace("+00:00", "Z"),
-    "sampleRateHz": 50,
-    "samples": build_samples(spike=True),
-}
+
+def post_fall_window(offset_ms=0):
+    start = now + timedelta(milliseconds=offset_ms)
+    end = start + timedelta(milliseconds=2500)
+    payload = {
+        "monitoredPersonId": person_id,
+        "deviceId": device_id,
+        "windowStart": start.isoformat().replace("+00:00", "Z"),
+        "windowEnd": end.isoformat().replace("+00:00", "Z"),
+        "sampleRateHz": 50,
+        "samples": build_samples(spike=True),
+    }
+    return http("POST", "/api/v1/telemetry/windows", payload)
 
 t_fall = time.perf_counter()
-fall_resp = http("POST", "/api/v1/telemetry/windows", fall_window)
+first_fall = post_fall_window(0)
+if not first_fall["prediction"]["fallDetected"]:
+    raise SystemExit("fallDetected=false en 1ª ventana — spike no clasificado como caída")
+
+fall_resp = post_fall_window(3000)
 t_after_fall = time.perf_counter()
 
 if not fall_resp["prediction"]["fallDetected"]:
-    raise SystemExit("fallDetected=false — ventana no clasificada como caída")
+    raise SystemExit("fallDetected=false en 2ª ventana — spike no clasificado como caída")
 
 # Poll GET /alerts hasta ver alerta PENDING
 alert_id = None
