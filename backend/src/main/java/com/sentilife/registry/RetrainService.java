@@ -3,6 +3,7 @@ package com.sentilife.registry;
 import com.sentilife.config.DomainExceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -47,10 +48,18 @@ public class RetrainService {
                     null, null, null, null
             ));
 
+    @Autowired
     public RetrainService(RegistryService registryService,
                           @Value("${sentilife.inference.url}") String inferenceUrl) {
+        this(registryService, new RestTemplate(), inferenceUrl);
+    }
+
+    /** Package-private for unit tests (T4.4). */
+    RetrainService(RegistryService registryService,
+                   RestTemplate restTemplate,
+                   String inferenceUrl) {
         this.registryService = registryService;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
         this.inferenceUrl = inferenceUrl;
     }
 

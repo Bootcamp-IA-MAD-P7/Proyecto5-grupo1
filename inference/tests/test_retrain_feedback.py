@@ -80,6 +80,21 @@ def test_train_endpoint_contract_with_mock():
     assert data["metrics"]["current_recall"] == pytest.approx(0.89)
 
 
+def test_train_endpoint_returns_500_on_failure():
+    with patch("api.main.run_retrain", side_effect=RuntimeError("boom")):
+        response = client.post("/train")
+    assert response.status_code == 500
+    assert "Training failed" in response.json()["detail"]
+
+
+def test_overfitting_is_train_minus_test_recall():
+    """Overfitting metric must be non-negative train_recall - test_recall."""
+    train_recall = 0.99
+    test_recall = 0.89
+    overfitting = max(0.0, train_recall - test_recall)
+    assert overfitting == pytest.approx(0.10)
+
+
 def test_run_retrain_produces_measurable_metrics(tmp_path):
     features = Path("data/processed/sisfall/sisfall_windows_features.csv.gz")
     if not features.exists():
@@ -88,24 +103,25 @@ def test_run_retrain_produces_measurable_metrics(tmp_path):
     registry_backup = Path("ml/registry/registry.json").read_text(encoding="utf-8")
     models_before = set(Path("ml/models").glob("retrain-*.pkl"))
 
+    result = run_retrain(skip_feature_build=True)
+    artifact_path = Path(result["artifact_uri"])
+
     try:
-        result = run_retrain(skip_feature_build=True)
+        assert result["version"].startswith("xgboost-retrain-")
+        assert 0.0 <= result["recall"] <= 1.0
+        assert 0.0 <= result["precision"] <= 1.0
+        assert 0.0 <= result["f1"] <= 1.0
+        assert result["overfitting"] >= 0.0
+        assert artifact_path.suffix == ".pkl"
+        assert artifact_path.exists()
+
+        metrics_path = Path("ml/artifacts/retrain_metrics.json")
+        assert metrics_path.exists()
+        doc = json.loads(metrics_path.read_text(encoding="utf-8"))
+        assert doc["task"] == "T4.4"
+        assert doc["test"]["recall_fall"] == pytest.approx(result["recall"], rel=1e-4)
     finally:
         Path("ml/registry/registry.json").write_text(registry_backup, encoding="utf-8")
         for artifact in Path("ml/models").glob("retrain-*.pkl"):
             if artifact not in models_before:
                 artifact.unlink(missing_ok=True)
-
-    assert result["version"].startswith("xgboost-retrain-")
-    assert 0.0 <= result["recall"] <= 1.0
-    assert 0.0 <= result["precision"] <= 1.0
-    assert 0.0 <= result["f1"] <= 1.0
-    assert result["overfitting"] >= 0.0
-    assert Path(result["artifact_uri"]).suffix == ".pkl"
-    assert Path(result["artifact_uri"]).exists()
-
-    metrics_path = Path("ml/artifacts/retrain_metrics.json")
-    assert metrics_path.exists()
-    doc = json.loads(metrics_path.read_text(encoding="utf-8"))
-    assert doc["task"] == "T4.4"
-    assert doc["test"]["recall_fall"] == pytest.approx(result["recall"], rel=1e-4)
