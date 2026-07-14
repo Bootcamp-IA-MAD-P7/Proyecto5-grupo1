@@ -1,7 +1,6 @@
 package com.sentilife.monitored;
 
 import com.sentilife.config.DomainConstants;
-import com.sentilife.config.DomainExceptions;
 import com.sentilife.users.User;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -9,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,6 +37,7 @@ public class MonitoredController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<MonitoredDtos.MonitoredResponse> create(
             @AuthenticationPrincipal User caregiver,
             @Valid @RequestBody MonitoredDtos.MonitoredRequest request) {
@@ -45,6 +46,7 @@ public class MonitoredController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<Page<MonitoredDtos.MonitoredResponse>> list(
             @AuthenticationPrincipal User caregiver,
             @PageableDefault(size = 20) Pageable pageable) {
@@ -52,15 +54,14 @@ public class MonitoredController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasRole('MONITORED')")
     public ResponseEntity<MonitoredDtos.MonitoredResponse> getMyProfile(
             @AuthenticationPrincipal User user) {
-        if (!DomainConstants.ROLE_MONITORED.equals(user.getRole())) {
-            throw DomainExceptions.ForbiddenException.of("MONITORED role required");
-        }
         return ResponseEntity.ok(service.getByMonitoredUserId(user.getId()));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<MonitoredDtos.MonitoredResponse> getById(
             @AuthenticationPrincipal User caregiver,
             @PathVariable UUID id) {
@@ -68,6 +69,7 @@ public class MonitoredController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<MonitoredDtos.MonitoredResponse> update(
             @AuthenticationPrincipal User caregiver,
             @PathVariable UUID id,
@@ -76,6 +78,7 @@ public class MonitoredController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal User caregiver,
             @PathVariable UUID id) {
@@ -84,6 +87,7 @@ public class MonitoredController {
     }
 
     @PostMapping("/{id}/consent")
+    @PreAuthorize("hasAnyRole('CAREGIVER', 'MONITORED')")
     public ResponseEntity<MonitoredDtos.ConsentResponse> acceptConsent(
             @AuthenticationPrincipal User user,
             @PathVariable UUID id,
@@ -98,6 +102,7 @@ public class MonitoredController {
     }
 
     @DeleteMapping("/{id}/consent")
+    @PreAuthorize("hasAnyRole('CAREGIVER', 'MONITORED')")
     public ResponseEntity<MonitoredDtos.ConsentResponse> revokeConsent(
             @AuthenticationPrincipal User user,
             @PathVariable UUID id) {

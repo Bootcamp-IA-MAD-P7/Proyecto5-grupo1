@@ -3,6 +3,7 @@ package com.sentilife.devices;
 import com.sentilife.users.User;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +39,7 @@ public class DeviceController {
      * Requires authenticated CAREGIVER JWT (T2.22).
      */
     @PostMapping("/push-token")
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<Void> registerPushToken(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody DeviceDtos.PushTokenRequest request) {
@@ -49,6 +51,7 @@ public class DeviceController {
      * Unregisters the caregiver's FCM token for this device (T2c.10 / RF-37).
      */
     @DeleteMapping("/push-token/{deviceId}")
+    @PreAuthorize("hasRole('CAREGIVER')")
     public ResponseEntity<Void> unregisterPushToken(
             @AuthenticationPrincipal User user,
             @PathVariable String deviceId) {
