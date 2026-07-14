@@ -156,6 +156,38 @@ class MonitoredServiceTest {
     }
 
     @Test
+    void getByMonitoredUserId_returnsLinkedProfile() {
+        UUID monitoredUserId = UUID.randomUUID();
+        person.setUserId(monitoredUserId);
+        User monitoredUser = mock(User.class);
+        when(monitoredUser.getEmail()).thenReturn("monitored@test.com");
+        MonitoredPerson linked = spy(person);
+        doReturn(personId).when(linked).getId();
+        doReturn(Instant.now()).when(linked).getCreatedAt();
+        when(repository.findByUserId(monitoredUserId)).thenReturn(Optional.of(linked));
+        when(userRepository.findById(monitoredUserId)).thenReturn(Optional.of(monitoredUser));
+        when(consentRepository.existsByMonitoredPersonIdAndStatus(
+                personId, DomainConstants.CONSENT_ACTIVE)).thenReturn(false);
+        when(telemetryRepository.findLastByMonitoredPersonId(personId))
+                .thenReturn(Optional.empty());
+
+        var result = service.getByMonitoredUserId(monitoredUserId);
+
+        assertThat(result.id()).isEqualTo(personId);
+        assertThat(result.userEmail()).isEqualTo("monitored@test.com");
+    }
+
+    @Test
+    void getByMonitoredUserId_withoutProfile_throwsNotFound() {
+        UUID monitoredUserId = UUID.randomUUID();
+        when(repository.findByUserId(monitoredUserId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getByMonitoredUserId(monitoredUserId))
+                .isInstanceOf(DomainExceptions.NotFoundException.class)
+                .hasMessageContaining("not linked");
+    }
+
+    @Test
     void getById_differentCaregiver_throwsForbidden() {
         UUID otherCaregiver = UUID.randomUUID();
         when(repository.findById(personId)).thenReturn(Optional.of(person));

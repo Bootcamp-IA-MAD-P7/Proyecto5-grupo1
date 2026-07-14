@@ -53,7 +53,7 @@
 | Sec | `/api/v1/telemetry/**` es `permitAll` (comentario “hasta device JWT”) | `SecurityConfig:55` | Bloqueante T2c.11: validar token y vínculo persona/dispositivo |
 | UX IT | Export muestra URL; no descarga autenticada con Bearer | `it_admin_screen.dart` | GET autenticado + save file |
 | UX sesión | JWT solo en memoria · `refresh()` existe pero no se llama | `SessionManager` · `AuthService` | Bloqueante T2c.8: sesión única, secure storage y refresh |
-| Docs | Task decía 82 FE tests · repo tiene **~69** `test(` | `frontend/test/` | Corregir número al correr `flutter test` |
+| Docs | Task decía 82 FE tests · repo tiene **~85** `test(` | `frontend/test/` | Corregir número al correr `flutter test` |
 
 **Decisiones de alcance (no renegociar cada día):**
 - InfluxDB → Postgres (ADR-03). RabbitMQ solo `alert.created` → push; predicción HTTP síncrona.
@@ -226,7 +226,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 - [x] **T2c.1** `FE-A` — Registro Flutter con selector obligatorio `CAREGIVER | MONITORED`; nunca mostrar `IT_ADMIN`. Widget test verifica opciones públicas y request `MONITORED`. **Evidencia 14/07:** `flutter test` 73/73 ✅ · `flutter analyze` limpio. *(RF-01)*
 - [x] **T2c.2** `BE-A` — Vínculo obligatorio implementado con `MonitoredRequest.monitoredUserEmail`, resolución normalizada en `users`, validación de cuenta activa/rol `MONITORED` y rechazo de duplicados. `V6__link_demo_monitored_user.sql` enlaza los seeds y aplica `user_id NOT NULL UNIQUE` + FK `ON DELETE RESTRICT`. **Evidencia 14/07:** `mvn test` 28/28 ✅ · volumen PostgreSQL recreado · Flyway V1→V6 ✅ · 1 ficha seed enlazada, 0 `user_id` nulos. Respuestas: inexistente `404`, rol/inactiva `400`, duplicada `409`. *(RF-03, ADR-10)* (T2c.1 independiente)
-- [ ] **T2c.3** `FE-B` — Formulario CAREGIVER exige email de la cuenta `MONITORED`, envía `monitoredUserEmail` y presenta los errores 404/400/409. Una cuenta `MONITORED` sin ficha muestra `PENDING_LINK`. *(RF-03, RF-34)* (T2c.2 contrato)
+- [x] **T2c.3** `FE-B` — Formulario CAREGIVER exige email de la cuenta `MONITORED`, envía `monitoredUserEmail` y presenta los errores 404/400/409. Una cuenta `MONITORED` sin ficha muestra `PENDING_LINK`. **Evidencia 14/07:** `flutter test` 85/85 ✅ · `flutter analyze` limpio · widget tests `caregiver_home_screen_test.dart` (formulario + payload + errores) y `monitored_screen_test.dart` (PENDING_LINK) · service tests `MonitoredService.create/getMyProfile` en `services_http_test.dart` · backend `GET /monitored-persons/me` para RF-34 · `mvn test` 30/30 ✅. *(RF-03, RF-34)* (T2c.2 contrato)
 
 ### Calidad de inferencia
 

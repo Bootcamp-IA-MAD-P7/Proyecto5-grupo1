@@ -15,6 +15,9 @@ import '../widgets/consent_dialog.dart';
 import '../widgets/transparency_dialog.dart';
 import 'app_shell.dart';
 
+/// Estado de vínculo ficha↔cuenta MONITORED (RF-34).
+enum MonitoredLinkStatus { loading, pendingLink, linked }
+
 /// SL-24 / T1.11 — Pantalla MONITORED v1: estado + última evaluación.
 /// T2.20 — Consentimiento real contra API Java.
 /// T2.21 — Pairing dispositivo antes de consentimiento y telemetría.
@@ -22,6 +25,7 @@ class MonitoredScreen extends StatefulWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
   final MonitoredContextStore? contextStore;
+  final MonitoredService? monitoredService;
   final TelemetryService? telemetryService;
   final TelemetryPipelineService? pipeline;
 
@@ -30,6 +34,7 @@ class MonitoredScreen extends StatefulWidget {
     required this.session,
     required this.onLocaleChanged,
     this.contextStore,
+    this.monitoredService,
     this.telemetryService,
     this.pipeline,
   });
@@ -41,7 +46,7 @@ class MonitoredScreen extends StatefulWidget {
 class _MonitoredScreenState extends State<MonitoredScreen> {
   late final MonitoredContextStore _contextStore;
   late final TelemetryService _telemetryService;
-  final _monitoredService = MonitoredService();
+  late final MonitoredService _monitoredService;
   final _devicesService = DevicesService();
   final _deviceIdService = DeviceIdService();
   final _pairingCodeController = TextEditingController();
@@ -52,6 +57,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   bool _consentAccepted = false;
   bool _consentInFlight = false;
   bool _pairingInFlight = false;
+  MonitoredLinkStatus _linkStatus = MonitoredLinkStatus.loading;
 
   StreamSubscription<WindowPrediction>? _predictionSub;
 
@@ -60,6 +66,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     super.initState();
     _contextStore = widget.contextStore ?? MonitoredContextStore();
     _telemetryService = widget.telemetryService ?? TelemetryService();
+    _monitoredService = widget.monitoredService ?? MonitoredService();
     _consentAccepted = _contextStore.consentActive;
     _pipeline =
         widget.pipeline ??
@@ -71,6 +78,9 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _hydrateContext() async {
+    await _resolveLinkStatus();
+    if (!mounted || _linkStatus == MonitoredLinkStatus.pendingLink) return;
+
     await _contextStore.load();
     if (!mounted) return;
     setState(() => _consentAccepted = _contextStore.consentActive);
@@ -78,6 +88,24 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
       await _loadLastEvaluation();
     }
     await _maybeShowConsent();
+  }
+
+  Future<void> _resolveLinkStatus() async {
+    try {
+      await _monitoredService.getMyProfile();
+      if (!mounted) return;
+      setState(() => _linkStatus = MonitoredLinkStatus.linked);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.status == 404) {
+        setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
+      } else {
+        setState(() => _linkStatus = MonitoredLinkStatus.linked);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _linkStatus = MonitoredLinkStatus.linked);
+    }
   }
 
   Future<void> _loadLastEvaluation() async {
@@ -126,7 +154,12 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _maybeShowConsent() async {
-    if (_consentAccepted || _consentInFlight || !_contextStore.isPaired) return;
+    if (_linkStatus != MonitoredLinkStatus.linked ||
+        _consentAccepted ||
+        _consentInFlight ||
+        !_contextStore.isPaired) {
+      return;
+    }
 
     final accepted = await ConsentDialog.show(context);
     if (!mounted || accepted != true) return;
@@ -260,6 +293,8 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _toggleMonitoring() async {
+    if (_linkStatus == MonitoredLinkStatus.pendingLink) return;
+
     if (!_contextStore.isPaired) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -322,9 +357,21 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final user = widget.session.user!;
+    final isPendingLink = _linkStatus == MonitoredLinkStatus.pendingLink;
     final isPaired = _contextStore.isPaired;
-    final canPressMonitoring =
-        _monitoring || (isPaired && !_consentInFlight && !_pairingInFlight);
+    final canPressMonitoring = !isPendingLink &&
+        (_monitoring || (isPaired && !_consentInFlight && !_pairingInFlight));
+
+    if (_linkStatus == MonitoredLinkStatus.loading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.monitoredTitle),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -354,12 +401,15 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (!isPaired)
+          if (isPendingLink)
+            _buildPendingLinkCard(l10n, theme)
+          else if (!isPaired)
             _buildPairingForm(l10n, theme)
           else
             _buildLinkedCard(l10n, theme),
           const SizedBox(height: 16),
-          Card(
+          if (!isPendingLink)
+            Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -383,7 +433,13 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
               ),
             ),
           ),
-          if (!isPaired) ...[
+          if (isPendingLink) ...[
+            const SizedBox(height: 12),
+            Text(
+              l10n.pendingLinkBody,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ] else if (!isPaired) ...[
             const SizedBox(height: 12),
             Text(
               l10n.pairingRequired,
@@ -397,9 +453,10 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
             ),
           ],
           const SizedBox(height: 16),
-          Text(l10n.lastEvaluation, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (_lastPrediction != null) ...[
+          if (!isPendingLink) ...[
+            Text(l10n.lastEvaluation, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_lastPrediction != null) ...[
             Card(
               color: _lastPrediction!.fallDetected
                   ? Colors.red[50]
@@ -437,6 +494,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
               l10n.noEvaluationYet,
               style: TextStyle(color: Colors.grey[600]),
             ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             height: 52,
@@ -448,7 +506,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
               ),
             ),
           ),
-          if (isPaired && _consentAccepted) ...[
+          if (!isPendingLink && isPaired && _consentAccepted) ...[
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: _consentInFlight ? null : _revokeConsent,
@@ -457,6 +515,20 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildPendingLinkCard(AppLocalizations l10n, ThemeData theme) {
+    return Card(
+      color: Colors.orange[50],
+      child: ListTile(
+        leading: Icon(Icons.hourglass_empty, color: theme.colorScheme.primary),
+        title: Text(
+          l10n.pendingLinkTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text('${l10n.pendingLinkStatus}\n${l10n.pendingLinkBody}'),
       ),
     );
   }

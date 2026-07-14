@@ -254,6 +254,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emergencyContact => 'Emergency contact';
 
   @override
+  String get monitoredUserEmail => 'Monitored account email';
+
+  @override
+  String get monitoredUserEmailRequired =>
+      'Enter the email of an existing MONITORED account.';
+
+  @override
+  String get pendingLinkStatus => 'PENDING_LINK';
+
+  @override
+  String get pendingLinkTitle => 'Link pending';
+
+  @override
+  String get pendingLinkBody =>
+      'Your caregiver must register your profile with this account email before you can pair your device.';
+
+  @override
   String get save => 'Save';
 
   @override

@@ -566,6 +566,36 @@ abstract class AppLocalizations {
   /// **'Contacto de emergencia'**
   String get emergencyContact;
 
+  /// No description provided for @monitoredUserEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Email de la cuenta monitorizada'**
+  String get monitoredUserEmail;
+
+  /// No description provided for @monitoredUserEmailRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce el email de una cuenta MONITORED existente.'**
+  String get monitoredUserEmailRequired;
+
+  /// No description provided for @pendingLinkStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'PENDING_LINK'**
+  String get pendingLinkStatus;
+
+  /// No description provided for @pendingLinkTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Vinculación pendiente'**
+  String get pendingLinkTitle;
+
+  /// No description provided for @pendingLinkBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuidador debe registrar tu ficha con el email de esta cuenta antes de vincular el dispositivo.'**
+  String get pendingLinkBody;
+
   /// No description provided for @save.
   ///
   /// In es, this message translates to:

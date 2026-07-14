@@ -90,6 +90,13 @@ public class MonitoredService {
         return toResponse(findOwned(caregiverId, personId));
     }
 
+    public MonitoredDtos.MonitoredResponse getByMonitoredUserId(UUID userId) {
+        MonitoredPerson person = repository.findByUserId(userId)
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of(
+                        "Monitored profile not linked"));
+        return toResponse(person);
+    }
+
     @Transactional
     public MonitoredDtos.MonitoredResponse update(UUID caregiverId, UUID personId,
                                                   MonitoredDtos.MonitoredRequest request) {

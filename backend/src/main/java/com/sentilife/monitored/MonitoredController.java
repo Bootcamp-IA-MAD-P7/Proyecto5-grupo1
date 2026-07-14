@@ -1,6 +1,7 @@
 package com.sentilife.monitored;
 
 import com.sentilife.config.DomainConstants;
+import com.sentilife.config.DomainExceptions;
 import com.sentilife.users.User;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,15 @@ public class MonitoredController {
             @AuthenticationPrincipal User caregiver,
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(service.listByCaegiver(caregiver.getId(), pageable));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MonitoredDtos.MonitoredResponse> getMyProfile(
+            @AuthenticationPrincipal User user) {
+        if (!DomainConstants.ROLE_MONITORED.equals(user.getRole())) {
+            throw DomainExceptions.ForbiddenException.of("MONITORED role required");
+        }
+        return ResponseEntity.ok(service.getByMonitoredUserId(user.getId()));
     }
 
     @GetMapping("/{id}")
