@@ -40,7 +40,7 @@
 | Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
 | Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
 
-**Veredicto actualizado:** Fase 2c cerrada 14/07. Fase 3 Avanzado: T3.INT ✅ en EC2; T3.8 bloqueado por permiso MIUI en dispositivo físico.
+**Veredicto actualizado (14/07):** Fase 2c cerrada · Fase 3 Avanzado **9/9 CERRADO** (T3.8 OTA físico Xiaomi + T3.INT smoke EC2) — acta `docs/daily/t3.8-t3int-20260714.md`.
 
 ### Deuda residual (post-demo, no bloquea Avanzado)
 
@@ -336,7 +336,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.3 · T4.6 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.6 — Nivel Avanzado CERRADO (9/9) |
+| Estado | v2.7 — Auditoría 14/07: Avanzado CERRADO · Experto 2/8 en cola |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — T3.8 OTA físico ✅ · T3.INT EC2 ✅ |
+| Última actualización | 14/07/2026 — sync post-auditoría: `mvn test` 61/61 · pytest 34/38 · flutter 102/102 · 0 mocks FE |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |
