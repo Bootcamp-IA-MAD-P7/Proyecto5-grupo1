@@ -36,8 +36,8 @@
 
 | Componente | Responsabilidad | NO hace |
 |---|---|---|
-| Flutter | Captura sensores, ventanas, UI de 3 perfiles, consentimiento, OTA | Lógica de clasificación en producción |
-| Backend Java | Puerta de entrada única: auth JWT, roles, consentimiento, personas, alertas, historial, export, OTA | Inferencia ML |
+| Flutter | Sesión segura, foreground service Android, captura sensores, ventanas, UI de 3 perfiles, consentimiento, OTA | Lógica de clasificación en producción |
+| Backend Java | Puerta de entrada única: auth JWT, roles, vinculación de cuentas, consentimiento, agregación de predicciones, alertas, historial, export, OTA | Inferencia ML |
 | FastAPI (inferencia) | Preprocesado de ventana + predicción + versión de modelo | Negocio, auth de usuarios finales |
 | RabbitMQ | Desacople telemetría → inferencia → alertas | Camino crítico si compromete latencia (ver §4.2) |
 | PostgreSQL | Datos de negocio (spec §5.1) | Series temporales de alta frecuencia |
@@ -110,6 +110,33 @@ El repo actual tiene FastAPI como API única (`Backend/api/main.py` con `classif
   4. **Hot-reload del modelo:** la promoción no requiere reiniciar contenedores — FastAPI expone `POST /model/reload` interno y recarga el artefacto `ACTIVE` del registry.
   5. El candidato no promovido queda en **A/B** con ~20% del tráfico (ML-17).
 - **Diferencia clave con el proyecto 4:** la métrica de decisión aquí es **recall de caídas** (no R²), con guardas de overfitting < 5% y validación por sujeto.
+
+### ADR-10 — Identidad obligatoria de la persona monitorizada
+
+- **Decisión:** el registro público obliga a elegir `CAREGIVER` o `MONITORED`. Una ficha en `monitored_persons` solo se crea al vincular por email una cuenta activa con rol `MONITORED`.
+- **Integridad:** `monitored_persons.user_id` es `NOT NULL UNIQUE`. Flutter envía `monitoredUserEmail`; Java resuelve el usuario y nunca confía en un UUID aportado por el cliente.
+- **Errores:** email inexistente `404`; cuenta inactiva o rol incorrecto `400`; cuenta ya vinculada `409`.
+- **Migración:** se recreará la base de datos de desarrollo. No se implementa compatibilidad con fichas huérfanas anteriores.
+- **Estado previo a vínculo:** una cuenta `MONITORED` sin ficha entra en `PENDING_LINK`; pairing, consentimiento y telemetría permanecen bloqueados.
+
+### ADR-11 — Paridad ML y agregación anti-spam en backend
+
+- **Diagnóstico antes de reentrenar:** capturar ventanas reales del móvil y comparar con SisFall: unidades (`m/s²`, `°/s`), gravedad, 50 Hz, 125 muestras, orden de features, finitud y distribución. Según la evidencia se corrige preprocesado, se recalibra el umbral o se reentrena.
+- **Predicciones:** todas se persisten para auditoría y feedback, incluidas las que no generan alerta.
+- **Confirmación:** una alerta requiere al menos 2 positivos entre las 3 predicciones más recientes de la persona.
+- **Cooldown:** no se crea otra alerta para esa persona hasta transcurridos 60 segundos. Si la condición persiste, puede emitirse una nueva al terminar cada minuto.
+- **Ubicación:** la política vive en Java, antes de RabbitMQ/FCM. Debe ejecutarse de forma atómica y consultar estado persistido para comportarse igual con varias instancias o tras reinicios.
+- **Validación de campo:** replay reproducible de 10 minutos de actividad normal sin alertas; la primera alerta de una caída simulada conserva RNF-01 (< 5 s).
+
+### ADR-12 — Sesión única, foreground service y cambio de cuenta seguro
+
+- **Sesión:** eliminar la doble fuente `SessionManager`/`AuthSession`. Un único repositorio de sesión guarda el refresh token en `flutter_secure_storage`, restaura mediante `/auth/refresh` al arrancar y expone el usuario/token vigente a toda la app. La contraseña nunca se persiste.
+- **Background:** el pipeline de sensores no pertenece a `MonitoredScreen`. Un `MonitoringCoordinator` controla un foreground service Android con notificación permanente; la captura continúa al minimizar o bloquear la pantalla y la UI solo observa su estado.
+- **Credencial de telemetría:** el foreground service usa el device token persistido del pairing, no el access token del usuario. Java valida que sus claims coincidan con `monitoredPersonId` y `deviceId`.
+- **Estado por cuenta:** pairing, consentimiento y preferencia de monitorización se guardan bajo namespace `userId`; cambiar de cuenta no comparte contexto.
+- **Logout transaccional en cliente:** bloquear UI → `await stopMonitoring()` → cancelar cola/requests → `DELETE /devices/push-token/{deviceId}` si aplica → limpiar sesión segura → navegar a login. Un fallo de parada se muestra y no permite cambiar de cuenta silenciosamente.
+- **Push:** el backend añade `recipientUserId`; foreground/background handlers consultan la sesión segura y descartan mensajes para otro usuario. El logout del cuidador desregistra su token FCM.
+- **Límite de plataforma:** el foreground service es requisito Android. En web/escritorio/iOS del MVP la app informa que la captura se detiene si la plataforma no garantiza ejecución en background.
 
 ---
 
@@ -259,6 +286,10 @@ EDA SisFall completo, pipeline de ventanas, primer modelo con overfitting < 5%, 
 Ensembles + LOSO + Optuna; backend Java con auth JWT, roles, personas, consentimiento; alertas vía RabbitMQ + **notificaciones push FCM**; perfiles CAREGIVER e IT_ADMIN; modal de transparencia; feedback y export; **mock-off completo** (T2.18–T2.22).
 **Demo (T2.INT ✅):** `make smoke-mvp` — alerta 291 ms, push 325 ms, export IT `TRUE_FALL`.
 
+### Fase 2c — Corrección de consistencia y ruido — 🔴 PRIORIDAD ACTUAL
+Corregir el registro que fija siempre `CAREGIVER`, exigir vínculo por email a una cuenta `MONITORED`, recrear el esquema con `user_id NOT NULL UNIQUE`, diagnosticar la paridad móvil↔entrenamiento, añadir confirmación 2-de-3 con cooldown de 60 s y cerrar los fallos de sesión/background/cambio de cuenta.
+**Demo (T2c.INT):** registrar ambos roles → vincular por email → restaurar sesión tras reinicio → 10 min de background con pantalla bloqueada → 10 min de ADL sin alertas → caída < 5 s y máximo una alerta/min → logout monitorizado → login cuidador sin telemetría ni alertas residuales.
+
 ### Fase 3 — Nivel Avanzado (producción)
 Stack completo dockerizado y desplegado en EC2, InfluxDB en producción, tests unitarios Java + Python, Prometheus + Grafana con dashboard del pipeline, supresión GDPR end-to-end, i18n completo es/en.
 **Demo (T3.INT):** despliegue automático desde `main`; demo de caída sobre QA con dashboard en vivo y app en ambos idiomas.
@@ -280,15 +311,22 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos r
 | MobiAct no llega | Sin respuesta BMI al iniciar Fase 2 | Plan B §4 (solo SisFall + documentar sesgo) |
 | Modelo no cumple overfitting < 5% | Informe Fase 1 | Regularización, más features estadísticas, revisar fuga por sujeto |
 | Contratos divergen entre mock y backend | Integración de fase falla | El contrato de spec §6 gana; quien divergió corrige; añadir test de contrato |
+| Flutter fija un rol y no permite crear `MONITORED` | Todos los registros públicos son `CAREGIVER` | Selector obligatorio y widget/contract test del payload |
+| Fichas sin cuenta real (`user_id` nulo) | Identidad y autorización inconsistentes | Resolución por email en Java + `NOT NULL UNIQUE` en PostgreSQL |
+| Telemetría móvil fuera de distribución | El modelo clasifica ADL como caída | Diagnóstico de paridad previo a umbral/reentrenamiento + replay de campo |
+| Una alerta por ventana positiva | Spam de historial, RabbitMQ y FCM | Agregación 2-de-3 y cooldown persistido de 60 s antes de publicar |
+| Sesión duplicada y solo en memoria | Pérdida de login tras process death | Repositorio único + secure storage + refresh en bootstrap |
+| Sensores ligados al ciclo de vida de una pantalla | Background deja de captar o logout deja tareas en vuelo | Foreground service + coordinador global + logout bloqueante |
+| Pairing y push no aislados por cuenta | Alertas o contexto del usuario anterior | Namespace por `userId`, baja FCM y `recipientUserId` validado |
 
 ---
 
-## 9. Estado de ejecución (sincronizado con `4_task.md` — lun 13/07)
+## 9. Estado de ejecución (sincronizado con `4_task.md` — mar 14/07)
 
 | Nivel bootcamp | Fases | Estado | Evidencia clave |
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make up` + `make smoke-telemetry` |
-| 🟡 Medio | 2 | ✅ **CERRADO** | T2.18–T2.22 mock-off · T2.INT · `make smoke-mvp` |
+| 🟡 Medio | 2 + 2b + 2c | ⚠ **REABIERTO por QA** | Fase 2c: roles, vínculo obligatorio, paridad ML y anti-spam |
 | 🟠 Avanzado | 3 | ⏳ ~44% | T3.1/T3.2/T3.3/T3.5 ✅ · T3.4 tests · T3.6 GDPR · T3.INT 🔲 |
 | 🔴 Experto | 4 | ⏳ ~25% | T4.3/T4.6 ✅ · T4.4 stub≠hecho · T4.1 ✂ CEMP · T4.2 CNN · T4.5 UI · T4.7 drift · T4.INT 🔲 |
 
@@ -300,6 +338,6 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos r
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.3 — lun 13: Fases 0–2 cerradas · mock-off verificado · ADR-06 actualizado |
+| Estado | v0.5 — añade ADR-12 sesión, background y cambio de cuenta seguro |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 13/07/2026 |
+| Última actualización | 14/07/2026 |

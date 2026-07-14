@@ -2,7 +2,7 @@
 
 > **Único archivo de verdad del backlog.** Derivado de `3_plan.md` / `2_spec.md`. Marcar `[x]` al completar; si cambia el alcance, actualizar primero spec/plan.
 >
-> Presentación Factoría: **jueves 16**. Contratos API: congelados en `2_spec.md` §6.
+> Presentación Factoría: **jueves 16**. Contratos API: la corrección Fase 2c modifica `2_spec.md` §6 antes de tocar código.
 >
 > **⛔ GATE DE PR:** ningún merge a `dev`/`main` sin: (1) tarea `[x]` aquí, (2) `make test` / pytest / flutter test verde, (3) si cambia contrato §6 → OK de 1 dev por lado. Commits: `T3.4: …` o `SL-46: …`.
 
@@ -15,12 +15,12 @@
 
 ## Estado actual
 
-> **Revalidado 13/07/2026 contra código** (no contra checkboxes). Objetivo: Esencial+Medio sin mocks, FE→Java→inference.
+> **QA de campo 14/07/2026:** el flujo técnico funciona, pero se reabre Medio por registro sin selector de rol, fichas monitorizadas huérfanas, falsos positivos masivos, spam de alertas, sesión volátil y contaminación de procesos al cambiar de cuenta.
 
 | Nivel | Estado | Progreso | Evidencia / pendiente |
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
-| 🟡 Medio | ✅ **CERRADO funcional** · ⚠ deuda residual | Fase 2 + 2b | Flujo producto OK; ver **Deuda residual pre-Fase 3** |
+| 🟡 Medio | 🔴 **REABIERTO por QA** | Fase 2 + 2b + **2c** | Prioridad: identidad consistente + paridad ML + anti-spam |
 | 🟠 Avanzado | ⏳ | **4/9 (~44%)** | ✅ T3.1–3.3, T3.5 · 🔲 **T3.4 · T3.6 · T3.7 · T3.8 · T3.INT** |
 | 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
@@ -40,7 +40,7 @@
 | Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
 | Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
 
-**Veredicto producto:** sí — **sin mocks**, **conectado FE ↔ Java ↔ inference con `model.pkl`**. Mañana puedes arrancar Fase 3/4 sobre esta base.
+**Veredicto actualizado:** la integración FE ↔ Java ↔ inference es real y sin mocks, pero no se considera lista para entrega hasta cerrar Fase 2c. “Funciona” no compensa identidad inconsistente ni alertas inutilizables.
 
 ### Deuda residual (NO es Fase 3, pero no es “100% RF Medio”)
 
@@ -50,26 +50,37 @@
 |---|---|---|---|
 | RF-02 / RF-22 | Comentarios dicen “IT_ADMIN only” pero **no hay `@PreAuthorize`** — cualquier JWT válido llega a `/admin/*` | `SecurityConfig` · `AdminController` | Añadir `hasRole('IT_ADMIN')` / CAREGIVER en endpoints (encaja en **T3.4**) |
 | RF-30 | Push solo `FALL_ALERT` — no hay push de consent/monitor start/stop | `NotificationService` | Implementar o documentar como post-demo (spec Medio) |
-| Sec | `/api/v1/telemetry/**` es `permitAll` (comentario “hasta device JWT”) | `SecurityConfig:55` | Cerrar cuando haya device JWT; consent sigue validándose en service |
+| Sec | `/api/v1/telemetry/**` es `permitAll` (comentario “hasta device JWT”) | `SecurityConfig:55` | Bloqueante T2c.11: validar token y vínculo persona/dispositivo |
 | UX IT | Export muestra URL; no descarga autenticada con Bearer | `it_admin_screen.dart` | GET autenticado + save file |
-| UX sesión | JWT solo en memoria · `refresh()` existe pero no se llama | `SessionManager` · `AuthService` | Persistencia + refresh (nice-to-have demo) |
+| UX sesión | JWT solo en memoria · `refresh()` existe pero no se llama | `SessionManager` · `AuthService` | Bloqueante T2c.8: sesión única, secure storage y refresh |
 | Docs | Task decía 82 FE tests · repo tiene **~69** `test(` | `frontend/test/` | Corregir número al correr `flutter test` |
 
 **Decisiones de alcance (no renegociar cada día):**
 - InfluxDB → Postgres (ADR-03). RabbitMQ solo `alert.created` → push; predicción HTTP síncrona.
 - MobiAct ✂ Factoría (CEMP). Retrain stub **no** se marca ✅. i18n/OTA se mantienen en cola.
 - Fallback `InferenceClient` (`inference-unavailable`): smoke **falla** si aparece — no silenciar en demo.
+- Registro público: selector obligatorio `CAREGIVER | MONITORED`; `IT_ADMIN` solo interno.
+- Toda ficha `monitored_persons` se vincula por email a una cuenta `MONITORED`; `user_id NOT NULL UNIQUE`. Se recreará la DB.
+- Alertas: confirmación 2-de-3 y máximo una nueva alerta por persona cada 60 s mientras persista la condición.
+- Background Android mantiene la captura mediante foreground service; minimizar no equivale a logout.
+- Logout detiene y espera la monitorización antes de borrar la sesión; pairing y push quedan aislados por `userId`.
 
-**Ruta crítica pendiente (solo Fase 3–4):**
+**Ruta crítica pendiente:**
 ```
+T2c.1–T2c.3 identidad → T2c.7
+T2c.4 diagnóstico ML → T2c.5 corrección modelo → T2c.7
+T2c.6 agregación/cooldown → T2c.7 → T2c.INT
+T2c.8 sesión → T2c.9 background → T2c.10 aislamiento logout/push → T2c.7
+T2c.11 autorización device token → T2c.7
+T2c.INT bloquea retomar Fase 3–4
 T4.2 CNN + T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
 T3.4 tests (+ roles!) + T3.6 GDPR → T3.INT   |   CI/CD deploy ya ✅
 ```
 
-**Arranque mañana (sin cuello de botella):**
-1. `make up` → `make smoke-mvp` (prueba viva Java↔modelo).
-2. Hotfix deuda residual roles (T3.4) si da tiempo AM.
-3. Cola Experto: T4.2 → T4.7 → T4.4 → T4.5.
+**Arranque actual (sin cuello de botella):**
+1. Aprobar esta actualización SDD y congelar los contratos de Fase 2c.
+2. En paralelo: identidad (T2c.1–3), diagnóstico ML (T2c.4), alertas (T2c.6), sesión (T2c.8) y autorización de dispositivo (T2c.11).
+3. Corregir modelo (T2c.5), cerrar background/aislamiento (T2c.9–10), ejecutar regresión E2E (T2c.7) y cerrar T2c.INT.
 
 ### QA — pantallas por rol (revalidado)
 
@@ -207,6 +218,42 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ---
 
+## Fase 2c — Corrección de consistencia y ruido (mar 14) 🔴 PRIORIDAD
+
+> La prueba de campo invalidó el cierre funcional de Medio: Flutter registra siempre `CAREGIVER`, el alta de una ficha no exige una cuenta `MONITORED` y cada ventana positiva genera una alerta. Esta fase se cierra antes de continuar Fase 3/4.
+
+### Identidad y contratos
+
+- [ ] **T2c.1** `FE-A` — Registro Flutter con selector obligatorio `CAREGIVER | MONITORED`; nunca mostrar `IT_ADMIN`. Añadir widget/service tests que verifiquen el rol enviado. *(RF-01)*
+- [ ] **T2c.2** `BE-A` — Hacer obligatorio el vínculo: `MonitoredRequest.monitoredUserEmail`, resolución normalizada en `users`, validación de cuenta activa y rol `MONITORED`, rechazo si ya está vinculada. Añadir migración/Flyway con `user_id NOT NULL UNIQUE` y recrear DB local. Respuestas: inexistente `404`, rol/inactiva `400`, duplicada `409`. *(RF-03, ADR-10)* (T2c.1 independiente)
+- [ ] **T2c.3** `FE-B` — Formulario CAREGIVER exige email de la cuenta `MONITORED`, envía `monitoredUserEmail` y presenta los errores 404/400/409. Una cuenta `MONITORED` sin ficha muestra `PENDING_LINK`. *(RF-03, RF-34)* (T2c.2 contrato)
+
+### Calidad de inferencia
+
+- [ ] **T2c.4** `ML`+`FE-A` — Capturar fixtures etiquetados de telemetría móvil y generar diagnóstico reproducible móvil↔SisFall: unidades, gravedad, frecuencia, 125 muestras, orden de features, NaN/inf y distribución. Publicar informe con causa raíz; prohibido ajustar el umbral sin esta evidencia. *(ML-20, ADR-11)*
+- [ ] **T2c.5** `ML` — Corregir el pipeline, recalibrar el umbral o reentrenar según T2c.4. Versionar artefacto, threshold y métricas (recall, precision, F1, falsos positivos). Añadir replay automatizado de actividad normal. *(ML-02…ML-05, ML-20)* (T2c.4)
+
+### Agregación y control de spam
+
+- [ ] **T2c.6** `BE-B` — Reemplazar “una ventana positiva = una alerta” por regla atómica 2-de-3 y cooldown persistente de 60 s por persona, antes de RabbitMQ/FCM. Persistir todas las predicciones. Tests con reloj inyectable: 1/3 no alerta, 2/3 alerta, bloqueo <60 s, nueva alerta ≥60 s y concurrencia sin duplicados. *(RF-14, RF-15, ADR-11)*
+
+### Sesión, background y aislamiento de cuentas
+
+- [ ] **T2c.8** `FE-A` — Sustituir `SessionManager` + `AuthSession` por un repositorio único. Persistir refresh token en `flutter_secure_storage`, restaurar vía `/auth/refresh` durante bootstrap, manejar expiración y nunca guardar contraseña. Tests: process restart válido/inválido y una sola fuente de verdad. *(RF-35, ADR-12)*
+- [ ] **T2c.9** `FE-A` — Extraer el pipeline de `MonitoredScreen` a `MonitoringCoordinator` e implementar foreground service Android con notificación permanente. Continuar captura con background/pantalla bloqueada; UI observa estado. Test de lifecycle + QA Android de 10 min. *(RF-36, ADR-12)* (T2c.8)
+- [ ] **T2c.10** `FE-A`+`FE-B`+`BE-B` — Logout bloqueante y aislamiento: esperar parada/cancelación de cola, almacenar contexto por `userId`, implementar `DELETE /devices/push-token/{deviceId}`, añadir `recipientUserId` al push y descartarlo si no coincide con la sesión restaurada. Tests de cambio `MONITORED → CAREGIVER` en el mismo dispositivo sin ventanas/alertas residuales. *(RF-37…RF-39, ADR-12)* (T2c.8, T2c.9)
+- [ ] **T2c.11** `BE-B` — Validar bearer de dispositivo en `POST /telemetry/windows`: pairing activo y claims `monitoredPersonId` + `deviceId` idénticos al request. Tests `401` token ausente/inválido y `403` token de otra persona/dispositivo, sin persistencia. *(RF-39, Sec)*
+
+### Regresión completa
+
+- [ ] **T2c.7** `ALL` — Regresión de contratos y producto: ambos roles se registran; vínculos inválidos fallan; DB sin `user_id` nulo; sesión se restaura; background sigue capturando; logout elimina trabajo residual; push no cruza cuentas; telemetría, consentimiento, feedback y export siguen operativos. (T2c.1–T2c.6, T2c.8–T2c.11)
+
+### Integración
+
+- [ ] **T2c.INT** `ALL` — Demo real: registrar `MONITORED` y `CAREGIVER` → vincular por email → pairing/consentimiento → reiniciar app y restaurar sesión → 10 min con pantalla bloqueada capturando → 10 min de ADL con **0 alertas** → caída con primera alerta **< 5 s** y máximo una/min → logout monitorizado → login cuidador sin ventanas ni alertas residuales. Guardar métricas y evidencia. (T2c.7)
+
+---
+
 ## Fase 3 — Nivel Avanzado (producción) 🟠
 
 ### Hecho
@@ -291,21 +338,21 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ## Cola para continuar (orden sugerido)
 
-> Arrancar aquí mañana. Marcar `[x]` en la Fase 3/4 al cerrar. Paralelizar BE / ML / FE.
+> Cerrar Fase 2c antes de retomar Avanzado/Experto. Identidad, diagnóstico ML y agregación pueden arrancar en paralelo.
 
 | # | Tarea | SL | Stream | Bloquea |
 |---|---|---|---|---|
-| 1 | **T4.2** CNN/LSTM | SL-53 | ML | T4.INT, informe |
-| 2 | **T4.7** drift real + Grafana | SL-58 | ML | T4.4, T4.INT |
-| 3 | **T4.4** retrain real (matar stub) | SL-55 | BE+ML | T4.5, T4.INT |
-| 4 | **T4.5** MLOps UI | SL-56 | FE-B | T4.INT |
-| 5 | **T3.4** MockMvc roles/alertas | SL-46 | BE | T3.INT / Avanzado |
-| 6 | **T3.6** GDPR test integración | SL-48 | BE-A | Avanzado |
-| 7 | **T3.7** i18n es/en | — | FE | T3.INT (idioma) |
-| 8 | **T3.8** OTA Android real | — | FE-B | — |
-| 9 | **T3.INT** demo QA | SL-51 | ALL | cierre Avanzado |
-| 10 | **T4.8** presentaciones (jue 16) | SL-59 | ALL | entrega |
-| 11 | **T4.INT** demo experto | SL-60 | ALL | cierre Experto |
+| 1 | **T2c.1–T2c.3** identidad y vínculo | — | FE+BE-A | T2c.7 |
+| 2 | **T2c.4** diagnóstico móvil↔SisFall | — | ML+FE-A | T2c.5 |
+| 3 | **T2c.6** 2-de-3 + cooldown | — | BE-B | T2c.7 |
+| 4 | **T2c.8 + T2c.11** sesión + device auth | — | FE-A+BE-B | T2c.9/10/7 |
+| 5 | **T2c.5** corregir/calibrar modelo | — | ML | T2c.7 |
+| 6 | **T2c.9–T2c.10** background + aislamiento | — | FE+BE-B | T2c.7 |
+| 7 | **T2c.7 + T2c.INT** regresión y demo | — | ALL | retomar Fase 3/4 |
+| 8 | **T4.2** CNN/LSTM | SL-53 | ML | T4.INT, informe |
+| 9 | **T4.7** drift real + Grafana | SL-58 | ML | T4.4, T4.INT |
+| 10 | **T4.4** retrain real (matar stub) | SL-55 | BE+ML | T4.5, T4.INT |
+| 11 | **T4.5** MLOps UI | SL-56 | FE-B | T4.INT |
 
 Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 · T4.1 ✂ CEMP.
 
@@ -318,7 +365,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 | Nivel bootcamp | Fases | Estado | Pendiente explícito |
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
-| 🟡 Medio | 2 + 2b | ✅ **CERRADO** | — |
+| 🟡 Medio | 2 + 2b + 2c | 🔴 **REABIERTO** | **T2c.1…T2c.11 · T2c.INT** |
 | 🟠 Avanzado | 3 | ⏳ **4/9 (~44%)** | **T3.4** · **T3.6** · **T3.7** · **T3.8** · **T3.INT** |
 | 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
@@ -328,7 +375,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.2 — revalidación Esencial+Medio (sin mocks, model.pkl en git) · deuda residual documentada · T3.4 incluye roles |
+| Estado | v2.4 — Fase 2c añade sesión persistente, background y aislamiento de cuentas |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 13/07/2026 |
+| Última actualización | 14/07/2026 |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |
