@@ -12,4 +12,6 @@ public interface ConsentRepository extends JpaRepository<Consent, UUID> {
     boolean existsByMonitoredPersonIdAndStatus(UUID monitoredPersonId, String status);
 
     void deleteByMonitoredPersonId(UUID monitoredPersonId);
+
+    long countByMonitoredPersonId(UUID monitoredPersonId);
 }

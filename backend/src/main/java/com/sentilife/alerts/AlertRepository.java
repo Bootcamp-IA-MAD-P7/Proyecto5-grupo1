@@ -33,4 +33,6 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
 
     /** Used for GDPR suppression — delete all alerts for a person */
     void deleteByMonitoredPersonId(UUID monitoredPersonId);
+
+    long countByMonitoredPersonId(UUID monitoredPersonId);
 }

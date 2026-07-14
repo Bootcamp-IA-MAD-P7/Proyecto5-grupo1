@@ -21,7 +21,7 @@
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
 | 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 — ver `docs/daily/t2c7-t2cint-regression-20260714.md` |
-| 🟠 Avanzado | ⏳ | **5/9 (~56%)** | ✅ T3.1–3.3, T3.4, T3.5 · 🔲 **T3.6 · T3.7 · T3.8 · T3.INT** |
+| 🟠 Avanzado | ⏳ | **6/9 (~67%)** | ✅ T3.1–3.4, T3.5, T3.6 · 🔲 **T3.7 · T3.8 · T3.INT** |
 | 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
 ### Checklist Esencial + Medio (certeza)
@@ -267,10 +267,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 - [x] **T3.4** `BE-A`+`BE-B` — Suite de tests ampliada **+ enforcement de roles**. *(ML-14, RF-02)* **Evidencia 14/07:** `@EnableMethodSecurity` + `@PreAuthorize` en `/admin/**`, `/admin/models/**`, `/admin/retrain/**` (`IT_ADMIN`), `/alerts/**`, CRUD `/monitored-persons/**` y push-token (`CAREGIVER`), consent (`CAREGIVER|MONITORED`) · JSON 401/403 en `SecurityConfig` + `GlobalExceptionHandler` · `ApiSecurityIntegrationTest` 9 escenarios MockMvc (matriz roles, consent 403 sin pairing, alert PATCH) · `test_inference_api.py` +3 contratos `/predict` · `mvn test` 57/57 ✅ · `pytest tests/` verde.
 
-- [ ] **T3.6** `BE-A` — Supresión GDPR **demostrada**. *(RF-08)*
-  - **Hoy:** cascade en `MonitoredService.delete()` (feedback → alerts → telemetry_windows → paired_devices → consents → person). Influx N/A (ADR-03 Postgres). Test actual solo `verify(mock)` — no toca BD.
-  - **Hacer:** test de integración: crear persona + ventana + alerta + feedback → `DELETE /api/v1/monitored-persons/{id}` → assert `COUNT(*) = 0` en esas tablas.
-  - **CA:** un test automatizado prueba el wipe; documentar en README que Influx no aplica.
+- [x] **T3.6** `BE-A` — Supresión GDPR **demostrada**. *(RF-08)* **Evidencia 14/07:** `GdprSuppressionIntegrationTest` — seed persona + consent + paired_device + telemetry_window + alert + feedback → `DELETE /api/v1/monitored-persons/{id}` → `COUNT(*)=0` en las 6 tablas · cuentas `users` intactas · documentado en `backend/README.md` (InfluxDB N/A, ADR-03) · `mvn test` 58/58 ✅.
 
 - [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)*
   - **Hoy:** ARB `app_es.arb` / `app_en.arb` (~118 keys, pares). Huecos: `login_screen.dart` hardcodeado ES; `update_service.dart` strings ES; push FCM en BE hardcodeado EN (no usa `PushToken.locale`); textos legales solo vía ARB + `policy_version = 1.0-{lang}` (sin docs legales versionados aparte).
@@ -363,7 +360,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
-| 🟠 Avanzado | 3 | ⏳ **5/9 (~56%)** | **T3.6** · **T3.7** · **T3.8** · **T3.INT** |
+| 🟠 Avanzado | 3 | ⏳ **6/9 (~67%)** | **T3.7** · **T3.8** · **T3.INT** |
 | 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
 ---

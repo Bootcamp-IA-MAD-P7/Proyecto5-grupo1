@@ -26,4 +26,6 @@ public interface TelemetryWindowRepository extends JpaRepository<TelemetryWindow
 
     /** Used for GDPR suppression — delete all telemetry windows for a person */
     void deleteByMonitoredPersonId(UUID monitoredPersonId);
+
+    long countByMonitoredPersonId(UUID monitoredPersonId);
 }
