@@ -195,6 +195,7 @@ def test_metrics_returns_prometheus_format():
     assert "text/plain" in response.headers["content-type"]
     assert "predictions_total" in response.text
     assert "prediction_latency_seconds" in response.text
+    assert "feature_drift_psi" in response.text
 
 
 # ── Route structure ───────────────────────────────────────────────────────────
@@ -213,6 +214,8 @@ def test_only_inference_routes_exist():
         "/health",
         "/predict",
         "/metrics",
+        "/drift",
+        "/drift/recompute",
         "/model/info",
         "/model/reload",
         "/model/registry",

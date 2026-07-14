@@ -57,10 +57,26 @@ Conv1D(64, k=5) → BatchNorm → MaxPool → Conv1D(128, k=3) → BatchNorm →
 
 | CA | Estado |
 |---|---|
-| Artefacto versionado + métricas documentadas | ✅ `cnn1d-v1.0.0.keras` + JSON |
-| Overfitting < 5 pp train vs test | ✅ ver `cnn1d_comparison.json` |
-| Ningún subject_id en train y test | ✅ assert + test pytest |
-| pytest verde · pipeline existente intacto | ✅ |
+| Panel Grafana con drift visible | ✅ gauge + timeseries + stat |
+| Valor cambia con datos | ✅ buffer en `/predict` + PSI dinámico |
+| Fase DRIFT retrain cableada | ✅ `POST /drift/recompute` (sin sleep) |
+| Métrica Prometheus | ✅ `feature_drift_psi`, `feature_drift_detected` |
+
+---
+
+## 6. Data drift (T4.7 / ML-18)
+
+Script: `api/inference/drift.py` · baseline: `ml/artifacts/drift_baseline.json`
+
+| Componente | Detalle |
+|---|---|
+| Métrica | PSI medio sobre 40 features del modelo vs SisFall train |
+| Umbral | 0.2 (configurable `DRIFT_PSI_THRESHOLD`) |
+| Buffer | últimas 500 ventanas de producción (`/predict`) |
+| Endpoints | `GET /drift` · `POST /drift/recompute` |
+| Prometheus | `feature_drift_psi`, `feature_drift_detected`, `feature_drift_samples` |
+| Grafana | panel PSI + alerta `sentilife-drift-psi` (> 0.2, 2 min) |
+| Retrain Java | `RetrainService` fase DRIFT → HTTP `/drift/recompute` |
 
 ---
 

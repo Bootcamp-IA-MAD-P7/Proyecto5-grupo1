@@ -120,6 +120,75 @@
         { "expr": "jvm_memory_used_bytes{job=\"sentilife-java\", area=\"heap\"}", "legendFormat": "Heap used" },
         { "expr": "jvm_memory_committed_bytes{job=\"sentilife-java\", area=\"heap\"}", "legendFormat": "Heap committed" }
       ]
+    },
+    {
+      "title": "ML Feature Drift — PSI (mean vs SisFall baseline)",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 0.5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.2 }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "feature_drift_psi{job=\"sentilife-inference\"}", "legendFormat": "PSI" }
+      ]
+    },
+    {
+      "title": "ML Feature Drift — PSI over time",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        { "expr": "feature_drift_psi{job=\"sentilife-inference\"}", "legendFormat": "PSI" }
+      ]
+    },
+    {
+      "title": "ML Feature Drift — Detected / Sample Buffer",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "STABLE", "color": "green" },
+                "1": { "text": "DRIFT", "color": "red" }
+              }
+            }
+          ]
+        }
+      },
+      "targets": [
+        { "expr": "feature_drift_detected{job=\"sentilife-inference\"}", "legendFormat": "detected" },
+        { "expr": "feature_drift_samples{job=\"sentilife-inference\"}", "legendFormat": "samples" }
+      ]
     }
   ],
   "schemaVersion": 39,
@@ -128,5 +197,5 @@
   "time": { "from": "now-1h", "to": "now" },
   "title": "SentiLife — Pipeline & MLOps Dashboard",
   "uid": "sentilife-pipeline",
-  "version": 2
+  "version": 3
 }

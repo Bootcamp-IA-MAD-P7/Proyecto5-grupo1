@@ -96,9 +96,36 @@ public class RetrainService {
      */
     private void runPipeline() {
         try {
-            // Phase 1: DRIFT — check if data has changed significantly
+            // Phase 1: DRIFT — PSI vs SisFall training baseline (T4.7 / ML-18)
             updatePhase(RetrainDtos.Phase.DRIFT, "Analyzing data drift...");
-            Thread.sleep(2000); // Simulate drift analysis
+            Map<String, Object> driftResult = callDriftEndpoint();
+            if (driftResult == null) {
+                failJob("Drift endpoint not available");
+                return;
+            }
+
+            double driftPsi = ((Number) driftResult.getOrDefault("psi", 0.0)).doubleValue();
+            boolean driftDetected = Boolean.TRUE.equals(driftResult.get("drift_detected"));
+            int driftSamples = ((Number) driftResult.getOrDefault("samples", 0)).intValue();
+
+            var driftMetrics = Map.of(
+                    "drift_psi", driftPsi,
+                    "drift_detected", driftDetected,
+                    "drift_samples", driftSamples,
+                    "drift_status", driftResult.getOrDefault("status", "unknown")
+            );
+            var prev = currentStatus.get();
+            currentStatus.set(new RetrainDtos.RetrainStatus(
+                    RetrainDtos.Phase.DRIFT,
+                    RetrainDtos.Decision.PENDING,
+                    String.format("Drift analysis complete — PSI=%.3f detected=%s samples=%d",
+                            driftPsi, driftDetected, driftSamples),
+                    prev.modelVersion(),
+                    driftMetrics,
+                    prev.startedAt(),
+                    null
+            ));
+            log.info("[Retrain] Drift PSI={} detected={} samples={}", driftPsi, driftDetected, driftSamples);
 
             // Phase 2: TRAINING — call inference service to retrain
             updatePhase(RetrainDtos.Phase.TRAINING, "Training new model with feedback data...");
@@ -167,6 +194,24 @@ public class RetrainService {
         } catch (Exception e) {
             failJob("Pipeline error: " + e.getMessage());
             log.error("[Retrain] Pipeline failed", e);
+        }
+    }
+
+    /**
+     * Calls the inference service drift endpoint (PSI vs training baseline).
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> callDriftEndpoint() {
+        try {
+            String url = inferenceUrl + "/drift/recompute";
+            var response = restTemplate.postForEntity(url, null, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("[Retrain] Could not compute drift: {}", e.getMessage());
+            return null;
         }
     }
 

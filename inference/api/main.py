@@ -11,6 +11,8 @@ Endpoints:
   GET  /model/info       — current model metadata
   POST /model/reload     — hot-reload model from disk without restart
   GET  /model/registry   — list all models in registry (SL-54 / T4.3)
+  GET  /drift            — feature drift snapshot (PSI vs SisFall baseline)
+  POST /drift/recompute  — recompute drift from recent production windows
 """
 
 from __future__ import annotations
@@ -28,6 +30,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
+
+from api.inference.drift import DriftMonitor
+from api.inference.features import extract_features
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -49,6 +54,11 @@ app.add_middleware(
 MODEL_PATH = os.environ.get("MODEL_PATH", "ml/models/model.pkl")
 MODEL_VERSION = os.environ.get("MODEL_VERSION", "unknown")
 REGISTRY_PATH = os.environ.get("MODEL_REGISTRY_PATH", "ml/registry/registry.json")
+
+REQUIRED_SIGNALS = ("accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ")
+REQUIRED_SAMPLE_COUNT = 125
+
+_drift_monitor = DriftMonitor()
 
 # ── Model state (thread-safe) ─────────────────────────────────────────────────
 
@@ -83,7 +93,19 @@ def _load_model(path: str) -> bool:
         _model_state["loaded_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         _model_state["file_path"] = str(resolved)
 
+    _sync_drift_features()
     return True
+
+
+def _sync_drift_features() -> None:
+    """Limit drift monitoring to features used by the active model."""
+    with _model_lock:
+        numeric = _model_state["numeric_features"]
+    if not numeric:
+        return
+    monitored = [f for f in numeric if f in _drift_monitor.baseline_bins]
+    if monitored:
+        _drift_monitor.feature_names = monitored[:40]
 
 
 def _load_active_from_registry() -> bool:
@@ -126,11 +148,6 @@ def _record_latency(seconds: float):
 
 
 # ── Request/Response schemas (spec §6.8) ─────────────────────────────────────
-
-from api.inference.features import extract_features
-
-REQUIRED_SIGNALS = ("accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ")
-REQUIRED_SAMPLE_COUNT = 125
 
 
 class PredictRequest(BaseModel):
@@ -183,6 +200,7 @@ def startup_load_model():
     # Try registry first (SL-54); fall back to MODEL_PATH env var
     loaded = _load_active_from_registry() or _load_model(MODEL_PATH)
     if loaded:
+        _sync_drift_features()
         print(f"[inference] Model loaded: {_model_state['model_name']} from {_model_state['file_path']}")
     else:
         print(f"[inference] WARNING: No model found. /predict will return 503 until a model is loaded.")
@@ -260,6 +278,7 @@ def predict(window: PredictRequest):
         fall_prob = float(proba[1])
         is_fall = fall_prob >= threshold
         confidence = fall_prob if is_fall else (1.0 - fall_prob)
+        _drift_monitor.record(feat)
 
     except HTTPException:
         raise
@@ -313,6 +332,7 @@ def model_reload(path: Optional[str] = None):
             detail=f"Model file not found: {path or MODEL_PATH}",
         )
     _metrics["model_reloads"] += 1
+    _sync_drift_features()
     return {
         "status": "reloaded",
         "model_name": _model_state["model_name"],
@@ -337,9 +357,23 @@ def model_registry():
         raise HTTPException(status_code=500, detail=f"Registry read error: {exc}") from exc
 
 
+@app.get("/drift")
+def drift_status():
+    """Current feature drift snapshot (PSI vs SisFall training baseline)."""
+    return _drift_monitor.snapshot()
+
+
+@app.post("/drift/recompute")
+def drift_recompute():
+    """Recompute PSI from recent production windows (T4.7 / retrain DRIFT phase)."""
+    result = _drift_monitor.recompute()
+    return result
+
+
 @app.get("/metrics", response_class=PlainTextResponse)
 def metrics():
     """Prometheus-compatible metrics endpoint."""
+    drift = _drift_monitor.snapshot()
     lines = []
 
     lines.append("# HELP predictions_total Total predictions served")
@@ -371,6 +405,18 @@ def metrics():
     lines.append(f'prediction_latency_seconds_bucket{{le="+Inf"}} {_metrics["prediction_latency_count"]}')
     lines.append(f'prediction_latency_seconds_sum {_metrics["prediction_latency_sum"]:.6f}')
     lines.append(f'prediction_latency_seconds_count {_metrics["prediction_latency_count"]}')
+
+    lines.append("# HELP feature_drift_psi Mean PSI of input features vs training baseline")
+    lines.append("# TYPE feature_drift_psi gauge")
+    lines.append(f'feature_drift_psi {drift["psi"]}')
+
+    lines.append("# HELP feature_drift_detected 1 if PSI exceeds threshold")
+    lines.append("# TYPE feature_drift_detected gauge")
+    lines.append(f'feature_drift_detected {1 if drift["drift_detected"] else 0}')
+
+    lines.append("# HELP feature_drift_samples Recent windows in drift buffer")
+    lines.append("# TYPE feature_drift_samples gauge")
+    lines.append(f'feature_drift_samples {drift["samples"]}')
 
     return "\n".join(lines) + "\n"
 
