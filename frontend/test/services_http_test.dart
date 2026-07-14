@@ -543,6 +543,21 @@ void main() {
         completes,
       );
     });
+
+    test('unregisterPushToken DELETE devuelve 204', () async {
+      final service = DevicesService(
+        client: MockClient((req) async {
+          expect(req.method, 'DELETE');
+          expect(req.url.path, endsWith('/push-token/android-1'));
+          return http.Response('', 204);
+        }),
+      );
+
+      await expectLater(
+        service.unregisterPushToken(deviceId: 'android-1'),
+        completes,
+      );
+    });
   });
 
   // ── AdminService ───────────────────────────────────────────────────────────

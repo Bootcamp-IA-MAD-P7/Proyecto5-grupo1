@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
-import '../models/prediction_result.dart';
 import '../services/auth_session.dart';
 import '../services/device_id_service.dart';
 import '../services/devices_service.dart';
 import '../services/exceptions.dart';
 import '../services/monitoring_coordinator.dart';
+import '../services/monitoring_coordinator_registry.dart';
 import '../services/monitored_context_store.dart';
 import '../services/monitored_service.dart';
 import '../services/telemetry_service.dart';
@@ -73,6 +73,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   void initState() {
     super.initState();
     _contextStore = widget.contextStore ?? MonitoredContextStore();
+    _contextStore.bindUser(widget.session.user!.id);
     _telemetryService = widget.telemetryService ?? TelemetryService();
     _monitoredService = widget.monitoredService ?? MonitoredService();
     _consentAccepted = _contextStore.consentActive;
@@ -81,6 +82,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
           onTelemetryError: _handleTelemetryError,
           onCaptureError: _handleCaptureError,
         );
+    MonitoringCoordinatorRegistry.instance.register(_coordinator);
     _coordinator.addListener(_onCoordinatorChanged);
     _hydrateContext();
   }
@@ -344,6 +346,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   void dispose() {
     _pairingCodeController.dispose();
     _coordinator.removeListener(_onCoordinatorChanged);
+    MonitoringCoordinatorRegistry.instance.unregister(_coordinator);
     unawaited(_coordinator.shutdown());
     super.dispose();
   }

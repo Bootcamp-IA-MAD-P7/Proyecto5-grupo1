@@ -95,6 +95,7 @@ public class NotificationService {
                         .putData("monitoredPersonId", monitoredPersonId.toString())
                         .putData("personName", personName)
                         .putData("confidence", String.valueOf(confidence))
+                        .putData("recipientUserId", caregiverId.toString())
                         .build();
 
                 String messageId = FirebaseMessaging.getInstance().send(message);

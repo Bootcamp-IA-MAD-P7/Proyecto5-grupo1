@@ -70,6 +70,7 @@ class MonitoringCoordinator extends ChangeNotifier {
     _disposed = true;
     await _predictionSub?.cancel();
     _predictionSub = null;
+    _pipeline.cancelPendingQueue();
     await _pipeline.dispose();
     await _foregroundBridge.stop();
     notifyListeners();

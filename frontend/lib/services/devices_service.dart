@@ -70,6 +70,15 @@ class DevicesService {
     _checkStatus(res);
   }
 
+  /// DELETE /push-token/{deviceId} — desregistra FCM del cuidador en logout (T2c.10).
+  Future<void> unregisterPushToken({required String deviceId}) async {
+    final res = await _client.delete(
+      Uri.parse('$_base/push-token/$deviceId'),
+      headers: _headers(),
+    );
+    _checkStatus(res);
+  }
+
   Map<String, String> _headers() => apiJsonHeaders();
 
   void _checkStatus(http.Response res) {

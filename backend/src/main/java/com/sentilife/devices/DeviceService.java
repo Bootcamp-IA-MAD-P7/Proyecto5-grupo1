@@ -92,4 +92,14 @@ public class DeviceService {
 
         pushTokenRepo.save(token);
     }
+
+    /**
+     * Removes the caregiver's FCM registration for this device.
+     * Idempotent: no-op if the token does not exist (spec §6.4 / T2c.10).
+     */
+    @Transactional
+    public void unregisterPushToken(UUID userId, String deviceId) {
+        pushTokenRepo.findByUserIdAndDeviceId(userId, deviceId)
+                .ifPresent(pushTokenRepo::delete);
+    }
 }

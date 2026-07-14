@@ -64,9 +64,10 @@ void main() {
     MonitoredContextStore().resetInMemoryForTests();
   });
 
-  tearDown(() {
+  tearDown(() async {
     SessionRepository.resetForTests();
-    MonitoredContextStore().clear();
+    final store = MonitoredContextStore()..bindUser('monitored-1');
+    await store.clear();
   });
 
   testWidgets('cuenta MONITORED sin ficha muestra PENDING_LINK', (
