@@ -9,6 +9,8 @@ import com.sentilife.consent.ConsentRepository;
 import com.sentilife.devices.PairedDeviceRepository;
 import com.sentilife.telemetry.TelemetryWindow;
 import com.sentilife.telemetry.TelemetryWindowRepository;
+import com.sentilife.users.User;
+import com.sentilife.users.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,27 +37,47 @@ public class MonitoredService {
     private final FeedbackLabelRepository feedbackRepository;
     private final TelemetryWindowRepository telemetryRepository;
     private final PairedDeviceRepository pairedDeviceRepository;
+    private final UserRepository userRepository;
 
     public MonitoredService(MonitoredPersonRepository repository,
                             ConsentRepository consentRepository,
                             AlertRepository alertRepository,
                             FeedbackLabelRepository feedbackRepository,
                             TelemetryWindowRepository telemetryRepository,
-                            PairedDeviceRepository pairedDeviceRepository) {
+                            PairedDeviceRepository pairedDeviceRepository,
+                            UserRepository userRepository) {
         this.repository            = repository;
         this.consentRepository     = consentRepository;
         this.alertRepository       = alertRepository;
         this.feedbackRepository    = feedbackRepository;
         this.telemetryRepository   = telemetryRepository;
         this.pairedDeviceRepository = pairedDeviceRepository;
+        this.userRepository        = userRepository;
     }
 
     @Transactional
     public MonitoredDtos.MonitoredResponse create(UUID caregiverId,
                                                   MonitoredDtos.MonitoredRequest request) {
+        User monitoredUser = userRepository
+                .findByEmailIgnoreCase(normalizeEmail(request.monitoredUserEmail()))
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of(
+                        "Monitored user not found"));
+        if (!DomainConstants.ROLE_MONITORED.equals(monitoredUser.getRole())) {
+            throw DomainExceptions.BadRequestException.of(
+                    "Linked account must have MONITORED role");
+        }
+        if (!Boolean.TRUE.equals(monitoredUser.getActive())) {
+            throw DomainExceptions.BadRequestException.of(
+                    "Linked MONITORED account must be active");
+        }
+        if (repository.existsByUserId(monitoredUser.getId())) {
+            throw DomainExceptions.ConflictException.of(
+                    "MONITORED account is already linked");
+        }
         MonitoredPerson person = new MonitoredPerson();
         fillFromRequest(person, request);
         person.setCaregiverId(caregiverId);
+        person.setUserId(monitoredUser.getId());
         person.setPairingCode(generatePairingCode());
         return toResponse(repository.save(person));
     }
@@ -188,6 +211,10 @@ public class MonitoredService {
         p.setEmergencyContact(r.emergencyContact());
     }
 
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
     /** Ventana de tiempo tras la última muestra en la que se considera activa la monitorización. */
     private static final Duration MONITORING_ACTIVE_WINDOW = Duration.ofMinutes(5);
 
@@ -216,8 +243,23 @@ public class MonitoredService {
         String monitoringStatus = (consentActive && recent)
                 ? DomainConstants.MONITORING_ACTIVE : DomainConstants.MONITORING_INACTIVE;
 
-        return MonitoredDtos.MonitoredResponse.from(person, consentStatus, monitoringStatus,
-                lastSeenAt, lastPrediction);
+        return MonitoredDtos.MonitoredResponse.from(
+                person,
+                linkedUserEmail(person),
+                consentStatus,
+                monitoringStatus,
+                lastSeenAt,
+                lastPrediction);
+    }
+
+    private String linkedUserEmail(MonitoredPerson person) {
+        if (person.getUserId() == null) {
+            return null;
+        }
+        return userRepository.findById(person.getUserId())
+                .map(User::getEmail)
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of(
+                        "Linked MONITORED user not found"));
     }
 
     private MonitoredDtos.ConsentResponse toConsentResponse(Consent c) {

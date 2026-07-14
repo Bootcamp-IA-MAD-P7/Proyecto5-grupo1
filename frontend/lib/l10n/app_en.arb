@@ -54,6 +54,7 @@
   "login": "Sign in",
   "logout": "Sign out",
   "demoAccounts": "Demo accounts",
+  "registrationRolePrompt": "Profile type",
   "roleCaregiver": "Caregiver",
   "roleMonitored": "Monitored person",
   "roleItAdmin": "IT Admin",

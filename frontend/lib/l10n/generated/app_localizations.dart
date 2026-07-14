@@ -422,6 +422,12 @@ abstract class AppLocalizations {
   /// **'Cuentas de demostración'**
   String get demoAccounts;
 
+  /// No description provided for @registrationRolePrompt.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de perfil'**
+  String get registrationRolePrompt;
+
   /// No description provided for @roleCaregiver.
   ///
   /// In es, this message translates to:

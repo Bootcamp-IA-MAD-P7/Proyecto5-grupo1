@@ -9,6 +9,8 @@ import com.sentilife.consent.ConsentRepository;
 import com.sentilife.devices.PairedDeviceRepository;
 import com.sentilife.telemetry.TelemetryWindow;
 import com.sentilife.telemetry.TelemetryWindowRepository;
+import com.sentilife.users.User;
+import com.sentilife.users.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,7 @@ class MonitoredServiceTest {
     @Mock FeedbackLabelRepository feedbackRepository;
     @Mock TelemetryWindowRepository telemetryRepository;
     @Mock PairedDeviceRepository pairedDeviceRepository;
+    @Mock UserRepository userRepository;
 
     @InjectMocks MonitoredService service;
 
@@ -58,6 +61,99 @@ class MonitoredServiceTest {
     }
 
     // ── access control ────────────────────────────────────────────────────────
+
+    @Test
+    void create_resolvesNormalizedMonitoredEmailAndLinksUser() {
+        UUID monitoredUserId = UUID.randomUUID();
+        User monitoredUser = mock(User.class);
+        when(monitoredUser.getId()).thenReturn(monitoredUserId);
+        when(monitoredUser.getEmail()).thenReturn("monitored@test.com");
+        when(monitoredUser.getRole()).thenReturn(DomainConstants.ROLE_MONITORED);
+        when(monitoredUser.getActive()).thenReturn(true);
+        when(userRepository.findByEmailIgnoreCase("monitored@test.com"))
+                .thenReturn(Optional.of(monitoredUser));
+        when(userRepository.findById(monitoredUserId))
+                .thenReturn(Optional.of(monitoredUser));
+        when(repository.save(any(MonitoredPerson.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = service.create(caregiverId, new MonitoredDtos.MonitoredRequest(
+                "  MONITORED@Test.COM  ",
+                "Manuel Pérez",
+                LocalDate.of(1948, 3, 12),
+                "M",
+                new BigDecimal("78.5"),
+                new BigDecimal("172"),
+                null));
+
+        verify(userRepository).findByEmailIgnoreCase("monitored@test.com");
+        verify(repository).save(argThat(saved ->
+                monitoredUserId.equals(saved.getUserId())));
+        assertThat(result.userId()).isEqualTo(monitoredUserId);
+        assertThat(result.userEmail()).isEqualTo("monitored@test.com");
+    }
+
+    @Test
+    void create_rejectsUnknownMonitoredEmail() {
+        when(userRepository.findByEmailIgnoreCase("missing@test.com"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.create(caregiverId,
+                monitoredRequest("missing@test.com")))
+                .isInstanceOf(DomainExceptions.NotFoundException.class);
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void create_rejectsUserWithNonMonitoredRole() {
+        User caregiverUser = mock(User.class);
+        when(caregiverUser.getRole()).thenReturn(DomainConstants.ROLE_CAREGIVER);
+        when(userRepository.findByEmailIgnoreCase("caregiver@test.com"))
+                .thenReturn(Optional.of(caregiverUser));
+
+        assertThatThrownBy(() -> service.create(caregiverId,
+                monitoredRequest("caregiver@test.com")))
+                .isInstanceOf(DomainExceptions.BadRequestException.class)
+                .hasMessageContaining("MONITORED");
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void create_rejectsInactiveMonitoredUser() {
+        User inactiveUser = mock(User.class);
+        when(inactiveUser.getRole()).thenReturn(DomainConstants.ROLE_MONITORED);
+        when(inactiveUser.getActive()).thenReturn(false);
+        when(userRepository.findByEmailIgnoreCase("inactive@test.com"))
+                .thenReturn(Optional.of(inactiveUser));
+
+        assertThatThrownBy(() -> service.create(caregiverId,
+                monitoredRequest("inactive@test.com")))
+                .isInstanceOf(DomainExceptions.BadRequestException.class)
+                .hasMessageContaining("active");
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void create_rejectsAlreadyLinkedMonitoredUser() {
+        UUID monitoredUserId = UUID.randomUUID();
+        User linkedUser = mock(User.class);
+        when(linkedUser.getId()).thenReturn(monitoredUserId);
+        when(linkedUser.getRole()).thenReturn(DomainConstants.ROLE_MONITORED);
+        when(linkedUser.getActive()).thenReturn(true);
+        when(userRepository.findByEmailIgnoreCase("linked@test.com"))
+                .thenReturn(Optional.of(linkedUser));
+        when(repository.existsByUserId(monitoredUserId)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(caregiverId,
+                monitoredRequest("linked@test.com")))
+                .isInstanceOf(DomainExceptions.ConflictException.class)
+                .hasMessageContaining("already linked");
+
+        verify(repository, never()).save(any());
+    }
 
     @Test
     void getById_differentCaregiver_throwsForbidden() {
@@ -235,5 +331,16 @@ class MonitoredServiceTest {
         verify(pairedDeviceRepository).deleteByMonitoredPersonId(personId);
         verify(consentRepository).deleteByMonitoredPersonId(personId);
         verify(repository).delete(person);
+    }
+
+    private MonitoredDtos.MonitoredRequest monitoredRequest(String email) {
+        return new MonitoredDtos.MonitoredRequest(
+                email,
+                "Manuel Pérez",
+                LocalDate.of(1948, 3, 12),
+                "M",
+                new BigDecimal("78.5"),
+                new BigDecimal("172"),
+                null);
     }
 }

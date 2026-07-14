@@ -68,6 +68,7 @@
   "login": "Entrar",
   "logout": "Cerrar sesión",
   "demoAccounts": "Cuentas de demostración",
+  "registrationRolePrompt": "Tipo de perfil",
   "roleCaregiver": "Cuidador",
   "roleMonitored": "Persona monitorizada",
   "roleItAdmin": "Administrador IT",

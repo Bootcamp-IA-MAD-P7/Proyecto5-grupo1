@@ -224,8 +224,8 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ### Identidad y contratos
 
-- [ ] **T2c.1** `FE-A` — Registro Flutter con selector obligatorio `CAREGIVER | MONITORED`; nunca mostrar `IT_ADMIN`. Añadir widget/service tests que verifiquen el rol enviado. *(RF-01)*
-- [ ] **T2c.2** `BE-A` — Hacer obligatorio el vínculo: `MonitoredRequest.monitoredUserEmail`, resolución normalizada en `users`, validación de cuenta activa y rol `MONITORED`, rechazo si ya está vinculada. Añadir migración/Flyway con `user_id NOT NULL UNIQUE` y recrear DB local. Respuestas: inexistente `404`, rol/inactiva `400`, duplicada `409`. *(RF-03, ADR-10)* (T2c.1 independiente)
+- [x] **T2c.1** `FE-A` — Registro Flutter con selector obligatorio `CAREGIVER | MONITORED`; nunca mostrar `IT_ADMIN`. Widget test verifica opciones públicas y request `MONITORED`. **Evidencia 14/07:** `flutter test` 73/73 ✅ · `flutter analyze` limpio. *(RF-01)*
+- [x] **T2c.2** `BE-A` — Vínculo obligatorio implementado con `MonitoredRequest.monitoredUserEmail`, resolución normalizada en `users`, validación de cuenta activa/rol `MONITORED` y rechazo de duplicados. `V6__link_demo_monitored_user.sql` enlaza los seeds y aplica `user_id NOT NULL UNIQUE` + FK `ON DELETE RESTRICT`. **Evidencia 14/07:** `mvn test` 28/28 ✅ · volumen PostgreSQL recreado · Flyway V1→V6 ✅ · 1 ficha seed enlazada, 0 `user_id` nulos. Respuestas: inexistente `404`, rol/inactiva `400`, duplicada `409`. *(RF-03, ADR-10)* (T2c.1 independiente)
 - [ ] **T2c.3** `FE-B` — Formulario CAREGIVER exige email de la cuenta `MONITORED`, envía `monitoredUserEmail` y presenta los errores 404/400/409. Una cuenta `MONITORED` sin ficha muestra `PENDING_LINK`. *(RF-03, RF-34)* (T2c.2 contrato)
 
 ### Calidad de inferencia

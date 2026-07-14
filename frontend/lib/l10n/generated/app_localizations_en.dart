@@ -180,6 +180,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get demoAccounts => 'Demo accounts';
 
   @override
+  String get registrationRolePrompt => 'Profile type';
+
+  @override
   String get roleCaregiver => 'Caregiver';
 
   @override

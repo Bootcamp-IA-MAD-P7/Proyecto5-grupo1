@@ -181,6 +181,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get demoAccounts => 'Cuentas de demostración';
 
   @override
+  String get registrationRolePrompt => 'Tipo de perfil';
+
+  @override
   String get roleCaregiver => 'Cuidador';
 
   @override

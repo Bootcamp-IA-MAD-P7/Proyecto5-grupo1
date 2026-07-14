@@ -1,5 +1,6 @@
 package com.sentilife.monitored;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -18,6 +19,7 @@ public class MonitoredDtos {
     // ── POST / y PUT /{id} ────────────────────────────────────────────────────
 
     public record MonitoredRequest(
+        @Email @NotBlank String monitoredUserEmail,
         @NotBlank String fullName,
         @NotNull @Past LocalDate birthDate,
         @NotNull String sex,                 // M | F | OTHER
@@ -38,6 +40,8 @@ public class MonitoredDtos {
 
     public record MonitoredResponse(
         UUID id,
+        UUID userId,
+        String userEmail,
         String fullName,
         LocalDate birthDate,
         int age,                             // calculado desde birthDate
@@ -53,13 +57,15 @@ public class MonitoredDtos {
         LastPredictionDto lastPrediction     // última predicción (o null)
     ) {
         /** Construye la respuesta desde la entidad calculando la edad. */
-        public static MonitoredResponse from(MonitoredPerson p, String consentStatus,
+        public static MonitoredResponse from(MonitoredPerson p, String userEmail,
+                                             String consentStatus,
                                              String monitoringStatus,
                                              Instant lastSeenAt,
                                              LastPredictionDto lastPrediction) {
             int age = Period.between(p.getBirthDate(), LocalDate.now()).getYears();
             return new MonitoredResponse(
-                p.getId(), p.getFullName(), p.getBirthDate(), age,
+                p.getId(), p.getUserId(), userEmail,
+                p.getFullName(), p.getBirthDate(), age,
                 p.getSex(), p.getWeightKg(), p.getHeightCm(),
                 p.getEmergencyContact(), consentStatus, monitoringStatus,
                 p.getPairingCode(), p.getCreatedAt(), lastSeenAt, lastPrediction

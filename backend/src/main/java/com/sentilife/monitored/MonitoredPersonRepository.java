@@ -11,5 +11,7 @@ public interface MonitoredPersonRepository extends JpaRepository<MonitoredPerson
 
     Optional<MonitoredPerson> findByPairingCode(String pairingCode);
 
+    boolean existsByUserId(UUID userId);
+
     Page<MonitoredPerson> findByCaregiverId(UUID caregiverId, Pageable pageable);
 }
