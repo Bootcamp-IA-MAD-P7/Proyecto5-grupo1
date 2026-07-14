@@ -55,6 +55,7 @@ class _MyAppState extends State<MyApp> {
       home: _AppRoot(
         session: _session,
         onLocaleChanged: _changeLocale,
+        locale: _locale,
       ),
     );
   }
@@ -63,10 +64,12 @@ class _MyAppState extends State<MyApp> {
 class _AppRoot extends StatefulWidget {
   final SessionRepository session;
   final ValueChanged<Locale> onLocaleChanged;
+  final Locale locale;
 
   const _AppRoot({
     required this.session,
     required this.onLocaleChanged,
+    required this.locale,
   });
 
   @override
@@ -79,12 +82,21 @@ class _AppRootState extends State<_AppRoot> {
   @override
   void initState() {
     super.initState();
+    _updateService.setLocale(widget.locale);
     widget.session.addListener(_onAuthChanged);
     unawaited(_bootstrapSession());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUpdate();
       unawaited(PushNotificationService.tryNavigateToPendingAlert());
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant _AppRoot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.locale != widget.locale) {
+      _updateService.setLocale(widget.locale);
+    }
   }
 
   Future<void> _bootstrapSession() async {

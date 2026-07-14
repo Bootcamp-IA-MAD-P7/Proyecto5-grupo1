@@ -10,9 +10,13 @@ import 'package:sentilife/services/auth_service.dart';
 import 'package:sentilife/services/secure_token_storage.dart';
 import 'package:sentilife/services/session_repository.dart';
 
-Widget _buildLogin({AuthService? authService, VoidCallback? onLoginSuccess}) {
+Widget _buildLogin({
+  AuthService? authService,
+  VoidCallback? onLoginSuccess,
+  Locale locale = const Locale('es'),
+}) {
   return MaterialApp(
-    locale: const Locale('es'),
+    locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: LoginScreen(
@@ -103,7 +107,7 @@ void main() {
       'Persona Monitorizada',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email'),
+      find.widgetWithText(TextFormField, 'Correo electrónico'),
       'monitored@test.com',
     );
     await tester.enterText(
@@ -115,5 +119,25 @@ void main() {
 
     expect(registeredRole, 'MONITORED');
     expect(loginSucceeded, isTrue);
+  });
+
+  testWidgets('locale en muestra textos en inglés sin español residual', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildLogin(locale: const Locale('en')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Inicia sesión para continuar'), findsNothing);
+    expect(find.text('Don\'t have an account? Register'), findsOneWidget);
+    expect(find.text('¿No tienes cuenta? Regístrate'), findsNothing);
+
+    await tester.tap(find.text('Don\'t have an account? Register'));
+    await tester.pump();
+
+    expect(find.text('Caregiver'), findsOneWidget);
+    expect(find.text('Monitored person'), findsOneWidget);
+    expect(find.text('Cuidador'), findsNothing);
+    expect(find.text('Persona monitorizada'), findsNothing);
   });
 }

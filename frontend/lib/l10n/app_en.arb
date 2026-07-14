@@ -49,6 +49,16 @@
   "incompatibleSignatureDescription": "The downloaded APK is signed with a different key from the installed version, so it cannot be updated directly.\n\nTo resolve the issue:\n1. Uninstall the app manually.\n2. Open this download link again and install the new version.",
   "understood": "Got it",
   "loginTitle": "Sign in",
+  "loginSubtitle": "Sign in to continue",
+  "registerSubtitle": "Create your account",
+  "requiredField": "Required",
+  "invalidEmail": "Invalid email",
+  "passwordMinLength": "Min. 8 characters",
+  "connectionError": "Connection error. Is the backend running?",
+  "register": "Register",
+  "signIn": "Sign in",
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "noAccountRegister": "Don't have an account? Register",
   "email": "Email",
   "password": "Password",
   "login": "Sign in",
@@ -131,5 +141,37 @@
   "userStatusError": "Could not update the user status.",
   "pairingCredentialMissing": "The saved link belongs to an earlier version. Pair the device again to continue.",
   "lastEvaluationLoadError": "The latest evaluation could not be loaded. The device remains linked.",
-  "sensorStartError": "The accelerometer and gyroscope could not be started."
+  "sensorStartError": "The accelerometer and gyroscope could not be started.",
+  "updateNoRemoteVersion": "No remote version loaded. Call checkForUpdate() first.",
+  "updateVersionCheckUnexpected": "Unexpected error while checking for updates.",
+  "updateDownloadUnexpected": "Unexpected error during download.",
+  "updatePhaseVersionCheck": "version check",
+  "updatePhaseApkDownload": "APK download",
+  "updateTimeout": "The {phase} took too long. Check your connection and try again.",
+  "@updateTimeout": {
+    "placeholders": {
+      "phase": { "type": "String" }
+    }
+  },
+  "updateServerError": "The server returned an error (code {code}). Try again later.",
+  "@updateServerError": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+  "updateInstallPermissionDetail": "You do not have permission to install apps from unknown sources.\nGo to Settings > Apps > this app > Install unknown apps and enable it.",
+  "updateApkNotFound": "The APK file was not found at \"{path}\". Try downloading again.",
+  "@updateApkNotFound": {
+    "placeholders": {
+      "path": { "type": "String" }
+    }
+  },
+  "updateNoPackageManager": "No package installer was found to install the APK.",
+  "updateInstallerError": "Error opening the installer: {message}",
+  "@updateInstallerError": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "updateSignatureMismatchDetail": "The APK signature does not match the installed version.\nUninstall the app manually and install the new version."
 }

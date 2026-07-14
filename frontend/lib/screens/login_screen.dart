@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'Error de conexión. ¿Está el backend activo?');
+      setState(() => _error = context.l10n.connectionError);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -87,6 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -105,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'SentiLife',
+                    l10n.appTitle,
                     style: theme.textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -113,9 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _isRegister
-                        ? 'Crea tu cuenta'
-                        : 'Inicia sesión para continuar',
+                    _isRegister ? l10n.registerSubtitle : l10n.loginSubtitle,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: Colors.grey[600],
                     ),
@@ -125,21 +124,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (_isRegister) ...[
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre completo',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.fullName,
+                        prefixIcon: const Icon(Icons.person),
+                        border: const OutlineInputBorder(),
                       ),
                       textInputAction: TextInputAction.next,
                       validator: (v) => _isRegister && (v == null || v.isEmpty)
-                          ? 'Obligatorio'
+                          ? l10n.requiredField
                           : null,
                     ),
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        context.l10n.registrationRolePrompt,
+                        l10n.registrationRolePrompt,
                         style: theme.textTheme.labelLarge,
                       ),
                     ),
@@ -149,12 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ButtonSegment(
                           value: UserRole.caregiver,
                           icon: const Icon(Icons.volunteer_activism),
-                          label: Text(context.l10n.roleCaregiver),
+                          label: Text(l10n.roleCaregiver),
                         ),
                         ButtonSegment(
                           value: UserRole.monitored,
                           icon: const Icon(Icons.health_and_safety_outlined),
-                          label: Text(context.l10n.roleMonitored),
+                          label: Text(l10n.roleMonitored),
                         ),
                       ],
                       selected: {_selectedRole},
@@ -167,30 +166,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.email,
+                      prefixIcon: const Icon(Icons.email),
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     validator: (v) =>
-                        v == null || !v.contains('@') ? 'Email inválido' : null,
+                        v == null || !v.contains('@') ? l10n.invalidEmail : null,
                   ),
                   const SizedBox(height: 16),
 
                   TextFormField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.password,
+                      prefixIcon: const Icon(Icons.lock),
+                      border: const OutlineInputBorder(),
                     ),
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _submit(),
                     validator: (v) =>
-                        v == null || v.length < 8 ? 'Mín. 8 caracteres' : null,
+                        v == null || v.length < 8 ? l10n.passwordMinLength : null,
                   ),
                   const SizedBox(height: 24),
 
@@ -231,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             )
                           : Text(
-                              _isRegister ? 'Registrarse' : 'Iniciar sesión',
+                              _isRegister ? l10n.register : l10n.signIn,
                               style: const TextStyle(fontSize: 16),
                             ),
                     ),
@@ -245,8 +244,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     }),
                     child: Text(
                       _isRegister
-                          ? '¿Ya tienes cuenta? Inicia sesión'
-                          : '¿No tienes cuenta? Regístrate',
+                          ? l10n.alreadyHaveAccount
+                          : l10n.noAccountRegister,
                     ),
                   ),
                 ],

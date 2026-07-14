@@ -269,10 +269,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 - [x] **T3.6** `BE-A` — Supresión GDPR **demostrada**. *(RF-08)* **Evidencia 14/07:** `GdprSuppressionIntegrationTest` — seed persona + consent + paired_device + telemetry_window + alert + feedback → `DELETE /api/v1/monitored-persons/{id}` → `COUNT(*)=0` en las 6 tablas · cuentas `users` intactas · documentado en `backend/README.md` (InfluxDB N/A, ADR-03) · `mvn test` 58/58 ✅.
 
-- [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)*
-  - **Hoy:** ARB `app_es.arb` / `app_en.arb` (~118 keys, pares). Huecos: `login_screen.dart` hardcodeado ES; `update_service.dart` strings ES; push FCM en BE hardcodeado EN (no usa `PushToken.locale`); textos legales solo vía ARB + `policy_version = 1.0-{lang}` (sin docs legales versionados aparte).
-  - **Hacer:** migrar login + OTA a ARB; localizar push por `locale` del token; revisar consentimiento/transparencia en ambos idiomas.
-  - **CA:** app en `en` sin textos ES visibles en login/OTA/consent; push respeta locale.
+- [x] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)* **Evidencia 14/07:** `login_screen.dart` y `update_service.dart` migrados a ARB (`app_es.arb` / `app_en.arb`, +22 keys login/OTA) · `UpdateService.setLocale()` sincronizado con `MaterialApp.locale` · `FallAlertPushMessages` localiza FCM por `PushToken.locale` (es/en) · tests `login_screen_test.dart` (locale `en` sin textos ES) + `FallAlertPushMessagesTest` · `flutter test` 102/102 ✅ · `flutter analyze` limpio · `mvn test` 61/61 ✅.
 
 - [ ] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)*
   - **Hoy:** código listo (`update_service.dart` → Java `OtaController` `/app/*`; CI `android.yml` registra versión). Sin verificación en móvil físico ni test OTA.
