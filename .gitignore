@@ -63,8 +63,9 @@ inference/**/__pycache__/
 inference/**/*.pyc
 inference/.pytest_cache/
 
-# Solo feedback generado en runtime por la app (no es dataset de entrenamiento)
-inference/data/feedback/*
+# Cache regenerable (build via compare_cnn1d --rebuild-cache)
+inference/data/processed/sisfall/sisfall_raw_windows.npz
+
 !inference/data/feedback/.gitkeep
 
 # Credenciales locales (nunca en git)

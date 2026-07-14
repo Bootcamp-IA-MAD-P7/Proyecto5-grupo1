@@ -1,0 +1,18 @@
+{
+  "n_windows": 56313,
+  "n_subjects": 38,
+  "shape": [
+    56313,
+    125,
+    6
+  ],
+  "signals": [
+    "accX",
+    "accY",
+    "accZ",
+    "gyroX",
+    "gyroY",
+    "gyroZ"
+  ],
+  "cache": "data/processed/sisfall/sisfall_raw_windows.npz"
+}

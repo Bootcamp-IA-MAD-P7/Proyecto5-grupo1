@@ -22,7 +22,7 @@
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
 | 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 |
 | 🟠 Avanzado | ✅ **CERRADO** | **9/9** | T3.1–T3.8 + T3.INT ✅ — `docs/daily/t3.8-t3int-20260714.md` |
-| 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
+| 🔴 Experto | ⏳ | **3/8 (~38%)** | ✅ T4.2, T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
 ### Checklist Esencial + Medio (certeza)
 
@@ -62,7 +62,7 @@
 
 **Ruta crítica pendiente:**
 ```
-T4.2 CNN/LSTM → T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
+T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
 ```
 
 ### QA — pantallas por rol (revalidado)
@@ -273,10 +273,8 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ### Pendiente (cerrar Experto)
 
-- [ ] **T4.2** `ML` — CNN 1D / LSTM vs mejor ensemble, mismo split por sujeto. *(ML-15)*
-  - **Hoy:** solo sklearn/XGBoost (`train_model.py`, `compare_ensembles.py`, `optuna_tune.py`). Sin TF/Keras/PyTorch en `inference/requirements.txt`.
-  - **Hacer:** script/notebook en `inference/ml/training/` (CNN1D o LSTM sobre ventanas crudas); GroupKFold/LOSO idéntico al ensemble; comparar recall/PR-AUC; documentar en informe.
-  - **CA:** artefacto + métricas documentadas; overfitting < 5 pp; ningún subject_id en train y test.
+- [x] **T4.2** `ML` — CNN 1D vs mejor ensemble, mismo split por sujeto. *(ML-15)*
+  - **Evidencia 14/07:** `ml/training/compare_cnn1d.py` + `raw_windows.py` · ventanas crudas `(125, 6)` SisFall · GroupShuffleSplit 70/15/15 + LOSO 38 sujetos · artefacto `ml/models/cnn1d-v1.0.0.keras` · métricas `ml/artifacts/cnn1d_comparison.json` · CNN test PR-AUC **0.862** recall **0.760** overfitting **1.36 pp** ✅ · XGBoost mismo split PR-AUC **0.891** LOSO **0.925** · ganador LOSO: **XGBoost** · informe `inference/docs/informe_tecnico_v3.md` · `pytest tests/` **39 passed**, 4 skipped ✅ · pipeline FastAPI sin cambios.
 
 - [ ] **T4.4** `BE-B`+`ML` — **Reentrenamiento real** + auto-reemplazo. *(RF-33, ML-19, ADR-09)*
   - **Hoy (stub — NO contar):** `RetrainService.java` hace `Thread.sleep` en drift y `callTrainingEndpoint()` lee `GET /model/info` con **recall=0.92 hardcodeado**. No entrena.
@@ -309,13 +307,12 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 | # | Tarea | Stream | Bloquea |
 |---|---|---|---|
-| 1 | **T4.2** CNN/LSTM | ML | T4.INT, informe |
-| 2 | **T4.7** drift real + Grafana | ML | T4.4, T4.INT |
-| 3 | **T4.4** retrain real (matar stub) | BE+ML | T4.5, T4.INT |
-| 4 | **T4.5** MLOps UI | FE-B | T4.INT |
-| 5 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
+| 1 | **T4.7** drift real + Grafana | ML | T4.4, T4.INT |
+| 2 | **T4.4** retrain real (matar stub) | BE+ML | T4.5, T4.INT |
+| 3 | **T4.5** MLOps UI | FE-B | T4.INT |
+| 4 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
 
-Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.3 · T4.6 · T4.1 ✂ CEMP.
+Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 · T4.6 · T4.1 ✂ CEMP.
 
 ---
 
@@ -328,7 +325,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.3 · T4.6 ·
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | — |
-| 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
+| 🔴 Experto | 4 | ⏳ **3/8 (~38%)** | **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.2/T4.3/T4.6 ✅) |
 
 ---
 
@@ -336,7 +333,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.3 · T4.6 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.7 — Auditoría 14/07: Avanzado CERRADO · Experto 2/8 en cola |
+| Estado | v2.8 — T4.2 CNN1D ✅ · Experto 3/8 |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — sync post-auditoría: `mvn test` 61/61 · pytest 34/38 · flutter 102/102 · 0 mocks FE |
+| Última actualización | 14/07/2026 — T4.2 CNN1D vs XGBoost · pytest 39/39 |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |
