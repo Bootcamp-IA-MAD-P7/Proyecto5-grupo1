@@ -16,14 +16,16 @@ class TelemetryPipelineService {
     SlidingWindowBuilder? windowBuilder,
     TelemetryService? telemetryService,
     this._onTelemetryError,
-  })  : _sensorCaptureService = sensorCaptureService ?? SensorCaptureService(),
-        _windowBuilder = windowBuilder ?? SlidingWindowBuilder(),
-        _telemetryService = telemetryService ?? TelemetryService();
+    this._onCaptureError,
+  }) : _sensorCaptureService = sensorCaptureService ?? SensorCaptureService(),
+       _windowBuilder = windowBuilder ?? SlidingWindowBuilder(),
+       _telemetryService = telemetryService ?? TelemetryService();
 
   final SensorCaptureService _sensorCaptureService;
   final SlidingWindowBuilder _windowBuilder;
   final TelemetryService _telemetryService;
   final void Function(TelemetryException error)? _onTelemetryError;
+  final void Function(Object error)? _onCaptureError;
   final StreamController<WindowPrediction> _predictionsController =
       StreamController<WindowPrediction>.broadcast();
   final Queue<_QueuedTelemetryWindow> _pendingWindows =
@@ -32,6 +34,7 @@ class TelemetryPipelineService {
   StreamSubscription<SensorSnapshot>? _snapshotSubscription;
   String? _monitoredPersonId;
   String? _deviceId;
+  String? _deviceToken;
   bool _isRunning = false;
   bool _isDisposed = false;
   bool _isSending = false;
@@ -43,6 +46,7 @@ class TelemetryPipelineService {
   Future<void> startMonitoring({
     required String monitoredPersonId,
     required String deviceId,
+    required String deviceToken,
   }) async {
     if (_isDisposed || _isRunning) {
       return;
@@ -50,6 +54,7 @@ class TelemetryPipelineService {
 
     _monitoredPersonId = monitoredPersonId;
     _deviceId = deviceId;
+    _deviceToken = deviceToken;
     _windowBuilder.reset();
 
     _snapshotSubscription = _sensorCaptureService.snapshots.listen(
@@ -59,14 +64,14 @@ class TelemetryPipelineService {
     );
 
     try {
-      _sensorCaptureService.start();
+      await _sensorCaptureService.start();
       _isRunning = true;
     } catch (error, stackTrace) {
-      _handleCaptureError(error, stackTrace);
+      _logCaptureError(error, stackTrace);
       try {
         await _snapshotSubscription?.cancel();
       } catch (cancelError, cancelStackTrace) {
-        _handleCaptureError(cancelError, cancelStackTrace);
+        _logCaptureError(cancelError, cancelStackTrace);
       } finally {
         _snapshotSubscription = null;
         _clearMonitoringState();
@@ -157,7 +162,8 @@ class TelemetryPipelineService {
 
     final monitoredPersonId = _monitoredPersonId;
     final deviceId = _deviceId;
-    if (monitoredPersonId == null || deviceId == null) {
+    final deviceToken = _deviceToken;
+    if (monitoredPersonId == null || deviceId == null || deviceToken == null) {
       return;
     }
 
@@ -166,6 +172,7 @@ class TelemetryPipelineService {
         window: window,
         monitoredPersonId: monitoredPersonId,
         deviceId: deviceId,
+        deviceToken: deviceToken,
       ),
     );
     unawaited(_drainPendingWindows());
@@ -189,6 +196,7 @@ class TelemetryPipelineService {
           final prediction = await _telemetryService.sendWindow(
             monitoredPersonId: pendingWindow.monitoredPersonId,
             deviceId: pendingWindow.deviceId,
+            deviceToken: pendingWindow.deviceToken,
             windowStart: pendingWindow.window.windowStart,
             windowEnd: pendingWindow.window.windowEnd,
             sampleRateHz: pendingWindow.window.sampleRateHz,
@@ -219,6 +227,16 @@ class TelemetryPipelineService {
   }
 
   void _handleCaptureError(Object error, StackTrace stackTrace) {
+    _logCaptureError(error, stackTrace);
+    _onCaptureError?.call(error);
+    unawaited(
+      stopMonitoring().catchError((Object stopError, StackTrace stack) {
+        _logCaptureError(stopError, stack);
+      }),
+    );
+  }
+
+  void _logCaptureError(Object error, StackTrace stackTrace) {
     debugPrint('TelemetryPipelineService capture error: $error');
     debugPrintStack(stackTrace: stackTrace);
   }
@@ -230,6 +248,7 @@ class TelemetryPipelineService {
     _windowBuilder.reset();
     _monitoredPersonId = null;
     _deviceId = null;
+    _deviceToken = null;
   }
 }
 
@@ -238,9 +257,11 @@ class _QueuedTelemetryWindow {
     required this.window,
     required this.monitoredPersonId,
     required this.deviceId,
+    required this.deviceToken,
   });
 
   final TelemetryWindow window;
   final String monitoredPersonId;
   final String deviceId;
+  final String deviceToken;
 }

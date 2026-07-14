@@ -61,6 +61,7 @@ class TelemetryService {
   Future<WindowPrediction> sendWindow({
     required String monitoredPersonId,
     required String deviceId,
+    required String deviceToken,
     required DateTime windowStart,
     required DateTime windowEnd,
     required int sampleRateHz,
@@ -69,7 +70,7 @@ class TelemetryService {
   }) async {
     final res = await _client.post(
       Uri.parse('$_base/windows'),
-      headers: _headers(),
+      headers: _deviceHeaders(deviceToken),
       body: jsonEncode({
         'monitoredPersonId': monitoredPersonId,
         'deviceId': deviceId,
@@ -83,7 +84,8 @@ class TelemetryService {
     );
     _checkStatus(res);
     return WindowPrediction.fromJson(
-        jsonDecode(res.body) as Map<String, dynamic>);
+      jsonDecode(res.body) as Map<String, dynamic>,
+    );
   }
 
   /// GET /status/{monitoredPersonId} — estado en tiempo real (rol CAREGIVER)
@@ -118,10 +120,18 @@ class TelemetryService {
 
   Map<String, String> _headers() => apiJsonHeaders();
 
+  Map<String, String> _deviceHeaders(String deviceToken) => {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $deviceToken',
+  };
+
   void _checkStatus(http.Response res) {
     if (res.statusCode == 403) {
       throw const TelemetryException(
-          403, 'CONSENT_REQUIRED', 'Consentimiento no activo para esta persona.');
+        403,
+        'CONSENT_REQUIRED',
+        'Consentimiento no activo para esta persona.',
+      );
     }
     if (res.statusCode >= 400) {
       Map<String, dynamic>? body;

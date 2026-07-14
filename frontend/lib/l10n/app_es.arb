@@ -136,5 +136,8 @@
   "userActive": "Activo",
   "userInactive": "Inactivo",
   "userStatusUpdated": "Estado del usuario actualizado.",
-  "userStatusError": "No se pudo actualizar el estado del usuario."
+  "userStatusError": "No se pudo actualizar el estado del usuario.",
+  "pairingCredentialMissing": "El vínculo guardado pertenece a una versión anterior. Vuelve a emparejar el dispositivo para continuar.",
+  "lastEvaluationLoadError": "No se pudo cargar la última evaluación. El dispositivo continúa vinculado.",
+  "sensorStartError": "No se pudieron iniciar el acelerómetro y el giroscopio."
 }

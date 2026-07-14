@@ -280,7 +280,11 @@ void main() {
 
     test('sendWindow parsea la predicción anidada', () async {
       final service = TelemetryService(
-        client: MockClient((req) async => _json({
+        client: MockClient((req) async {
+          expect(req.method, 'POST');
+          expect(req.url.path, endsWith('/telemetry/windows'));
+          expect(req.headers['authorization'], 'Bearer device-token-1');
+          return _json({
               'windowId': 'w-1',
               'prediction': {
                 'fallDetected': true,
@@ -288,12 +292,14 @@ void main() {
                 'modelVersion': 'baseline-v1',
                 'latencyMs': 80,
               },
-            })),
+            });
+        }),
       );
 
       final result = await service.sendWindow(
         monitoredPersonId: 'uuid-person-001',
         deviceId: 'android-1',
+        deviceToken: 'device-token-1',
         windowStart: windowStart,
         windowEnd: windowEnd,
         sampleRateHz: WindowContract.sampleRateHz,
@@ -314,6 +320,7 @@ void main() {
         () => service.sendWindow(
           monitoredPersonId: 'uuid-person-001',
           deviceId: 'android-1',
+          deviceToken: 'device-token-1',
           windowStart: windowStart,
           windowEnd: windowEnd,
           sampleRateHz: WindowContract.sampleRateHz,
