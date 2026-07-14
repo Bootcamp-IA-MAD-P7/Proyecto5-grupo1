@@ -35,9 +35,7 @@ public class RetrainService {
     private final RestTemplate restTemplate;
     private final String inferenceUrl;
 
-    // Minimum recall improvement required to promote
-    private static final double MIN_RECALL_THRESHOLD = 0.80;
-    // Maximum allowed overfitting (train - test difference)
+    // Maximum allowed overfitting (train - test recall difference)
     private static final double MAX_OVERFITTING = 0.05;
 
     // In-memory job state (single job at a time)
@@ -136,9 +134,8 @@ public class RetrainService {
                 return;
             }
 
-            // Phase 3: EVALUATING — compare metrics
+            // Phase 3: EVALUATING — compare metrics against current ACTIVE model
             updatePhase(RetrainDtos.Phase.EVALUATING, "Evaluating new model against current...");
-            Thread.sleep(1000); // Simulate evaluation
 
             String newVersion = (String) trainResult.getOrDefault("version", "retrain-" + Instant.now().getEpochSecond());
             double recall = ((Number) trainResult.getOrDefault("recall", 0.0)).doubleValue();
@@ -146,36 +143,40 @@ public class RetrainService {
             String algorithm = (String) trainResult.getOrDefault("algorithm", "XGBoost");
             String artifactUri = (String) trainResult.getOrDefault("artifact_uri", "ml/model.pkl");
 
-            // Phase 4: DECIDING — apply promotion criteria
+            // Phase 4: DECIDING — apply promotion criteria (ADR-09)
             updatePhase(RetrainDtos.Phase.DECIDING, "Applying promotion criteria...");
 
             @SuppressWarnings("unchecked")
             Map<String, Object> metrics = (Map<String, Object>) trainResult.getOrDefault("metrics",
                     Map.of("recall", recall, "overfitting", overfitting));
 
+            double currentRecall = resolveCurrentRecall(metrics);
+
             // Register the new model as CANDIDATE
             var registerRequest = new RegistryDtos.RegisterRequest(
                     newVersion, algorithm, metrics, artifactUri);
             registryService.register(registerRequest);
 
-            // Decision: promote or keep as candidate
+            // Decision: promote only if recall improves AND overfitting within limit
             RetrainDtos.Decision decision;
             String message;
 
-            if (recall >= MIN_RECALL_THRESHOLD && overfitting <= MAX_OVERFITTING) {
-                // Promote!
+            if (recall > currentRecall && overfitting <= MAX_OVERFITTING) {
                 registryService.promote(newVersion);
                 decision = RetrainDtos.Decision.PROMOTED;
-                message = String.format("Model promoted — recall=%.3f (>%.2f), overfitting=%.3f (<%.2f)",
-                        recall, MIN_RECALL_THRESHOLD, overfitting, MAX_OVERFITTING);
-            } else if (recall < MIN_RECALL_THRESHOLD) {
+                message = String.format(
+                        "Model promoted — recall=%.3f (was %.3f), overfitting=%.3f (<=%.2f)",
+                        recall, currentRecall, overfitting, MAX_OVERFITTING);
+            } else if (recall <= currentRecall) {
                 decision = RetrainDtos.Decision.DISCARDED;
-                message = String.format("Model discarded — recall=%.3f below threshold %.2f",
-                        recall, MIN_RECALL_THRESHOLD);
+                message = String.format(
+                        "Model discarded — recall=%.3f did not improve over current %.3f",
+                        recall, currentRecall);
             } else {
                 decision = RetrainDtos.Decision.CANDIDATE;
-                message = String.format("Model kept as CANDIDATE — overfitting=%.3f exceeds limit %.2f",
-                        overfitting, MAX_OVERFITTING);
+                message = String.format(
+                        "Model kept as CANDIDATE — overfitting=%.3f exceeds limit %.2f (recall %.3f > %.3f)",
+                        overfitting, MAX_OVERFITTING, recall, currentRecall);
             }
 
             currentStatus.set(new RetrainDtos.RetrainStatus(
@@ -216,41 +217,46 @@ public class RetrainService {
     }
 
     /**
-     * Calls the inference service training endpoint.
-     * Returns the training result with metrics, or null if not available.
+     * Calls the inference service training endpoint (POST /train).
+     * Returns the training result with real metrics, or null if not available.
      */
     @SuppressWarnings("unchecked")
     private Map<String, Object> callTrainingEndpoint() {
         try {
-            // The inference service would expose a /train endpoint for retraining.
-            // For now, simulate by reading current model info and generating a
-            // slightly improved version.
-            String url = inferenceUrl + "/model/info";
-            var response = restTemplate.getForEntity(url, Map.class);
+            String url = inferenceUrl + "/train";
+            var response = restTemplate.postForEntity(url, null, Map.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                var body = response.getBody();
-                String currentVersion = (String) body.getOrDefault("version", "unknown");
-                return Map.of(
-                        "version", "retrain-" + Instant.now().getEpochSecond(),
-                        "algorithm", body.getOrDefault("model_name", "XGBoost"),
-                        "recall", 0.92,
-                        "overfitting", 0.03,
-                        "artifact_uri", "ml/model.pkl",
-                        "metrics", Map.of(
-                                "recall", 0.92,
-                                "precision", 0.88,
-                                "f1", 0.90,
-                                "overfitting", 0.03,
-                                "previous_version", currentVersion
-                        )
-                );
+                return response.getBody();
             }
             return null;
         } catch (Exception e) {
-            log.warn("[Retrain] Could not reach inference service: {}", e.getMessage());
+            log.warn("[Retrain] Training endpoint failed: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Resolves recall of the current ACTIVE model for promotion comparison.
+     */
+    private double resolveCurrentRecall(Map<String, Object> trainMetrics) {
+        Object fromTrain = trainMetrics.get("current_recall");
+        if (fromTrain instanceof Number n) {
+            return n.doubleValue();
+        }
+        try {
+            var active = registryService.getActive();
+            Object recall = active.metrics().get("recall");
+            if (recall == null) {
+                recall = active.metrics().get("recall_fall_test");
+            }
+            if (recall instanceof Number n) {
+                return n.doubleValue();
+            }
+        } catch (Exception e) {
+            log.warn("[Retrain] Could not read active model recall: {}", e.getMessage());
+        }
+        return 0.0;
     }
 
     private void updatePhase(RetrainDtos.Phase phase, String message) {

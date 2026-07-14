@@ -216,6 +216,7 @@ def test_only_inference_routes_exist():
         "/metrics",
         "/drift",
         "/drift/recompute",
+        "/train",
         "/model/info",
         "/model/reload",
         "/model/registry",

@@ -13,6 +13,7 @@ Endpoints:
   GET  /model/registry   — list all models in registry (SL-54 / T4.3)
   GET  /drift            — feature drift snapshot (PSI vs SisFall baseline)
   POST /drift/recompute  — recompute drift from recent production windows
+  POST /train            — retrain model with SisFall + feedback (T4.4)
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ from pydantic import BaseModel, Field
 
 from api.inference.drift import DriftMonitor
 from api.inference.features import extract_features
+from ml.training.retrain_feedback import run_retrain
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -191,6 +193,17 @@ class RegistryModel(BaseModel):
 class RegistryResponse(BaseModel):
     active: str
     models: list[RegistryModel]
+
+
+class TrainResponse(BaseModel):
+    version: str
+    algorithm: str
+    recall: float
+    precision: float
+    f1: float
+    overfitting: float
+    artifact_uri: str
+    metrics: dict
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -368,6 +381,16 @@ def drift_recompute():
     """Recompute PSI from recent production windows (T4.7 / retrain DRIFT phase)."""
     result = _drift_monitor.recompute()
     return result
+
+
+@app.post("/train", response_model=TrainResponse)
+def train_model(skip_feature_build: bool = True):
+    """Retrain XGBoost with SisFall + feedback data (T4.4 / ML-19)."""
+    try:
+        result = run_retrain(skip_feature_build=skip_feature_build)
+        return TrainResponse(**result)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Training failed: {exc}") from exc
 
 
 @app.get("/metrics", response_class=PlainTextResponse)
