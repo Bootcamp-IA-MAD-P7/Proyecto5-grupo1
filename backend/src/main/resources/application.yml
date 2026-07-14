@@ -66,6 +66,7 @@ sentilife:
     secret: ${JWT_SECRET:dev-secret-change-in-production-min-32-chars!!}
     access-token-expiration: 900      # 15 minutos en segundos
     refresh-token-expiration: 604800  # 7 días en segundos
+    device-token-expiration: 7776000  # 90 días en segundos
 
   # ── FastAPI inferencia (interna) ─────────────────────────────
   inference:

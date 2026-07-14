@@ -239,10 +239,10 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ### Sesión, background y aislamiento de cuentas
 
-- [ ] **T2c.8** `FE-A` — Sustituir `SessionManager` + `AuthSession` por un repositorio único. Persistir refresh token en `flutter_secure_storage`, restaurar vía `/auth/refresh` durante bootstrap, manejar expiración y nunca guardar contraseña. Tests: process restart válido/inválido y una sola fuente de verdad. *(RF-35, ADR-12)*
+- [x] **T2c.8** `FE-A` — `SessionRepository` unifica sesión (`ChangeNotifier` + `flutter_secure_storage` solo refresh token). Bootstrap en `main.dart` restaura vía `/auth/refresh`; `SessionManager`/`AuthSession` delegan al singleton. **Evidencia 14/07:** `flutter test` 90/90 ✅ · `session_repository_test.dart` (restore válido/inválido, login/logout, fuente única) · `services_http_test.dart` refresh · `flutter analyze` limpio. *(RF-35, ADR-12)*
 - [ ] **T2c.9** `FE-A` — Extraer el pipeline de `MonitoredScreen` a `MonitoringCoordinator` e implementar foreground service Android con notificación permanente. Continuar captura con background/pantalla bloqueada; UI observa estado. Test de lifecycle + QA Android de 10 min. *(RF-36, ADR-12)* (T2c.8)
 - [ ] **T2c.10** `FE-A`+`FE-B`+`BE-B` — Logout bloqueante y aislamiento: esperar parada/cancelación de cola, almacenar contexto por `userId`, implementar `DELETE /devices/push-token/{deviceId}`, añadir `recipientUserId` al push y descartarlo si no coincide con la sesión restaurada. Tests de cambio `MONITORED → CAREGIVER` en el mismo dispositivo sin ventanas/alertas residuales. *(RF-37…RF-39, ADR-12)* (T2c.8, T2c.9)
-- [ ] **T2c.11** `BE-B` — Validar bearer de dispositivo en `POST /telemetry/windows`: pairing activo y claims `monitoredPersonId` + `deviceId` idénticos al request. Tests `401` token ausente/inválido y `403` token de otra persona/dispositivo, sin persistencia. *(RF-39, Sec)*
+- [x] **T2c.11** `BE-B` — JWT `DEVICE` en pairing (`JwtService.generateDeviceToken`, hash SHA-256 en `paired_devices`). `DeviceAuthService` valida bearer en `POST /telemetry/windows` (401 ausente/inválido, 403 persona/dispositivo/pairing inactivo) antes de persistir. **Evidencia 14/07:** `mvn test` 46/46 ✅ · `DeviceAuthServiceTest` (8 escenarios) · `TelemetryServiceTest` gate auth · smoke scripts pasan `deviceToken`. *(RF-39, Sec)*
 
 ### Regresión completa
 

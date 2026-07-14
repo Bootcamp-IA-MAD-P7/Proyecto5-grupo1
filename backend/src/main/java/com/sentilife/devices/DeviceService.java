@@ -2,11 +2,16 @@ package com.sentilife.devices;
 
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
+import com.sentilife.config.JwtService;
 import com.sentilife.monitored.MonitoredPersonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.UUID;
 
 /**
@@ -24,13 +29,16 @@ public class DeviceService {
     private final MonitoredPersonRepository monitoredPersonRepo;
     private final PairedDeviceRepository pairedDeviceRepo;
     private final PushTokenRepository pushTokenRepo;
+    private final JwtService jwtService;
 
     public DeviceService(MonitoredPersonRepository monitoredPersonRepo,
                          PairedDeviceRepository pairedDeviceRepo,
-                         PushTokenRepository pushTokenRepo) {
+                         PushTokenRepository pushTokenRepo,
+                         JwtService jwtService) {
         this.monitoredPersonRepo = monitoredPersonRepo;
         this.pairedDeviceRepo    = pairedDeviceRepo;
         this.pushTokenRepo       = pushTokenRepo;
+        this.jwtService          = jwtService;
     }
 
     @Transactional
@@ -47,14 +55,26 @@ public class DeviceService {
         device.setDeviceId(request.deviceId());
         device.setPlatform(request.platform());
         device.setActive(true);
+
+        String deviceToken = jwtService.generateDeviceToken(person.getId(), request.deviceId());
+        device.setDeviceTokenHash(hashToken(deviceToken));
         pairedDeviceRepo.save(device);
 
         // Invalidate pairingCode — single use only
         person.setPairingCode(null);
         monitoredPersonRepo.save(person);
 
-        // TODO Phase 2: issue a real device JWT with Spring Security
-        return new DeviceDtos.PairResponse(person.getId(), person.getId().toString());
+        return new DeviceDtos.PairResponse(person.getId(), deviceToken);
+    }
+
+    private static String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     @Transactional

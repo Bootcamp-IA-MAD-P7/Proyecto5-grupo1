@@ -10,7 +10,8 @@ import 'package:sentilife/screens/monitored_screen.dart';
 import 'package:sentilife/services/auth_session.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
 import 'package:sentilife/services/monitored_service.dart';
-import 'package:sentilife/services/session_manager.dart';
+import 'package:sentilife/services/secure_token_storage.dart';
+import 'package:sentilife/services/session_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 http.Response _json(Map<String, dynamic> body, [int status = 200]) =>
@@ -20,22 +21,11 @@ http.Response _json(Map<String, dynamic> body, [int status = 200]) =>
       headers: {'content-type': 'application/json'},
     );
 
-AuthSession _monitoredSession() {
-  final session = AuthSession();
+SessionRepository _monitoredSession() {
+  SessionRepository.resetForTests();
+  final session = SessionRepository(storage: InMemorySecureTokenStorage());
+  SessionRepository.useForTests(session);
   session.setSession(
-    const AuthTokens(
-      accessToken: 'test-token',
-      refreshToken: 'refresh-token',
-      expiresIn: 900,
-      user: User(
-        id: 'monitored-1',
-        email: 'monitored@test.com',
-        fullName: 'Manuel Pérez',
-        role: UserRole.monitored,
-      ),
-    ),
-  );
-  SessionManager().login(
     const AuthTokens(
       accessToken: 'test-token',
       refreshToken: 'refresh-token',
@@ -75,7 +65,7 @@ void main() {
   });
 
   tearDown(() {
-    SessionManager().logout();
+    SessionRepository.resetForTests();
     MonitoredContextStore().clear();
   });
 

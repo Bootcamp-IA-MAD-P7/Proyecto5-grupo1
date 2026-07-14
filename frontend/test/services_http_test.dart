@@ -103,6 +103,32 @@ void main() {
       );
     });
 
+    test('refresh parsea tokens rotados del backend', () async {
+      final auth = AuthService(
+        client: MockClient((req) async {
+          expect(req.url.path, endsWith('/auth/refresh'));
+          final body = jsonDecode(req.body) as Map<String, dynamic>;
+          expect(body['refreshToken'], 'refresh-old');
+          return _json({
+            'accessToken': 'access-new',
+            'refreshToken': 'refresh-new',
+            'expiresIn': 900,
+            'user': {
+              'id': 'uuid-cg-1',
+              'email': 'caregiver@test.com',
+              'fullName': 'Ana García',
+              'role': 'CAREGIVER',
+              'locale': 'es',
+            },
+          });
+        }),
+      );
+
+      final tokens = await auth.refresh('refresh-old');
+      expect(tokens.accessToken, 'access-new');
+      expect(tokens.refreshToken, 'refresh-new');
+    });
+
     test('register lee el usuario de la envoltura {user}', () async {
       final auth = AuthService(
         client: MockClient((req) async => _json({

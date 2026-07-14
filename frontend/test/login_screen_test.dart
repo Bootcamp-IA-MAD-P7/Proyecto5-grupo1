@@ -7,7 +7,8 @@ import 'package:http/testing.dart';
 import 'package:sentilife/l10n/generated/app_localizations.dart';
 import 'package:sentilife/screens/login_screen.dart';
 import 'package:sentilife/services/auth_service.dart';
-import 'package:sentilife/services/session_manager.dart';
+import 'package:sentilife/services/secure_token_storage.dart';
+import 'package:sentilife/services/session_repository.dart';
 
 Widget _buildLogin({AuthService? authService, VoidCallback? onLoginSuccess}) {
   return MaterialApp(
@@ -29,7 +30,14 @@ http.Response _json(Map<String, dynamic> body, [int status = 200]) =>
     );
 
 void main() {
-  tearDown(() => SessionManager().logout());
+  setUp(() {
+    SessionRepository.resetForTests();
+    SessionRepository.useForTests(
+      SessionRepository(storage: InMemorySecureTokenStorage()),
+    );
+  });
+
+  tearDown(() => SessionRepository.resetForTests());
 
   testWidgets(
     'registro permite elegir CAREGIVER o MONITORED pero no IT_ADMIN',

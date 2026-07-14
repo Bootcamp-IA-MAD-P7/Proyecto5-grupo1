@@ -33,6 +33,7 @@ public class DomainConstants {
     // JWT token types
     public static final String TOKEN_ACCESS  = "ACCESS";
     public static final String TOKEN_REFRESH = "REFRESH";
+    public static final String TOKEN_DEVICE  = "DEVICE";
 
     // HTTP
     public static final String BEARER_PREFIX = "Bearer ";

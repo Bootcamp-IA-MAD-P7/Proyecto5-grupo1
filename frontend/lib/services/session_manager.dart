@@ -1,28 +1,20 @@
 import '../models/user.dart';
+import 'session_repository.dart';
 
-/// In-memory session manager.
-/// Holds the current auth tokens and user info after login.
-/// For production, use flutter_secure_storage.
+/// Thin facade — delegates to [SessionRepository] (single source of truth).
 class SessionManager {
   static final SessionManager _instance = SessionManager._();
   factory SessionManager() => _instance;
   SessionManager._();
 
-  AuthTokens? _tokens;
-  User? _currentUser;
+  SessionRepository get _repo => SessionRepository.instance;
 
-  bool get isLoggedIn => _tokens != null && _currentUser != null;
-  User? get currentUser => _currentUser;
-  String? get accessToken => _tokens?.accessToken;
-  String? get refreshToken => _tokens?.refreshToken;
+  bool get isLoggedIn => _repo.isLoggedIn;
+  User? get currentUser => _repo.user;
+  String? get accessToken => _repo.accessToken;
+  String? get refreshToken => _repo.refreshToken;
 
-  void login(AuthTokens tokens) {
-    _tokens = tokens;
-    _currentUser = tokens.user;
-  }
+  Future<void> login(AuthTokens tokens) => _repo.login(tokens);
 
-  void logout() {
-    _tokens = null;
-    _currentUser = null;
-  }
+  Future<void> logout() => _repo.logout();
 }

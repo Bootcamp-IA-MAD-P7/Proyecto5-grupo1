@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
@@ -63,12 +65,16 @@ class AppTopActions extends StatelessWidget {
           icon: const Icon(Icons.logout),
           tooltip: l10n.logout,
           onPressed: () {
-            SessionManager().logout();
-            MonitoredContextStore().clear();
-            session.clear();
+            unawaited(_logout(context));
           },
         ),
       ],
     );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await SessionManager().logout();
+    MonitoredContextStore().clear();
+    await session.clear();
   }
 }

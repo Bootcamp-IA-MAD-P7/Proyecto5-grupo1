@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
-      SessionManager().login(tokens);
+      await SessionManager().login(tokens);
       if (mounted) widget.onLoginSuccess();
     } on AuthException catch (e) {
       setState(() => _error = e.message);

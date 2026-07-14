@@ -33,6 +33,7 @@ sentilife:
     secret: test-secret-key-min-32-chars-for-testing-only!!
     access-token-expiration: 900
     refresh-token-expiration: 604800
+    device-token-expiration: 7776000
   inference:
     url: http://localhost:8000
   firebase:

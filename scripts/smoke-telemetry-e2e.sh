@@ -72,8 +72,9 @@ person_id = person["id"]
 pairing = person["pairingCode"]
 device_id = f"android-smoke-{ts}"
 
-http("POST", "/api/v1/devices/pair",
+pair_resp = http("POST", "/api/v1/devices/pair",
     {"pairingCode": pairing, "deviceId": device_id, "platform": "ANDROID"})
+device_token = pair_resp["deviceToken"]
 
 http("POST", f"/api/v1/monitored-persons/{person_id}/consent",
     {"policyVersion": "1.0-es", "acceptedBy": "MONITORED"},
@@ -92,7 +93,7 @@ adl_window = {
     "samples": build_samples(spike=False),
 }
 t0 = time.perf_counter()
-adl_resp = http("POST", "/api/v1/telemetry/windows", adl_window)
+adl_resp = http("POST", "/api/v1/telemetry/windows", adl_window, token=device_token)
 adl_e2e_ms = int((time.perf_counter() - t0) * 1000)
 
 # Fall-like window (spike)
@@ -107,7 +108,7 @@ fall_window = {
     "samples": build_samples(spike=True),
 }
 t1 = time.perf_counter()
-fall_resp = http("POST", "/api/v1/telemetry/windows", fall_window)
+fall_resp = http("POST", "/api/v1/telemetry/windows", fall_window, token=device_token)
 fall_e2e_ms = int((time.perf_counter() - t1) * 1000)
 
 # Status endpoint (MONITORED screen data source)

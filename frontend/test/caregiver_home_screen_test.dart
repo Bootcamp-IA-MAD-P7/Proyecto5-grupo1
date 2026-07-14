@@ -9,7 +9,7 @@ import 'package:sentilife/models/user.dart';
 import 'package:sentilife/screens/caregiver_home_screen.dart';
 import 'package:sentilife/services/auth_session.dart';
 import 'package:sentilife/services/monitored_service.dart';
-import 'package:sentilife/services/session_manager.dart';
+import 'package:sentilife/services/secure_token_storage.dart';
 
 http.Response _json(Map<String, dynamic> body, [int status = 200]) =>
     http.Response(
@@ -42,22 +42,11 @@ Map<String, dynamic> _personJson({String id = 'uuid-person-001'}) => {
       'createdAt': '2026-07-08T10:00:00Z',
     };
 
-AuthSession _caregiverSession() {
-  final session = AuthSession();
+SessionRepository _caregiverSession() {
+  SessionRepository.resetForTests();
+  final session = SessionRepository(storage: InMemorySecureTokenStorage());
+  SessionRepository.useForTests(session);
   session.setSession(
-    const AuthTokens(
-      accessToken: 'test-token',
-      refreshToken: 'refresh-token',
-      expiresIn: 900,
-      user: User(
-        id: 'caregiver-1',
-        email: 'caregiver@test.com',
-        fullName: 'Ana García',
-        role: UserRole.caregiver,
-      ),
-    ),
-  );
-  SessionManager().login(
     const AuthTokens(
       accessToken: 'test-token',
       refreshToken: 'refresh-token',
@@ -119,7 +108,7 @@ Future<void> _fillPersonForm(
 
 void main() {
   tearDown(() {
-    SessionManager().logout();
+    SessionRepository.resetForTests();
   });
 
   testWidgets('formulario exige email de cuenta MONITORED', (tester) async {

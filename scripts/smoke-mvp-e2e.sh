@@ -81,8 +81,9 @@ person_id = person["id"]
 pairing = person["pairingCode"]
 device_id = f"android-mvp-{ts}"
 
-http("POST", "/api/v1/devices/pair",
+pair_resp = http("POST", "/api/v1/devices/pair",
     {"pairingCode": pairing, "deviceId": device_id, "platform": "ANDROID"})
+device_token = pair_resp["deviceToken"]
 
 http("POST", f"/api/v1/monitored-persons/{person_id}/consent",
     {"policyVersion": "1.0-es", "acceptedBy": "MONITORED"},
@@ -109,7 +110,7 @@ def post_fall_window(offset_ms=0):
         "sampleRateHz": 50,
         "samples": build_samples(spike=True),
     }
-    return http("POST", "/api/v1/telemetry/windows", payload)
+    return http("POST", "/api/v1/telemetry/windows", payload, token=device_token)
 
 t_fall = time.perf_counter()
 first_fall = post_fall_window(0)
