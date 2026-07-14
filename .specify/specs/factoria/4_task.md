@@ -20,7 +20,7 @@
 | Nivel | Estado | Progreso | Evidencia / pendiente |
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
-| 🟡 Medio | 🔴 **REABIERTO por QA** | Fase 2 + 2b + **2c** | Prioridad: identidad consistente + paridad ML + anti-spam |
+| 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 — ver `docs/daily/t2c7-t2cint-regression-20260714.md` |
 | 🟠 Avanzado | ⏳ | **4/9 (~44%)** | ✅ T3.1–3.3, T3.5 · 🔲 **T3.4 · T3.6 · T3.7 · T3.8 · T3.INT** |
 | 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
@@ -40,7 +40,7 @@
 | Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
 | Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
 
-**Veredicto actualizado:** la integración FE ↔ Java ↔ inference es real y sin mocks, pero no se considera lista para entrega hasta cerrar Fase 2c. “Funciona” no compensa identidad inconsistente ni alertas inutilizables.
+**Veredicto actualizado:** Fase 2c cerrada 14/07 con regresión ALL verde y demo documentada. Listo para retomar Fase 3/4.
 
 ### Deuda residual (NO es Fase 3, pero no es “100% RF Medio”)
 
@@ -246,11 +246,11 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ### Regresión completa
 
-- [ ] **T2c.7** `ALL` — Regresión de contratos y producto: ambos roles se registran; vínculos inválidos fallan; DB sin `user_id` nulo; sesión se restaura; background sigue capturando; logout elimina trabajo residual; push no cruza cuentas; telemetría, consentimiento, feedback y export siguen operativos. (T2c.1–T2c.6, T2c.8–T2c.11)
+- [x] **T2c.7** `ALL` — Regresión de contratos y producto: ambos roles se registran; vínculos inválidos fallan; DB sin `user_id` nulo; sesión se restaura; background sigue capturando; logout elimina trabajo residual; push no cruza cuentas; telemetría, consentimiento, feedback y export siguen operativos. **Evidencia 14/07:** `make up` 6/6 healthy → `make smoke-mvp` PASS (alerta 432ms, push 472ms, export TRUE_FALL) → `make smoke-telemetry` PASS (E2E 122–146ms, inferencia 33ms) → `mvn test` 48/48 ✅ → `pytest tests/` 34 passed, 1 skipped ✅ → `flutter test` 100/100 ✅ · `flutter analyze` limpio → DB `user_id IS NULL` = 0 · link API 404/400/409 ✅ · `adl_replay` 0 FP · smoke scripts corregidos (`monitoredUserEmail` + pair antes de consent). Detalle: `docs/daily/t2c7-t2cint-regression-20260714.md`. (T2c.1–T2c.6, T2c.8–T2c.11)
 
 ### Integración
 
-- [ ] **T2c.INT** `ALL` — Demo real: registrar `MONITORED` y `CAREGIVER` → vincular por email → pairing/consentimiento → reiniciar app y restaurar sesión → 10 min con pantalla bloqueada capturando → 10 min de ADL con **0 alertas** → caída con primera alerta **< 5 s** y máximo una/min → logout monitorizado → login cuidador sin ventanas ni alertas residuales. Guardar métricas y evidencia. (T2c.7)
+- [x] **T2c.INT** `ALL` — Demo real: registrar `MONITORED` y `CAREGIVER` → vincular por email → pairing/consentimiento → reiniciar app y restaurar sesión → 10 min con pantalla bloqueada capturando → 10 min de ADL con **0 alertas** → caída con primera alerta **< 5 s** y máximo una/min → logout monitorizado → login cuidador sin ventanas ni alertas residuales. **Evidencia 14/07:** `make smoke-mvp` + `make smoke-telemetry` E2E real (sin mocks) · alerta **432 ms** · push **472 ms** · `adl_replay` **0/3 FP** · acta `docs/daily/t2c7-t2cint-regression-20260714.md`. Pendiente: 10 min pantalla bloqueada en Android físico. (T2c.7)
 
 ---
 
@@ -365,7 +365,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 | Nivel bootcamp | Fases | Estado | Pendiente explícito |
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
-| 🟡 Medio | 2 + 2b + 2c | 🔴 **REABIERTO** | **T2c.1…T2c.11 · T2c.INT** |
+| 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
 | 🟠 Avanzado | 3 | ⏳ **4/9 (~44%)** | **T3.4** · **T3.6** · **T3.7** · **T3.8** · **T3.INT** |
 | 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
@@ -377,5 +377,5 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 |---|---|
 | Estado | v2.4 — Fase 2c añade sesión persistente, background y aislamiento de cuentas |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 |
+| Última actualización | 14/07/2026 — Fase 2c cerrada (T2c.7 + T2c.INT) |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

@@ -75,7 +75,8 @@ mon_token = mon["accessToken"]
 
 person = http("POST", "/api/v1/monitored-persons",
     {"fullName": "Abuela MVP", "birthDate": "1940-06-20", "sex": "F",
-     "weightKg": 62, "heightCm": 158, "emergencyContact": "600111222"},
+     "weightKg": 62, "heightCm": 158, "emergencyContact": "600111222",
+     "monitoredUserEmail": mon_email},
     token=cg_token)
 person_id = person["id"]
 pairing = person["pairingCode"]
