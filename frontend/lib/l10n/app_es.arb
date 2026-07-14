@@ -63,11 +63,22 @@
   "incompatibleSignatureDescription": "El APK descargado está firmado con una clave diferente a la versión instalada. Esto impide actualizar directamente.\n\nPara solucionar el problema:\n1. Desinstala la app manualmente.\n2. Vuelve a abrir este enlace de descarga e instala la nueva versión.",
   "understood": "Entendido",
   "loginTitle": "Iniciar sesión",
+  "loginSubtitle": "Inicia sesión para continuar",
+  "registerSubtitle": "Crea tu cuenta",
+  "requiredField": "Obligatorio",
+  "invalidEmail": "Email inválido",
+  "passwordMinLength": "Mín. 8 caracteres",
+  "connectionError": "Error de conexión. ¿Está el backend activo?",
+  "register": "Registrarse",
+  "signIn": "Iniciar sesión",
+  "alreadyHaveAccount": "¿Ya tienes cuenta? Inicia sesión",
+  "noAccountRegister": "¿No tienes cuenta? Regístrate",
   "email": "Correo electrónico",
   "password": "Contraseña",
   "login": "Entrar",
   "logout": "Cerrar sesión",
   "demoAccounts": "Cuentas de demostración",
+  "registrationRolePrompt": "Tipo de perfil",
   "roleCaregiver": "Cuidador",
   "roleMonitored": "Persona monitorizada",
   "roleItAdmin": "Administrador IT",
@@ -96,6 +107,11 @@
   "weightKg": "Peso (kg)",
   "heightCm": "Altura (cm)",
   "emergencyContact": "Contacto de emergencia",
+  "monitoredUserEmail": "Email de la cuenta monitorizada",
+  "monitoredUserEmailRequired": "Introduce el email de una cuenta MONITORED existente.",
+  "pendingLinkStatus": "PENDING_LINK",
+  "pendingLinkTitle": "Vinculación pendiente",
+  "pendingLinkBody": "Tu cuidador debe registrar tu ficha con el email de esta cuenta antes de vincular el dispositivo.",
   "save": "Guardar",
   "age": "Edad",
   "consent": "Consentimiento",
@@ -139,5 +155,37 @@
   "userStatusError": "No se pudo actualizar el estado del usuario.",
   "pairingCredentialMissing": "El vínculo guardado pertenece a una versión anterior. Vuelve a emparejar el dispositivo para continuar.",
   "lastEvaluationLoadError": "No se pudo cargar la última evaluación. El dispositivo continúa vinculado.",
-  "sensorStartError": "No se pudieron iniciar el acelerómetro y el giroscopio."
+  "sensorStartError": "No se pudieron iniciar el acelerómetro y el giroscopio.",
+  "updateNoRemoteVersion": "No hay versión remota cargada. Llama a checkForUpdate() primero.",
+  "updateVersionCheckUnexpected": "Error inesperado al comprobar la versión.",
+  "updateDownloadUnexpected": "Error inesperado durante la descarga.",
+  "updatePhaseVersionCheck": "comprobación de versión",
+  "updatePhaseApkDownload": "descarga del APK",
+  "updateTimeout": "La {phase} tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.",
+  "@updateTimeout": {
+    "placeholders": {
+      "phase": { "type": "String" }
+    }
+  },
+  "updateServerError": "El servidor devolvió un error (código {code}). Inténtalo más tarde.",
+  "@updateServerError": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+  "updateInstallPermissionDetail": "No tienes permiso para instalar apps de fuentes desconocidas.\nVe a Ajustes > Aplicaciones > esta app > Instalar apps desconocidas y actívalo.",
+  "updateApkNotFound": "El archivo APK no se encontró en \"{path}\". Intenta descargar de nuevo.",
+  "@updateApkNotFound": {
+    "placeholders": {
+      "path": { "type": "String" }
+    }
+  },
+  "updateNoPackageManager": "No se encontró ningún gestor de paquetes para instalar el APK.",
+  "updateInstallerError": "Error al abrir el instalador: {message}",
+  "@updateInstallerError": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "updateSignatureMismatchDetail": "La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión."
 }

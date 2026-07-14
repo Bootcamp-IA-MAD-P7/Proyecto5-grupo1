@@ -14,10 +14,15 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 
 | ID | Requisito | Nivel |
 |---|---|---|
-| RF-01 | El sistema permite registro y login de usuarios con email y contraseña. La sesión se gestiona con **JWT** (access + refresh token). | Avanzado |
+| RF-01 | El sistema permite registro y login de usuarios con email y contraseña. En el registro público el usuario debe escoger explícitamente `CAREGIVER` o `MONITORED`; `IT_ADMIN` no está disponible. La sesión se gestiona con **JWT** (access + refresh token). | Avanzado |
 | RF-02 | Existen tres roles: `MONITORED`, `CAREGIVER`, `IT_ADMIN`. Cada endpoint valida el rol requerido. | Avanzado |
-| RF-03 | Un `CAREGIVER` puede registrar una o varias **personas monitorizadas** mediante formulario con datos mínimos: nombre, fecha de nacimiento (edad), sexo, peso, altura y contacto opcional. | Avanzado |
+| RF-03 | Un `CAREGIVER` puede vincular una o varias **personas monitorizadas** mediante el email de una cuenta activa y existente con rol `MONITORED`, y completar los datos mínimos: nombre, fecha de nacimiento (edad), sexo, peso, altura y contacto opcional. Cada cuenta `MONITORED` solo puede estar vinculada a una ficha. No se permiten fichas con `user_id` nulo. | Avanzado |
 | RF-04 | Un `IT_ADMIN` puede listar, activar/desactivar usuarios y consultar la relación cuidador ↔ persona monitorizada. | Avanzado |
+| RF-35 | Flutter mantiene una única sesión persistida en almacenamiento seguro. Al arrancar restaura el refresh token, solicita tokens vigentes y solo entonces navega al perfil; nunca persiste la contraseña. | Avanzado |
+| RF-36 | Una monitorización iniciada por `MONITORED` continúa en Android con la app en background o la pantalla bloqueada mediante foreground service y notificación permanente. | Avanzado |
+| RF-37 | El logout es ordenado y bloqueante: detiene captura, cancela ventanas pendientes y requests en vuelo, desregistra el push del usuario saliente y después elimina la sesión. Hasta terminar no se permite otro login. | Avanzado |
+| RF-38 | Pairing, consentimiento y estado de monitorización local se almacenan por `userId`; ninguna cuenta puede leer o reutilizar el contexto local de otra. | Avanzado |
+| RF-39 | El backend valida que cada device token de telemetría pertenece al `monitoredPersonId` y `deviceId` del request. Cada push identifica al `recipientUserId`; Flutter solo lo presenta si coincide con el `CAREGIVER` autenticado. | Avanzado |
 
 ### 2.2 Consentimiento y privacidad (GDPR)
 
@@ -37,8 +42,8 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-11 | La app envía la telemetría en **ventanas deslizantes** según el contrato SL-14/T1.2 versionado en `contracts/window_contract.json` y documentado en `contracts/window_contract.md`: 2.5 s, 50 Hz, 50% de solape y 125 muestras por señal obligatoria. | Esencial |
 | RF-12 | El backend Java valida el consentimiento, persiste la ventana (InfluxDB) y solicita la clasificación al servicio de inferencia FastAPI. | Esencial |
 | RF-13 | El servicio de inferencia devuelve: `fallDetected` (bool), `confidence` (0.0–1.0), versión del modelo y timestamp. | Esencial |
-| RF-14 | Ante `fallDetected = true`, el backend publica un evento `fall.detected` en RabbitMQ y crea una **alerta** persistida en PostgreSQL. | Medio |
-| RF-15 | El cuidador recibe la alerta en la app (polling o push según `3_plan.md`) con hora, confianza y persona afectada. | Medio |
+| RF-14 | El backend persiste cada predicción, pero solo crea una **alerta** cuando al menos 2 de las últimas 3 ventanas de la persona tienen `fallDetected = true`. La alerta publica el evento correspondiente en RabbitMQ. | Medio |
+| RF-15 | El cuidador recibe la alerta en la app (polling o push según `3_plan.md`) con hora, confianza y persona afectada. Tras emitirla, el backend aplica un cooldown de 60 segundos por persona: una condición persistente puede generar una nueva alerta al terminar cada minuto, nunca antes. | Medio |
 
 ### 2.4 Historial y feedback
 
@@ -82,6 +87,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-31 | La app Flutter soporta **múltiples idiomas** (mínimo español e inglés) mediante ARB/`intl`, incluyendo los textos del modal de consentimiento por versión e idioma. | Avanzado |
 | RF-32 | **Modal de transparencia de datos** (patrón proyecto 4): la app informa al usuario, en lenguaje claro, de que las predicciones que ve y el feedback que emite se almacenan como datos reales para reentrenar el modelo. Accesible desde ajustes y enlazado desde el modal de consentimiento. | Medio |
 | RF-33 | El `IT_ADMIN` puede lanzar un **reentrenamiento** con los datos reales recogidos y consultar su estado (`idle / running / completed / failed`, fase actual y decisión final) mediante polling, sin reiniciar contenedores (hot-reload del modelo). | Experto |
+| RF-34 | Si una cuenta `MONITORED` inicia sesión antes de estar vinculada a una ficha, la app muestra el estado `PENDING_LINK` y no permite iniciar pairing, consentimiento ni telemetría. | Avanzado |
 
 ---
 
@@ -126,6 +132,12 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | ML-18 | Monitoreo de **data drift** sobre las distribuciones de features de entrada. |
 | ML-19 | **Auto-reemplazo** de modelo condicionado a superar métricas predefinidas en evaluación automática. |
 
+### Transversal de producción
+
+| ID | Requisito |
+|---|---|
+| ML-20 | Antes de recalibrar o reentrenar por falsos positivos, se ejecuta un diagnóstico reproducible de paridad entrenamiento ↔ producción: unidades, gravedad, frecuencia, longitud de ventana, orden de features, valores no finitos y distribución de features de telemetría móvil frente a SisFall. |
+
 ---
 
 ## 4. Requisitos no funcionales
@@ -135,7 +147,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RNF-01 | **Latencia extremo a extremo** (evento físico → alerta visible al cuidador) | < 5 s (p95) |
 | RNF-02 | **Latencia de inferencia** (`/predict`) | < 300 ms (p95) |
 | RNF-03 | Disponibilidad del pipeline de detección en demo/QA | Sin caídas durante demo; reinicio automático de contenedores (`restart: unless-stopped`) |
-| RNF-04 | Seguridad: contraseñas hasheadas (BCrypt), JWT firmado, secretos fuera del repo (`.env`, GitHub Secrets) | Obligatorio |
+| RNF-04 | Seguridad: contraseñas hasheadas (BCrypt), JWT firmado, refresh token y sesión móvil en secure storage, secretos fuera del repo (`.env`, GitHub Secrets) | Obligatorio |
 | RNF-05 | Privacidad: cumplimiento de constitución §8 (consentimiento, minimización, seudonimización, supresión) | Obligatorio |
 | RNF-06 | Todo el stack se levanta en local con `docker compose up` | Un comando |
 | RNF-07 | CI/CD: tests en cada PR; despliegue automático a QA en merge a `main` | GitHub Actions |
@@ -149,7 +161,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 
 ```
 users                 (id, email, password_hash, role, active, created_at)
-monitored_persons     (id, caregiver_id → users, user_id → users NULL,
+monitored_persons     (id, caregiver_id → users, user_id → users NOT NULL UNIQUE,
                        full_name, birth_date, sex, weight_kg, height_cm,
                        emergency_contact, created_at)
 consents              (id, monitored_person_id, policy_version, status
@@ -169,7 +181,10 @@ app_versions          (existente — OTA Android)
 ```
 
 Notas:
-- `monitored_persons.user_id` es opcional: la persona monitorizada puede tener cuenta propia (rol `MONITORED`) o ser gestionada solo por el cuidador.
+- `monitored_persons.user_id` es obligatorio y único. Debe referenciar una cuenta activa con rol `MONITORED`; esta regla se valida en servicio y mediante constraints de base de datos.
+- La base de datos de desarrollo se recreará al aplicar este cambio; no se conservarán fichas históricas con `user_id` nulo.
+- Un `device_id` solo puede tener un token push activo asociado al usuario autenticado actual. El logout lo desregistra; el siguiente login puede reasignarlo.
+- El device token de `paired_devices` se almacena hasheado y sus claims identifican `monitored_person_id` + `device_id`.
 - `telemetry_window_ref` referencia la ventana en InfluxDB (measurement + rango temporal + `monitored_id`).
 
 ### 5.2 InfluxDB (telemetría en tiempo real)
@@ -215,7 +230,7 @@ Convenciones generales:
 { "timestamp": "2026-07-08T10:15:00Z", "status": 403, "error": "FORBIDDEN", "message": "Consentimiento no activo", "path": "/api/v1/telemetry/windows" }
 ```
 
-- Códigos: `400` validación, `401` sin token/expirado, `403` rol o consentimiento, `404` no existe o no es tuyo, `409` conflicto (email duplicado).
+- Códigos: `400` validación o rol de cuenta incompatible, `401` sin token/expirado, `403` rol o consentimiento, `404` no existe o no es tuyo, `409` conflicto (email duplicado o cuenta `MONITORED` ya vinculada).
 - Listados paginados: `?page=0&size=20` → respuesta `{ "content": [...], "page": 0, "size": 20, "totalElements": 132, "totalPages": 7 }`.
 
 ### 6.1 Auth (`/api/v1/auth`) — público
@@ -229,7 +244,7 @@ Convenciones generales:
 { "id": "uuid", "email": "ana@mail.com", "fullName": "Ana García", "role": "CAREGIVER" }
 ```
 
-`role` admitidos en registro: `CAREGIVER`, `MONITORED`. `IT_ADMIN` se crea por seed/gestión interna.
+`role` es obligatorio y debe seleccionarse explícitamente en Flutter. Valores admitidos: `CAREGIVER`, `MONITORED`. `IT_ADMIN` se crea por seed/gestión interna.
 
 **POST `/login`**
 
@@ -246,6 +261,8 @@ Convenciones generales:
 
 **POST `/refresh`** — `{ "refreshToken": "eyJ..." }` → mismo shape que login.
 
+Flutter guarda en secure storage únicamente el material necesario para restaurar la sesión. En el arranque llama a `/refresh`; si falla por expiración/revocación, borra el almacenamiento y muestra login. `SessionManager` y `AuthSession` no pueden mantener copias divergentes.
+
 ### 6.2 Personas monitorizadas (`/api/v1/monitored-persons`) — rol CAREGIVER
 
 **POST `/`** (formulario de registro, RF-03)
@@ -253,17 +270,21 @@ Convenciones generales:
 ```json
 // request
 {
+  "monitoredUserEmail": "manuel@mail.com",
   "fullName": "Manuel Pérez", "birthDate": "1948-03-12", "sex": "M",
   "weightKg": 78.5, "heightCm": 172, "emergencyContact": "+34600111222"
 }
 // 201 response
 {
-  "id": "uuid", "fullName": "Manuel Pérez", "birthDate": "1948-03-12", "age": 78,
+  "id": "uuid", "userId": "uuid", "userEmail": "manuel@mail.com",
+  "fullName": "Manuel Pérez", "birthDate": "1948-03-12", "age": 78,
   "sex": "M", "weightKg": 78.5, "heightCm": 172, "emergencyContact": "+34600111222",
   "consentStatus": "PENDING", "monitoringStatus": "INACTIVE",
   "pairingCode": "SL-84F2K9", "createdAt": "2026-07-08T10:15:00Z"
 }
 ```
+
+El backend normaliza y resuelve `monitoredUserEmail`; el cliente nunca envía `userId`. Respuestas específicas: `404` si el email no existe, `400` si la cuenta no está activa o su rol no es `MONITORED`, `409` si ya está vinculada.
 
 `pairingCode`: código de un solo uso con el que el dispositivo de la persona monitorizada se vincula (ver 6.4). `sex`: `M | F | OTHER` (dato de features del modelo).
 
@@ -307,11 +328,15 @@ Convenciones generales:
 // 403 si consentimiento no activo (RF-06)
 ```
 
+Además del consentimiento, Java valida el bearer de dispositivo: sus claims deben coincidir con `monitoredPersonId` y `deviceId`, y el pairing debe seguir activo. Token ausente/inválido devuelve `401`; token válido para otro dispositivo/persona devuelve `403`.
+
 `context` es opcional y extensible: campos nuevos de sensores se añaden aquí sin romper el contrato.
 
 Reglas fijas SL-14/T1.2: `sampleRateHz = 50`; `windowEnd = windowStart + 2500 ms`; cada array obligatorio en `samples` contiene exactamente 125 valores finitos en unidades físicas (`acc*` en `m/s²`, `gyro*` en `°/s`). SisFall se remuestrea de 200 Hz a 50 Hz con interpolación lineal; producción conserva gravedad y deja cualquier normalización dentro del pipeline del modelo.
 
 **GET `/status/{monitoredPersonId}`** — rol CAREGIVER: `{ "monitoringStatus": "ACTIVE", "lastWindowAt": "...", "lastPrediction": { ... } }`.
+
+**Regla de creación de alertas:** la respuesta de inferencia se persiste siempre. Para cada `monitoredPersonId`, Java evalúa las tres predicciones más recientes; crea alerta si al menos dos son positivas y no existe otra alerta creada en los 60 segundos anteriores. La regla debe ser atómica para evitar duplicados bajo peticiones concurrentes.
 
 ### 6.4 Vinculación de dispositivo y push (`/api/v1/devices`)
 
@@ -332,6 +357,8 @@ Reglas fijas SL-14/T1.2: `sampleRateHz = 50`; `windowEnd = windowStart + 2500 ms
 // 204 response — idempotente: re-registrar el mismo deviceId actualiza el token
 ```
 
+**DELETE `/push-token/{deviceId}`** — autenticado: desregistra el dispositivo del usuario actual durante logout; respuesta `204`. Es idempotente.
+
 **Payload de push FCM** (RF-28/RF-29) — mensaje `data` + `notification`:
 
 ```json
@@ -340,12 +367,13 @@ Reglas fijas SL-14/T1.2: `sampleRateHz = 50`; `windowEnd = windowStart + 2500 ms
   "data": {
     "type": "FALL_ALERT",            // FALL_ALERT | MONITORING_STARTED | MONITORING_STOPPED | CONSENT_REVOKED
     "alertId": "uuid", "monitoredPersonId": "uuid",
+    "recipientUserId": "uuid",
     "confidence": "0.92", "detectedAt": "2026-07-08T10:15:03Z"
   }
 }
 ```
 
-Al tocar la notificación, Flutter navega a `AlertDetailScreen(alertId)`.
+Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaurada o si `recipientUserId` no coincide con el usuario activo. Al tocar una notificación válida, navega a `AlertDetailScreen(alertId)`.
 
 ### 6.5 Alertas (`/api/v1/alerts`) — rol CAREGIVER
 
@@ -419,6 +447,15 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 6. **Feedback:** una alerta confirmada aparece en el export de `IT_ADMIN` como muestra etiquetada.
 7. **Observabilidad:** dashboard Grafana con latencia del pipeline y salud de los servicios, alimentado por Prometheus.
 8. **Operación:** `docker compose up` levanta todo el stack en local; merge a `main` despliega a QA automáticamente.
+9. **Registro por rol:** Flutter permite registrar tanto `CAREGIVER` como `MONITORED`; el rol enviado coincide con el elegido y nunca ofrece `IT_ADMIN`.
+10. **Integridad de vínculo:** crear una ficha requiere el email de una cuenta activa `MONITORED`; email inexistente, rol incorrecto y cuenta ya vinculada producen `404`, `400` y `409` respectivamente. En una DB recreada no existe ningún `monitored_persons.user_id IS NULL`.
+11. **Falsos positivos de campo:** un replay reproducible de 10 minutos caminando, sentado y manipulando el móvil produce cero alertas.
+12. **Antispam:** una predicción positiva aislada no alerta; 2 de 3 sí alertan; una condición persistente produce como máximo una alerta por persona cada 60 segundos, manteniendo la latencia inicial < 5 s.
+13. **Restauración de sesión:** tras enviar la app a background, matar su proceso y abrirla de nuevo, una sesión con refresh token válido vuelve al mismo perfil sin pedir credenciales; un token inválido vuelve a login.
+14. **Background Android:** con monitorización activa, diez minutos con pantalla bloqueada producen ventanas continuas y muestran la notificación permanente del foreground service.
+15. **Logout aislado:** al cerrar `MONITORED`, el sistema espera la parada total. Tras entrar como `CAREGIVER` en el mismo dispositivo no se envían más ventanas del usuario anterior ni se generan alertas por ellas.
+16. **Aislamiento local y push:** dos cuentas alternadas en un dispositivo conservan contextos separados; un push cuyo `recipientUserId` no coincide no se muestra ni navega.
+17. **Autorización de dispositivo:** reutilizar un device token con otro `monitoredPersonId` o `deviceId` devuelve `403` y no persiste telemetría.
 
 ---
 
@@ -426,9 +463,9 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Nivel | Requisitos que lo cubren |
 |---|---|
-| 🟢 Esencial | ML-01…ML-05 · RF-10…RF-13 · RF-20 · RF-26 |
+| 🟢 Esencial | ML-01…ML-05 · ML-20 · RF-10…RF-13 · RF-20 · RF-26 |
 | 🟡 Medio | ML-06…ML-10 · RF-14…RF-19 · RF-21 · RF-22 · RF-27…RF-30 · RF-32 |
-| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RNF-01…RNF-07 |
+| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RF-34…RF-39 · RNF-01…RNF-07 |
 | 🔴 Experto | ML-15…ML-19 · RF-33 |
 
 ---
@@ -437,6 +474,6 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.2 — contratos detallados para trabajo en paralelo, push FCM, i18n, transparencia y reentrenamiento |
+| Estado | Draft v0.5 — añade sesión persistente, background e aislamiento entre cuentas |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 08/07/2026 |
+| Última actualización | 14/07/2026 |

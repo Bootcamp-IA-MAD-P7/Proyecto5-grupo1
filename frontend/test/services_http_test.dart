@@ -103,6 +103,32 @@ void main() {
       );
     });
 
+    test('refresh parsea tokens rotados del backend', () async {
+      final auth = AuthService(
+        client: MockClient((req) async {
+          expect(req.url.path, endsWith('/auth/refresh'));
+          final body = jsonDecode(req.body) as Map<String, dynamic>;
+          expect(body['refreshToken'], 'refresh-old');
+          return _json({
+            'accessToken': 'access-new',
+            'refreshToken': 'refresh-new',
+            'expiresIn': 900,
+            'user': {
+              'id': 'uuid-cg-1',
+              'email': 'caregiver@test.com',
+              'fullName': 'Ana García',
+              'role': 'CAREGIVER',
+              'locale': 'es',
+            },
+          });
+        }),
+      );
+
+      final tokens = await auth.refresh('refresh-old');
+      expect(tokens.accessToken, 'access-new');
+      expect(tokens.refreshToken, 'refresh-new');
+    });
+
     test('register lee el usuario de la envoltura {user}', () async {
       final auth = AuthService(
         client: MockClient((req) async => _json({
@@ -170,7 +196,7 @@ void main() {
       );
     });
 
-    test('create envía el cuerpo y parsea la persona creada', () async {
+    test('create envía monitoredUserEmail y parsea la persona creada', () async {
       late Map<String, dynamic> sent;
       final service = MonitoredService(
         client: MockClient((req) async {
@@ -180,14 +206,139 @@ void main() {
       );
 
       final person = await service.create(
+        monitoredUserEmail: 'monitored@test.com',
         fullName: 'Manuel Pérez',
         birthDate: '1948-03-12',
         sex: 'M',
         weightKg: 78.5,
         heightCm: 172,
       );
+      expect(sent['monitoredUserEmail'], 'monitored@test.com');
       expect(sent['fullName'], 'Manuel Pérez');
       expect(person.id, 'uuid-created');
+    });
+
+    test('create con 404 lanza ApiException NOT_FOUND', () async {
+      final service = MonitoredService(
+        client: MockClient(
+          (req) async => _json(
+            {'error': 'NOT_FOUND', 'message': 'Monitored user not found'},
+            404,
+          ),
+        ),
+      );
+
+      expect(
+        () => service.create(
+          monitoredUserEmail: 'missing@test.com',
+          fullName: 'Manuel Pérez',
+          birthDate: '1948-03-12',
+          sex: 'M',
+          weightKg: 78.5,
+          heightCm: 172,
+        ),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.status, 'status', 404)
+              .having((e) => e.error, 'error', 'NOT_FOUND'),
+        ),
+      );
+    });
+
+    test('create con 400 lanza ApiException BAD_REQUEST', () async {
+      final service = MonitoredService(
+        client: MockClient(
+          (req) async => _json(
+            {
+              'error': 'BAD_REQUEST',
+              'message': 'Linked account must have MONITORED role',
+            },
+            400,
+          ),
+        ),
+      );
+
+      expect(
+        () => service.create(
+          monitoredUserEmail: 'caregiver@test.com',
+          fullName: 'Manuel Pérez',
+          birthDate: '1948-03-12',
+          sex: 'M',
+          weightKg: 78.5,
+          heightCm: 172,
+        ),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.status, 'status', 400)
+              .having((e) => e.error, 'error', 'BAD_REQUEST'),
+        ),
+      );
+    });
+
+    test('create con 409 lanza ApiException CONFLICT', () async {
+      final service = MonitoredService(
+        client: MockClient(
+          (req) async => _json(
+            {
+              'error': 'CONFLICT',
+              'message': 'MONITORED account is already linked',
+            },
+            409,
+          ),
+        ),
+      );
+
+      expect(
+        () => service.create(
+          monitoredUserEmail: 'linked@test.com',
+          fullName: 'Manuel Pérez',
+          birthDate: '1948-03-12',
+          sex: 'M',
+          weightKg: 78.5,
+          heightCm: 172,
+        ),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.status, 'status', 409)
+              .having((e) => e.error, 'error', 'CONFLICT'),
+        ),
+      );
+    });
+
+    test('getMyProfile devuelve la ficha del MONITORED autenticado', () async {
+      final service = MonitoredService(
+        client: MockClient((req) async {
+          expect(req.url.path, endsWith('/monitored-persons/me'));
+          return _json(_personJson());
+        }),
+      );
+
+      final person = await service.getMyProfile();
+      expect(person.id, 'uuid-person-001');
+      expect(person.fullName, 'Manuel Pérez');
+    });
+
+    test('getMyProfile con 404 indica perfil sin vincular', () async {
+      final service = MonitoredService(
+        client: MockClient(
+          (req) async => _json(
+            {
+              'error': 'NOT_FOUND',
+              'message': 'Monitored profile not linked',
+            },
+            404,
+          ),
+        ),
+      );
+
+      expect(
+        () => service.getMyProfile(),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.status, 'status', 404)
+              .having((e) => e.message, 'message', 'Monitored profile not linked'),
+        ),
+      );
     });
 
     test('revokeConsent (DELETE) completa sin error', () async {
@@ -389,6 +540,21 @@ void main() {
       await expectLater(
         service.registerPushToken(
             fcmToken: 'fcm-1', deviceId: 'android-1'),
+        completes,
+      );
+    });
+
+    test('unregisterPushToken DELETE devuelve 204', () async {
+      final service = DevicesService(
+        client: MockClient((req) async {
+          expect(req.method, 'DELETE');
+          expect(req.url.path, endsWith('/push-token/android-1'));
+          return http.Response('', 204);
+        }),
+      );
+
+      await expectLater(
+        service.unregisterPushToken(deviceId: 'android-1'),
         completes,
       );
     });

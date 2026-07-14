@@ -4,6 +4,7 @@ class PushAlertPayload {
   final String alertId;
   final String? monitoredPersonId;
   final String? personName;
+  final String? recipientUserId;
   final double? confidence;
 
   const PushAlertPayload({
@@ -11,6 +12,7 @@ class PushAlertPayload {
     required this.alertId,
     this.monitoredPersonId,
     this.personName,
+    this.recipientUserId,
     this.confidence,
   });
 
@@ -22,6 +24,7 @@ class PushAlertPayload {
       alertId: data['alertId'] as String? ?? '',
       monitoredPersonId: data['monitoredPersonId'] as String?,
       personName: data['personName'] as String?,
+      recipientUserId: data['recipientUserId'] as String?,
       confidence: _parseConfidence(data['confidence']),
     );
   }

@@ -29,8 +29,9 @@ public class TelemetryController {
      */
     @PostMapping("/windows")
     public ResponseEntity<TelemetryDtos.WindowResponse> ingestWindow(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @Valid @RequestBody TelemetryDtos.WindowRequest request) {
-        return ResponseEntity.ok(service.ingest(request));
+        return ResponseEntity.ok(service.ingest(request, authorization));
     }
 
     /**

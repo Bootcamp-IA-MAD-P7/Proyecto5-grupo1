@@ -9,6 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/v1/admin")
+@PreAuthorize("hasRole('IT_ADMIN')")
 public class AdminController {
 
     private final AdminService service;

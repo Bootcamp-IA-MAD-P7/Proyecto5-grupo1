@@ -81,6 +81,7 @@ class TelemetryPipelineService {
   }
 
   Future<void> stopMonitoring() async {
+    cancelPendingQueue();
     if (!_isRunning && _snapshotSubscription == null) {
       _clearMonitoringState();
       return;
@@ -110,6 +111,11 @@ class TelemetryPipelineService {
     if (stopError != null && stopStackTrace != null) {
       Error.throwWithStackTrace(stopError, stopStackTrace);
     }
+  }
+
+  void cancelPendingQueue() {
+    _pendingWindows.clear();
+    _isSending = false;
   }
 
   Future<void> dispose() async {

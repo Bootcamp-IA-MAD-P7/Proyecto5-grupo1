@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sentilife/services/device_id_service.dart';
 import 'package:sentilife/services/devices_service.dart';
-import 'package:sentilife/services/exceptions.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
+import 'package:sentilife/services/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// DevicesService cuyo POST /pair resuelve un pairingCode conocido.
@@ -36,6 +36,8 @@ DevicesService _pairingDevices() => DevicesService(
   }),
 );
 
+const _testUserId = 'user-monitored-test';
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -55,13 +57,16 @@ void main() {
   });
 
   group('Monitored pairing flow (HTTP real)', () {
-    tearDown(() => MonitoredContextStore().clear());
+    tearDown(() async {
+      final store = MonitoredContextStore()..bindUser(_testUserId);
+      await store.clear();
+    });
 
     test(
       'pair stores monitoredPersonId and deviceId in context store',
       () async {
         final devices = _pairingDevices();
-        final store = MonitoredContextStore();
+        final store = MonitoredContextStore()..bindUser(_testUserId);
         const deviceId = 'android-test-pair-001';
 
         final result = await devices.pair(
@@ -85,7 +90,7 @@ void main() {
 
     test('invalid pairing code does not update store', () async {
       final devices = _pairingDevices();
-      final store = MonitoredContextStore();
+      final store = MonitoredContextStore()..bindUser(_testUserId);
 
       await expectLater(
         devices.pair(pairingCode: 'SL-INVALID', deviceId: 'android-test'),
@@ -96,7 +101,7 @@ void main() {
     });
 
     test('paired state skips re-pairing requirement', () async {
-      final store = MonitoredContextStore();
+      final store = MonitoredContextStore()..bindUser(_testUserId);
       await store.setPairing(
         personId: 'person-1',
         deviceId: 'device-1',
@@ -112,7 +117,7 @@ void main() {
     test(
       'pairing is restored from SharedPreferences after process restart',
       () async {
-        final store = MonitoredContextStore();
+        final store = MonitoredContextStore()..bindUser(_testUserId);
         await store.setPairing(
           personId: 'person-persisted',
           deviceId: 'device-persisted',
@@ -120,6 +125,7 @@ void main() {
         );
 
         store.resetInMemoryForTests();
+        store.bindUser(_testUserId);
         await store.load();
 
         expect(store.isPaired, isTrue);
@@ -130,14 +136,16 @@ void main() {
     );
 
     test(
-      'legacy preferences without token require controlled re-pairing',
+      'legacy global preferences migrate into user namespace on load',
       () async {
         SharedPreferences.setMockInitialValues({
           'monitored_person_id': 'legacy-person',
           'monitored_device_id': 'legacy-device',
           'monitored_consent_active': true,
         });
-        final store = MonitoredContextStore()..resetInMemoryForTests();
+        final store = MonitoredContextStore()
+          ..resetInMemoryForTests()
+          ..bindUser(_testUserId);
 
         await store.load();
 
@@ -148,5 +156,19 @@ void main() {
         expect(store.isPaired, isFalse);
       },
     );
+
+    test('different userId does not read another account namespace', () async {
+      final storeA = MonitoredContextStore()..bindUser('user-a');
+      await storeA.setPairing(
+        personId: 'person-a',
+        deviceId: 'device-a',
+        deviceToken: 'token-a',
+      );
+
+      final storeB = MonitoredContextStore()..bindUser('user-b');
+      await storeB.load();
+
+      expect(storeB.isPaired, isFalse);
+    });
   });
 }

@@ -58,6 +58,66 @@ def _make_samples(n: int = N_SAMPLES, spike: bool = False) -> dict:
     return samples
 
 
+def test_predict_rejects_wrong_sample_count():
+    health = client.get("/health").json()
+    if not health.get("model_loaded"):
+        pytest.skip("No model loaded in test env")
+
+    samples = _make_samples()
+    samples["accX"] = samples["accX"][:10]
+
+    response = client.post(
+        "/predict",
+        json={
+            "windowId": "00000000-0000-0000-0000-000000000010",
+            "monitoredId": "00000000-0000-0000-0000-000000000011",
+            "sampleRateHz": 50,
+            "samples": samples,
+        },
+    )
+    assert response.status_code == 422
+    assert "125 samples" in response.json()["detail"]
+
+
+def test_predict_rejects_missing_signals():
+    health = client.get("/health").json()
+    if not health.get("model_loaded"):
+        pytest.skip("No model loaded in test env")
+
+    response = client.post(
+        "/predict",
+        json={
+            "windowId": "00000000-0000-0000-0000-000000000012",
+            "monitoredId": "00000000-0000-0000-0000-000000000013",
+            "sampleRateHz": 50,
+            "samples": {"accX": [0.1] * N_SAMPLES},
+        },
+    )
+    assert response.status_code == 422
+    assert "Missing required signals" in response.json()["detail"]
+
+
+def test_predict_spike_window_contract():
+    """Spike windows should return a valid §6.8 response when model is loaded."""
+    health = client.get("/health").json()
+    if not health.get("model_loaded"):
+        pytest.skip("No model loaded in test env")
+
+    payload = {
+        "windowId": "00000000-0000-0000-0000-000000000014",
+        "monitoredId": "00000000-0000-0000-0000-000000000015",
+        "sampleRateHz": 50,
+        "samples": _make_samples(spike=True),
+        "subjectFeatures": {"age": 78, "sex": "F", "weightKg": 65, "heightCm": 160},
+    }
+    response = client.post("/predict", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data["fallDetected"], bool)
+    assert 0.0 <= data["confidence"] <= 1.0
+    assert data["latencyMs"] >= 0
+
+
 def test_predict_returns_spec_response_when_model_loaded():
     """Contract §6.8: fallDetected, confidence, modelVersion, latencyMs."""
     health = client.get("/health").json()

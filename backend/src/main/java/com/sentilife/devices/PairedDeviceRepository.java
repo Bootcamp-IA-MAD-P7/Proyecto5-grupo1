@@ -13,4 +13,6 @@ public interface PairedDeviceRepository extends JpaRepository<PairedDevice, UUID
 
     /** Used for GDPR suppression */
     void deleteByMonitoredPersonId(UUID monitoredPersonId);
+
+    long countByMonitoredPersonId(UUID monitoredPersonId);
 }

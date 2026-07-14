@@ -44,6 +44,12 @@ mvn test
 
 Los tests usan H2 en memoria (perfil `test`), no requieren PostgreSQL.
 
+Incluye integración **GDPR** (`GdprSuppressionIntegrationTest`): crea persona + ventana + alerta + feedback y verifica que `DELETE /api/v1/monitored-persons/{id}` deja **0 filas** en `monitored_persons`, `consents`, `paired_devices`, `telemetry_windows`, `alerts` y `feedback_labels`. Las cuentas `users` no se borran.
+
+### Supresión GDPR (RF-08)
+
+`MonitoredService.delete()` elimina en cascada (orden FK): feedback → alertas → telemetría → dispositivos emparejados → consentimientos → ficha. **InfluxDB no aplica** — ADR-03: telemetría histórica vive en PostgreSQL (`telemetry_windows`).
+
 ## Estructura
 
 ```

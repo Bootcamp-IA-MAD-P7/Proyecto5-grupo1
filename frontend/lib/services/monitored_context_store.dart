@@ -6,21 +6,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// T2.21 (pairing) escribe [monitoredPersonId] y [deviceId].
 /// T2.20 marca [consentActive] tras `POST /{id}/consent` exitoso.
 /// T2.29 persiste el pairing en disco para que sobreviva al reinicio de la app.
+/// T2c.10 — claves namespaced por [userId] (ADR-12 / RF-38).
 class MonitoredContextStore {
   static final MonitoredContextStore _instance = MonitoredContextStore._();
   factory MonitoredContextStore() => _instance;
   MonitoredContextStore._();
 
-  static const _kPersonId = 'monitored_person_id';
-  static const _kDeviceId = 'monitored_device_id';
-  static const _kDeviceToken = 'monitored_device_token';
-  static const _kConsent = 'monitored_consent_active';
+  static const _legacyPersonId = 'monitored_person_id';
+  static const _legacyDeviceId = 'monitored_device_id';
+  static const _legacyDeviceToken = 'monitored_device_token';
+  static const _legacyConsent = 'monitored_consent_active';
 
+  String? _userId;
   String? monitoredPersonId;
   String? deviceId;
   String? deviceToken;
   bool consentActive = false;
   bool _loaded = false;
+
+  /// Binds subsequent [load]/[clear]/[setPairing] to this account namespace.
+  void bindUser(String userId) {
+    if (_userId == userId && _loaded) return;
+    _userId = userId;
+    _loaded = false;
+    monitoredPersonId = null;
+    deviceId = null;
+    deviceToken = null;
+    consentActive = false;
+  }
 
   bool get isPaired =>
       monitoredPersonId != null &&
@@ -30,8 +43,6 @@ class MonitoredContextStore {
       deviceToken != null &&
       deviceToken!.isNotEmpty;
 
-  /// Datos de pairing creados por una versión anterior que no persistía el
-  /// token. Se conservan para informar al usuario, pero no habilitan telemetría.
   bool get requiresRepairing =>
       monitoredPersonId != null &&
       monitoredPersonId!.isNotEmpty &&
@@ -39,21 +50,60 @@ class MonitoredContextStore {
       deviceId!.isNotEmpty &&
       (deviceToken == null || deviceToken!.isEmpty);
 
-  /// Rehidrata el estado persistido. Idempotente: solo lee la primera vez.
-  /// Debe llamarse al abrir la pantalla MONITORED. Los fallos de almacenamiento
-  /// (p. ej. Web sin storage) se ignoran y se conserva el estado en memoria.
+  String _requireUserId() {
+    final id = _userId;
+    if (id == null || id.isEmpty) {
+      throw StateError('MonitoredContextStore.bindUser() must be called first');
+    }
+    return id;
+  }
+
+  String _kPersonId() => 'ctx_${_requireUserId()}_person_id';
+  String _kDeviceId() => 'ctx_${_requireUserId()}_device_id';
+  String _kDeviceToken() => 'ctx_${_requireUserId()}_device_token';
+  String _kConsent() => 'ctx_${_requireUserId()}_consent_active';
+
   Future<void> load() async {
     if (_loaded) return;
+    _requireUserId();
     try {
       final prefs = await SharedPreferences.getInstance();
-      monitoredPersonId = prefs.getString(_kPersonId);
-      deviceId = prefs.getString(_kDeviceId);
-      deviceToken = prefs.getString(_kDeviceToken);
-      consentActive = prefs.getBool(_kConsent) ?? false;
+      monitoredPersonId = prefs.getString(_kPersonId());
+      deviceId = prefs.getString(_kDeviceId());
+      deviceToken = prefs.getString(_kDeviceToken());
+      consentActive = prefs.getBool(_kConsent()) ?? false;
+
+      if (!_hasAnyNamespacedData(prefs) && _hasLegacyGlobalData(prefs)) {
+        await _migrateLegacyGlobal(prefs);
+      }
     } catch (_) {
       // almacenamiento no disponible: se mantiene el estado en memoria
     }
     _loaded = true;
+  }
+
+  bool _hasAnyNamespacedData(SharedPreferences prefs) =>
+      prefs.containsKey(_kPersonId()) ||
+      prefs.containsKey(_kDeviceId()) ||
+      prefs.containsKey(_kDeviceToken()) ||
+      prefs.containsKey(_kConsent());
+
+  bool _hasLegacyGlobalData(SharedPreferences prefs) =>
+      prefs.containsKey(_legacyPersonId) ||
+      prefs.containsKey(_legacyDeviceId) ||
+      prefs.containsKey(_legacyDeviceToken) ||
+      prefs.containsKey(_legacyConsent);
+
+  Future<void> _migrateLegacyGlobal(SharedPreferences prefs) async {
+    monitoredPersonId ??= prefs.getString(_legacyPersonId);
+    deviceId ??= prefs.getString(_legacyDeviceId);
+    deviceToken ??= prefs.getString(_legacyDeviceToken);
+    consentActive = prefs.getBool(_legacyConsent) ?? consentActive;
+    await _persist();
+    await prefs.remove(_legacyPersonId);
+    await prefs.remove(_legacyDeviceId);
+    await prefs.remove(_legacyDeviceToken);
+    await prefs.remove(_legacyConsent);
   }
 
   Future<void> setPairing({
@@ -61,6 +111,7 @@ class MonitoredContextStore {
     required String deviceId,
     required String deviceToken,
   }) async {
+    _requireUserId();
     monitoredPersonId = personId;
     this.deviceId = deviceId;
     this.deviceToken = deviceToken;
@@ -69,39 +120,42 @@ class MonitoredContextStore {
     await _persist();
   }
 
-  void setConsentActive(bool active) {
+  Future<void> setConsentActive(bool active) async {
+    _requireUserId();
     consentActive = active;
-    _persist();
+    await _persist();
   }
 
-  void clear() {
+  Future<void> clear() async {
+    if (_userId == null) return;
     monitoredPersonId = null;
     deviceId = null;
     deviceToken = null;
     consentActive = false;
     _loaded = true;
-    _persist();
+    await _persist();
   }
 
   Future<void> _persist() async {
+    if (_userId == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       if (monitoredPersonId == null) {
-        await prefs.remove(_kPersonId);
+        await prefs.remove(_kPersonId());
       } else {
-        await prefs.setString(_kPersonId, monitoredPersonId!);
+        await prefs.setString(_kPersonId(), monitoredPersonId!);
       }
       if (deviceId == null) {
-        await prefs.remove(_kDeviceId);
+        await prefs.remove(_kDeviceId());
       } else {
-        await prefs.setString(_kDeviceId, deviceId!);
+        await prefs.setString(_kDeviceId(), deviceId!);
       }
       if (deviceToken == null) {
-        await prefs.remove(_kDeviceToken);
+        await prefs.remove(_kDeviceToken());
       } else {
-        await prefs.setString(_kDeviceToken, deviceToken!);
+        await prefs.setString(_kDeviceToken(), deviceToken!);
       }
-      await prefs.setBool(_kConsent, consentActive);
+      await prefs.setBool(_kConsent(), consentActive);
     } catch (_) {
       // se ignoran fallos de persistencia (p. ej. Web sin storage)
     }
@@ -109,6 +163,7 @@ class MonitoredContextStore {
 
   @visibleForTesting
   void resetInMemoryForTests() {
+    _userId = null;
     monitoredPersonId = null;
     deviceId = null;
     deviceToken = null;

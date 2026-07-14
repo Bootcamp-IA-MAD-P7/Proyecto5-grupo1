@@ -49,6 +49,7 @@ class MonitoredService {
 
   /// POST / — registrar nueva persona
   Future<MonitoredPerson> create({
+    required String monitoredUserEmail,
     required String fullName,
     required String birthDate,
     required String sex,
@@ -60,6 +61,7 @@ class MonitoredService {
       Uri.parse(_base),
       headers: _headers(),
       body: jsonEncode({
+        'monitoredUserEmail': monitoredUserEmail,
         'fullName': fullName,
         'birthDate': birthDate,
         'sex': sex,
@@ -69,6 +71,14 @@ class MonitoredService {
         if (emergencyContact != null) 'emergencyContact': emergencyContact,
       }),
     );
+    _checkStatus(res);
+    return MonitoredPerson.fromJson(
+        jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// GET /me — ficha vinculada al MONITORED autenticado (RF-34)
+  Future<MonitoredPerson> getMyProfile() async {
+    final res = await _client.get(Uri.parse('$_base/me'), headers: _headers());
     _checkStatus(res);
     return MonitoredPerson.fromJson(
         jsonDecode(res.body) as Map<String, dynamic>);

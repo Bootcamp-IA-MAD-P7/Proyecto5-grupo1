@@ -40,6 +40,7 @@ void main() {
         'monitoredPersonId': 'uuid-person-001',
         'personName': 'Manuel Pérez',
         'confidence': '0.92',
+        'recipientUserId': 'uuid-caregiver-001',
       });
 
       expect(payload.isFallAlert, isTrue);
@@ -47,6 +48,7 @@ void main() {
       expect(payload.monitoredPersonId, 'uuid-person-001');
       expect(payload.personName, 'Manuel Pérez');
       expect(payload.confidence, closeTo(0.92, 0.001));
+      expect(payload.recipientUserId, 'uuid-caregiver-001');
     });
 
     test('ignores unknown types', () {

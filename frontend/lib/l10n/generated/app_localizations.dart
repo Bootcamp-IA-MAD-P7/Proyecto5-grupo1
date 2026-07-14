@@ -392,6 +392,66 @@ abstract class AppLocalizations {
   /// **'Iniciar sesión'**
   String get loginTitle;
 
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Inicia sesión para continuar'**
+  String get loginSubtitle;
+
+  /// No description provided for @registerSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea tu cuenta'**
+  String get registerSubtitle;
+
+  /// No description provided for @requiredField.
+  ///
+  /// In es, this message translates to:
+  /// **'Obligatorio'**
+  String get requiredField;
+
+  /// No description provided for @invalidEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Email inválido'**
+  String get invalidEmail;
+
+  /// No description provided for @passwordMinLength.
+  ///
+  /// In es, this message translates to:
+  /// **'Mín. 8 caracteres'**
+  String get passwordMinLength;
+
+  /// No description provided for @connectionError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error de conexión. ¿Está el backend activo?'**
+  String get connectionError;
+
+  /// No description provided for @register.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrarse'**
+  String get register;
+
+  /// No description provided for @signIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar sesión'**
+  String get signIn;
+
+  /// No description provided for @alreadyHaveAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Ya tienes cuenta? Inicia sesión'**
+  String get alreadyHaveAccount;
+
+  /// No description provided for @noAccountRegister.
+  ///
+  /// In es, this message translates to:
+  /// **'¿No tienes cuenta? Regístrate'**
+  String get noAccountRegister;
+
   /// No description provided for @email.
   ///
   /// In es, this message translates to:
@@ -421,6 +481,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Cuentas de demostración'**
   String get demoAccounts;
+
+  /// No description provided for @registrationRolePrompt.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de perfil'**
+  String get registrationRolePrompt;
 
   /// No description provided for @roleCaregiver.
   ///
@@ -559,6 +625,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Contacto de emergencia'**
   String get emergencyContact;
+
+  /// No description provided for @monitoredUserEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Email de la cuenta monitorizada'**
+  String get monitoredUserEmail;
+
+  /// No description provided for @monitoredUserEmailRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce el email de una cuenta MONITORED existente.'**
+  String get monitoredUserEmailRequired;
+
+  /// No description provided for @pendingLinkStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'PENDING_LINK'**
+  String get pendingLinkStatus;
+
+  /// No description provided for @pendingLinkTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Vinculación pendiente'**
+  String get pendingLinkTitle;
+
+  /// No description provided for @pendingLinkBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuidador debe registrar tu ficha con el email de esta cuenta antes de vincular el dispositivo.'**
+  String get pendingLinkBody;
 
   /// No description provided for @save.
   ///
@@ -823,6 +919,78 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudieron iniciar el acelerómetro y el giroscopio.'**
   String get sensorStartError;
+
+  /// No description provided for @updateNoRemoteVersion.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay versión remota cargada. Llama a checkForUpdate() primero.'**
+  String get updateNoRemoteVersion;
+
+  /// No description provided for @updateVersionCheckUnexpected.
+  ///
+  /// In es, this message translates to:
+  /// **'Error inesperado al comprobar la versión.'**
+  String get updateVersionCheckUnexpected;
+
+  /// No description provided for @updateDownloadUnexpected.
+  ///
+  /// In es, this message translates to:
+  /// **'Error inesperado durante la descarga.'**
+  String get updateDownloadUnexpected;
+
+  /// No description provided for @updatePhaseVersionCheck.
+  ///
+  /// In es, this message translates to:
+  /// **'comprobación de versión'**
+  String get updatePhaseVersionCheck;
+
+  /// No description provided for @updatePhaseApkDownload.
+  ///
+  /// In es, this message translates to:
+  /// **'descarga del APK'**
+  String get updatePhaseApkDownload;
+
+  /// No description provided for @updateTimeout.
+  ///
+  /// In es, this message translates to:
+  /// **'La {phase} tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.'**
+  String updateTimeout(String phase);
+
+  /// No description provided for @updateServerError.
+  ///
+  /// In es, this message translates to:
+  /// **'El servidor devolvió un error (código {code}). Inténtalo más tarde.'**
+  String updateServerError(String code);
+
+  /// No description provided for @updateInstallPermissionDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'No tienes permiso para instalar apps de fuentes desconocidas.\nVe a Ajustes > Aplicaciones > esta app > Instalar apps desconocidas y actívalo.'**
+  String get updateInstallPermissionDetail;
+
+  /// No description provided for @updateApkNotFound.
+  ///
+  /// In es, this message translates to:
+  /// **'El archivo APK no se encontró en \"{path}\". Intenta descargar de nuevo.'**
+  String updateApkNotFound(String path);
+
+  /// No description provided for @updateNoPackageManager.
+  ///
+  /// In es, this message translates to:
+  /// **'No se encontró ningún gestor de paquetes para instalar el APK.'**
+  String get updateNoPackageManager;
+
+  /// No description provided for @updateInstallerError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al abrir el instalador: {message}'**
+  String updateInstallerError(String message);
+
+  /// No description provided for @updateSignatureMismatchDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión.'**
+  String get updateSignatureMismatchDetail;
 }
 
 class _AppLocalizationsDelegate

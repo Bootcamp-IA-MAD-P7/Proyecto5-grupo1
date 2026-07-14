@@ -165,6 +165,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginTitle => 'Sign in';
 
   @override
+  String get loginSubtitle => 'Sign in to continue';
+
+  @override
+  String get registerSubtitle => 'Create your account';
+
+  @override
+  String get requiredField => 'Required';
+
+  @override
+  String get invalidEmail => 'Invalid email';
+
+  @override
+  String get passwordMinLength => 'Min. 8 characters';
+
+  @override
+  String get connectionError => 'Connection error. Is the backend running?';
+
+  @override
+  String get register => 'Register';
+
+  @override
+  String get signIn => 'Sign in';
+
+  @override
+  String get alreadyHaveAccount => 'Already have an account? Sign in';
+
+  @override
+  String get noAccountRegister => 'Don\'t have an account? Register';
+
+  @override
   String get email => 'Email';
 
   @override
@@ -178,6 +208,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoAccounts => 'Demo accounts';
+
+  @override
+  String get registrationRolePrompt => 'Profile type';
 
   @override
   String get roleCaregiver => 'Caregiver';
@@ -249,6 +282,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emergencyContact => 'Emergency contact';
+
+  @override
+  String get monitoredUserEmail => 'Monitored account email';
+
+  @override
+  String get monitoredUserEmailRequired =>
+      'Enter the email of an existing MONITORED account.';
+
+  @override
+  String get pendingLinkStatus => 'PENDING_LINK';
+
+  @override
+  String get pendingLinkTitle => 'Link pending';
+
+  @override
+  String get pendingLinkBody =>
+      'Your caregiver must register your profile with this account email before you can pair your device.';
 
   @override
   String get save => 'Save';
@@ -392,4 +442,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sensorStartError =>
       'The accelerometer and gyroscope could not be started.';
+
+  @override
+  String get updateNoRemoteVersion =>
+      'No remote version loaded. Call checkForUpdate() first.';
+
+  @override
+  String get updateVersionCheckUnexpected =>
+      'Unexpected error while checking for updates.';
+
+  @override
+  String get updateDownloadUnexpected => 'Unexpected error during download.';
+
+  @override
+  String get updatePhaseVersionCheck => 'version check';
+
+  @override
+  String get updatePhaseApkDownload => 'APK download';
+
+  @override
+  String updateTimeout(String phase) {
+    return 'The $phase took too long. Check your connection and try again.';
+  }
+
+  @override
+  String updateServerError(String code) {
+    return 'The server returned an error (code $code). Try again later.';
+  }
+
+  @override
+  String get updateInstallPermissionDetail =>
+      'You do not have permission to install apps from unknown sources.\nGo to Settings > Apps > this app > Install unknown apps and enable it.';
+
+  @override
+  String updateApkNotFound(String path) {
+    return 'The APK file was not found at \"$path\". Try downloading again.';
+  }
+
+  @override
+  String get updateNoPackageManager =>
+      'No package installer was found to install the APK.';
+
+  @override
+  String updateInstallerError(String message) {
+    return 'Error opening the installer: $message';
+  }
+
+  @override
+  String get updateSignatureMismatchDetail =>
+      'The APK signature does not match the installed version.\nUninstall the app manually and install the new version.';
 }

@@ -1,12 +1,13 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../config/app_config.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// Estado del proceso de actualización.
 enum UpdateStatus {
@@ -103,6 +104,8 @@ class UpdateService extends ChangeNotifier {
     sendTimeout: _checkTimeout,
   ));
 
+  Locale _locale = const Locale('es');
+
   UpdateStatus _status = UpdateStatus.idle;
   UpdateStatus get status => _status;
 
@@ -123,6 +126,18 @@ class UpdateService extends ChangeNotifier {
   int? get installedVersionCode => _installedVersionCode;
 
   CancelToken? _cancelToken;
+
+  AppLocalizations get _l10n => lookupAppLocalizations(_locale);
+
+  /// Sincroniza el idioma con el de la app (p. ej. desde [MaterialApp.locale]).
+  void setLocale(Locale locale) {
+    if (_locale == locale) return;
+    _locale = locale;
+    if (_status == UpdateStatus.error && _errorType != null) {
+      _errorMessage = _messageForErrorType(_errorType!);
+      notifyListeners();
+    }
+  }
 
   // ── Comprobación de versión ───────────────────────────────────────────────
 
@@ -150,11 +165,11 @@ class UpdateService extends ChangeNotifier {
         _setStatus(UpdateStatus.upToDate);
       }
     } on DioException catch (e) {
-      _handleDioError(e, phase: 'comprobación de versión');
+      _handleDioError(e, phase: _l10n.updatePhaseVersionCheck);
     } catch (e) {
       _setError(
         UpdateErrorType.unknown,
-        'Error inesperado al comprobar la versión.',
+        _l10n.updateVersionCheckUnexpected,
         cause: e,
       );
     }
@@ -166,9 +181,9 @@ class UpdateService extends ChangeNotifier {
   /// Lanza [UpdateException] si ocurre un error que el UI debe manejar.
   Future<void> downloadAndInstall() async {
     if (_remoteVersion == null) {
-      throw const UpdateException(
+      throw UpdateException(
         type: UpdateErrorType.unknown,
-        message: 'No hay versión remota cargada. Llama a checkForUpdate() primero.',
+        message: _l10n.updateNoRemoteVersion,
       );
     }
 
@@ -199,19 +214,16 @@ class UpdateService extends ChangeNotifier {
         _setStatus(UpdateStatus.updateAvailable); // cancelado por el usuario
         return;
       }
-      _handleDioError(e, phase: 'descarga del APK');
+      _handleDioError(e, phase: _l10n.updatePhaseApkDownload);
       rethrow;
     } on UpdateException {
       rethrow;
     } catch (e) {
-      _setError(
-        UpdateErrorType.unknown,
-        'Error inesperado durante la descarga.',
-        cause: e,
-      );
+      final message = _l10n.updateDownloadUnexpected;
+      _setError(UpdateErrorType.unknown, message, cause: e);
       throw UpdateException(
         type: UpdateErrorType.unknown,
-        message: 'Error inesperado durante la descarga.',
+        message: message,
         cause: e,
       );
     }
@@ -237,40 +249,38 @@ class UpdateService extends ChangeNotifier {
       case ResultType.permissionDenied:
         // Android < 8 puede llegar aquí. En Android 8+ el sistema
         // muestra el diálogo "instalar apps desconocidas" antes de llegar aquí.
-        throw const UpdateException(
+        throw UpdateException(
           type: UpdateErrorType.noInstallPermission,
-          message:
-              'No tienes permiso para instalar apps de fuentes desconocidas.\n'
-              'Ve a Ajustes > Aplicaciones > esta app > Instalar apps desconocidas y actívalo.',
+          message: _l10n.updateInstallPermissionDetail,
         );
 
       case ResultType.fileNotFound:
         throw UpdateException(
           type: UpdateErrorType.downloadInterrupted,
-          message: 'El archivo APK no se encontró en "$apkPath". Intenta descargar de nuevo.',
+          message: _l10n.updateApkNotFound(apkPath),
         );
 
       case ResultType.noAppToOpen:
         // No debería ocurrir con APKs, pero por si acaso
-        throw const UpdateException(
+        throw UpdateException(
           type: UpdateErrorType.unknown,
-          message: 'No se encontró ningún gestor de paquetes para instalar el APK.',
+          message: _l10n.updateNoPackageManager,
         );
 
       case ResultType.error:
         // Puede ser firma incorrecta u otro error del instalador
         final msg = result.message.toLowerCase();
-        if (msg.contains('signatures') || msg.contains('sign') || msg.contains('certificate')) {
-          throw const UpdateException(
+        if (msg.contains('signatures') ||
+            msg.contains('sign') ||
+            msg.contains('certificate')) {
+          throw UpdateException(
             type: UpdateErrorType.signatureMismatch,
-            message:
-                'La firma del APK no coincide con la versión instalada.\n'
-                'Desinstala la app manualmente e instala la nueva versión.',
+            message: _l10n.updateSignatureMismatchDetail,
           );
         }
         throw UpdateException(
           type: UpdateErrorType.unknown,
-          message: 'Error al abrir el instalador: ${result.message}',
+          message: _l10n.updateInstallerError(result.message),
         );
     }
   }
@@ -297,7 +307,7 @@ class UpdateService extends ChangeNotifier {
       case DioExceptionType.sendTimeout:
         _setError(
           UpdateErrorType.timeout,
-          'La $phase tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.',
+          _l10n.updateTimeout(phase),
           cause: e,
         );
         break;
@@ -305,7 +315,7 @@ class UpdateService extends ChangeNotifier {
       case DioExceptionType.connectionError:
         _setError(
           UpdateErrorType.noInternet,
-          'Sin conexión a internet. Comprueba tu red e inténtalo de nuevo.',
+          _l10n.noInternetError,
           cause: e,
         );
         break;
@@ -314,7 +324,7 @@ class UpdateService extends ChangeNotifier {
         final code = e.response?.statusCode;
         _setError(
           UpdateErrorType.serverError,
-          'El servidor devolvió un error (código $code). Inténtalo más tarde.',
+          _l10n.updateServerError('${code ?? '?'}'),
           cause: e,
         );
         break;
@@ -325,16 +335,37 @@ class UpdateService extends ChangeNotifier {
         if (msg.contains('no space') || msg.contains('enospc')) {
           _setError(
             UpdateErrorType.insufficientStorage,
-            'Espacio insuficiente en el dispositivo para descargar la actualización.',
+            _l10n.insufficientStorageError,
             cause: e,
           );
         } else {
           _setError(
             UpdateErrorType.downloadInterrupted,
-            'La descarga se interrumpió. Inténtalo de nuevo.',
+            _l10n.downloadInterruptedError,
             cause: e,
           );
         }
+    }
+  }
+
+  String _messageForErrorType(UpdateErrorType type) {
+    switch (type) {
+      case UpdateErrorType.noInternet:
+        return _l10n.noInternetError;
+      case UpdateErrorType.timeout:
+        return _l10n.timeoutError;
+      case UpdateErrorType.noInstallPermission:
+        return _l10n.installPermissionError;
+      case UpdateErrorType.insufficientStorage:
+        return _l10n.insufficientStorageError;
+      case UpdateErrorType.signatureMismatch:
+        return _l10n.signatureMismatchError;
+      case UpdateErrorType.downloadInterrupted:
+        return _l10n.downloadInterruptedError;
+      case UpdateErrorType.serverError:
+        return _l10n.unknownError;
+      case UpdateErrorType.unknown:
+        return _l10n.unknownError;
     }
   }
 

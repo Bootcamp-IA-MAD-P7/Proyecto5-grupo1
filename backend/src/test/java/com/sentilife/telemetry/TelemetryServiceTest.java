@@ -1,9 +1,11 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.alerts.AlertDecisionService;
 import com.sentilife.alerts.AlertService;
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.ConsentRepository;
+import com.sentilife.devices.DeviceAuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +33,9 @@ class TelemetryServiceTest {
     @Mock TelemetryWindowRepository repository;
     @Mock InferenceClient inferenceClient;
     @Mock ConsentRepository consentRepository;
+    @Mock DeviceAuthService deviceAuthService;
     @Mock AlertService alertService;
+    @Mock AlertDecisionService alertDecisionService;
     @Mock ABTestingService abTestingService;
 
     @InjectMocks TelemetryService service;
@@ -54,6 +58,23 @@ class TelemetryServiceTest {
         );
     }
 
+    private static final String AUTH = "Bearer device-jwt-test";
+
+    // ── device auth gate ──────────────────────────────────────────────────────
+
+    @Test
+    void ingest_invalidDeviceAuth_throwsBeforePersist() {
+        var request = buildRequest();
+        doThrow(DomainExceptions.UnauthorizedException.of("Missing device token"))
+                .when(deviceAuthService)
+                .validateForIngest(eq(AUTH), eq(request.monitoredPersonId()), eq(request.deviceId()));
+
+        assertThatThrownBy(() -> service.ingest(request, AUTH))
+                .isInstanceOf(DomainExceptions.UnauthorizedException.class);
+
+        verifyNoInteractions(consentRepository, repository, inferenceClient);
+    }
+
     // ── consent filter ────────────────────────────────────────────────────────
 
     @Test
@@ -61,16 +82,16 @@ class TelemetryServiceTest {
         when(consentRepository.existsByMonitoredPersonIdAndStatus(
                 any(), eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(false);
 
-        assertThatThrownBy(() -> service.ingest(buildRequest()))
+        assertThatThrownBy(() -> service.ingest(buildRequest(), AUTH))
                 .isInstanceOf(DomainExceptions.ForbiddenException.class);
 
         verifyNoInteractions(repository, inferenceClient);
     }
 
-    // ── fall detection ────────────────────────────────────────────────────────
+    // ── alert aggregation gate ────────────────────────────────────────────────
 
     @Test
-    void ingest_fallDetected_createsAlert() {
+    void ingest_whenDecisionAllows_createsAlert() {
         var request = buildRequest();
         when(consentRepository.existsByMonitoredPersonIdAndStatus(
                 any(), eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(true);
@@ -82,10 +103,33 @@ class TelemetryServiceTest {
                 true, 0.92, "xgb-1.0", 120);
         when(inferenceClient.predict(any(), any(), anyInt(), any(), any()))
                 .thenReturn(prediction);
+        when(alertDecisionService.shouldCreateAlert(request.monitoredPersonId()))
+                .thenReturn(true);
 
-        service.ingest(request);
+        service.ingest(request, AUTH);
 
         verify(alertService).createAlert(any(), eq(0.92), eq("xgb-1.0"), any());
+    }
+
+    @Test
+    void ingest_whenDecisionBlocks_doesNotCreateAlert() {
+        var request = buildRequest();
+        when(consentRepository.existsByMonitoredPersonIdAndStatus(
+                any(), eq(DomainConstants.CONSENT_ACTIVE))).thenReturn(true);
+
+        TelemetryWindow saved = new TelemetryWindow();
+        when(repository.save(any())).thenReturn(saved);
+
+        var prediction = new TelemetryDtos.PredictionResult(
+                true, 0.92, "xgb-1.0", 120);
+        when(inferenceClient.predict(any(), any(), anyInt(), any(), any()))
+                .thenReturn(prediction);
+        when(alertDecisionService.shouldCreateAlert(request.monitoredPersonId()))
+                .thenReturn(false);
+
+        service.ingest(request, AUTH);
+
+        verifyNoInteractions(alertService);
     }
 
     @Test
@@ -101,8 +145,10 @@ class TelemetryServiceTest {
                 false, 0.03, "xgb-1.0", 80);
         when(inferenceClient.predict(any(), any(), anyInt(), any(), any()))
                 .thenReturn(prediction);
+        when(alertDecisionService.shouldCreateAlert(request.monitoredPersonId()))
+                .thenReturn(false);
 
-        service.ingest(request);
+        service.ingest(request, AUTH);
 
         verifyNoInteractions(alertService);
     }

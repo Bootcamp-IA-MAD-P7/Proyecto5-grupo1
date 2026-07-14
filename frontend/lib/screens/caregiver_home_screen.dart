@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
 import '../services/auth_session.dart';
+import '../services/exceptions.dart';
 import '../services/monitored_service.dart';
 import '../services/telemetry_service.dart';
 import 'alerts_screen.dart';
@@ -12,11 +13,13 @@ import 'app_shell.dart';
 class CaregiverHomeScreen extends StatefulWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
+  final MonitoredService? monitoredService;
 
   const CaregiverHomeScreen({
     super.key,
     required this.session,
     required this.onLocaleChanged,
+    this.monitoredService,
   });
 
   @override
@@ -24,7 +27,7 @@ class CaregiverHomeScreen extends StatefulWidget {
 }
 
 class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
-  final _monitored = MonitoredService();
+  late final MonitoredService _monitored;
   final _telemetry = TelemetryService();
   List<MonitoredPerson> _persons = [];
   bool _loading = true;
@@ -33,6 +36,7 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _monitored = widget.monitoredService ?? MonitoredService();
     _load();
   }
 
@@ -51,15 +55,23 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
       builder: (_) => const _AddPersonDialog(),
     );
     if (result == null) return;
-    await _monitored.create(
-      fullName: result.fullName,
-      birthDate: result.birthDate,
-      sex: result.sex,
-      weightKg: result.weightKg,
-      heightCm: result.heightCm,
-      emergencyContact: result.emergencyContact,
-    );
-    await _load();
+    try {
+      await _monitored.create(
+        monitoredUserEmail: result.monitoredUserEmail,
+        fullName: result.fullName,
+        birthDate: result.birthDate,
+        sex: result.sex,
+        weightKg: result.weightKg,
+        heightCm: result.heightCm,
+        emergencyContact: result.emergencyContact,
+      );
+      await _load();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   @override
@@ -166,6 +178,7 @@ class _PersonCard extends StatelessWidget {
 }
 
 class _PersonFormData {
+  final String monitoredUserEmail;
   final String fullName;
   final String birthDate;
   final String sex;
@@ -174,6 +187,7 @@ class _PersonFormData {
   final String? emergencyContact;
 
   const _PersonFormData({
+    required this.monitoredUserEmail,
     required this.fullName,
     required this.birthDate,
     required this.sex,
@@ -191,12 +205,45 @@ class _AddPersonDialog extends StatefulWidget {
 }
 
 class _AddPersonDialogState extends State<_AddPersonDialog> {
+  final _email = TextEditingController();
   final _name = TextEditingController();
   final _birth = TextEditingController(text: '1950-01-01');
   final _weight = TextEditingController(text: '70');
   final _height = TextEditingController(text: '170');
   final _contact = TextEditingController();
   String _sex = 'M';
+  String? _emailError;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _name.dispose();
+    _birth.dispose();
+    _weight.dispose();
+    _height.dispose();
+    _contact.dispose();
+    super.dispose();
+  }
+
+  void _submit(AppLocalizations l10n) {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      setState(() => _emailError = l10n.monitoredUserEmailRequired);
+      return;
+    }
+    Navigator.pop(
+      context,
+      _PersonFormData(
+        monitoredUserEmail: email,
+        fullName: _name.text,
+        birthDate: _birth.text,
+        sex: _sex,
+        weightKg: double.tryParse(_weight.text) ?? 70,
+        heightCm: double.tryParse(_height.text) ?? 170,
+        emergencyContact: _contact.text.isEmpty ? null : _contact.text,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,6 +254,19 @@ class _AddPersonDialogState extends State<_AddPersonDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: l10n.monitoredUserEmail,
+                errorText: _emailError,
+              ),
+              onChanged: (_) {
+                if (_emailError != null) {
+                  setState(() => _emailError = null);
+                }
+              },
+            ),
             TextField(controller: _name, decoration: InputDecoration(labelText: l10n.fullName)),
             TextField(controller: _birth, decoration: InputDecoration(labelText: l10n.birthDate)),
             DropdownButtonFormField<String>(
@@ -227,19 +287,7 @@ class _AddPersonDialogState extends State<_AddPersonDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.back)),
         FilledButton(
-          onPressed: () {
-            Navigator.pop(
-              context,
-              _PersonFormData(
-                fullName: _name.text,
-                birthDate: _birth.text,
-                sex: _sex,
-                weightKg: double.tryParse(_weight.text) ?? 70,
-                heightCm: double.tryParse(_height.text) ?? 170,
-                emergencyContact: _contact.text.isEmpty ? null : _contact.text,
-              ),
-            );
-          },
+          onPressed: () => _submit(l10n),
           child: Text(l10n.save),
         ),
       ],

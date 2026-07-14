@@ -9,12 +9,21 @@ fail() { echo "✗ $1" >&2; exit 1; }
 ok()   { echo "✓ $1"; }
 
 JAVA_PORT="${JAVA_PORT:-8080}"
-JAVA_URL="http://localhost:${JAVA_PORT}"
+JAVA_URL="${SMOKE_JAVA_URL:-http://localhost:${JAVA_PORT}}"
 PUSH_MAX_MS=5000
+SKIP_VERIFY="${SMOKE_SKIP_VERIFY:-0}"
+SKIP_DOCKER_LOGS="${SMOKE_SKIP_DOCKER_LOGS:-0}"
 
 echo "=== T2.INT — MVP end-to-end (SL-43) ==="
+echo "→ Java API: ${JAVA_URL}"
 
-bash scripts/verify-local.sh >/dev/null || fail "Stack no sano — ejecuta: make up"
+if [[ "$SKIP_VERIFY" != "1" ]]; then
+  bash scripts/verify-local.sh >/dev/null || fail "Stack no sano — ejecuta: make up"
+else
+  curl -sf --max-time 10 "${JAVA_URL}/actuator/health" | grep -q '"status":"UP"' \
+    || fail "Java health not UP at ${JAVA_URL}"
+  ok "Java health UP (remote)"
+fi
 
 export SMOKE_JAVA_URL="$JAVA_URL"
 RESULT="$(python3 - <<'PY'
@@ -75,14 +84,16 @@ mon_token = mon["accessToken"]
 
 person = http("POST", "/api/v1/monitored-persons",
     {"fullName": "Abuela MVP", "birthDate": "1940-06-20", "sex": "F",
-     "weightKg": 62, "heightCm": 158, "emergencyContact": "600111222"},
+     "weightKg": 62, "heightCm": 158, "emergencyContact": "600111222",
+     "monitoredUserEmail": mon_email},
     token=cg_token)
 person_id = person["id"]
 pairing = person["pairingCode"]
 device_id = f"android-mvp-{ts}"
 
-http("POST", "/api/v1/devices/pair",
+pair_resp = http("POST", "/api/v1/devices/pair",
     {"pairingCode": pairing, "deviceId": device_id, "platform": "ANDROID"})
+device_token = pair_resp["deviceToken"]
 
 http("POST", f"/api/v1/monitored-persons/{person_id}/consent",
     {"policyVersion": "1.0-es", "acceptedBy": "MONITORED"},
@@ -94,26 +105,33 @@ http("POST", "/api/v1/devices/push-token",
     {"fcmToken": fcm_token, "deviceId": f"cg-device-{ts}", "platform": "ANDROID", "locale": "es"},
     token=cg_token)
 
-# ── 3. Caída simulada + cronómetro alerta ───────────────────────────────────
+# ── 3. Caída simulada (2 ventanas positivas — regla 2-de-3 T2c.6) ───────────
 log_marker = f"mvp-smoke-{ts}"
 now = datetime.now(timezone.utc)
-start = now
-end = start + timedelta(milliseconds=2500)
-fall_window = {
-    "monitoredPersonId": person_id,
-    "deviceId": device_id,
-    "windowStart": start.isoformat().replace("+00:00", "Z"),
-    "windowEnd": end.isoformat().replace("+00:00", "Z"),
-    "sampleRateHz": 50,
-    "samples": build_samples(spike=True),
-}
+
+def post_fall_window(offset_ms=0):
+    start = now + timedelta(milliseconds=offset_ms)
+    end = start + timedelta(milliseconds=2500)
+    payload = {
+        "monitoredPersonId": person_id,
+        "deviceId": device_id,
+        "windowStart": start.isoformat().replace("+00:00", "Z"),
+        "windowEnd": end.isoformat().replace("+00:00", "Z"),
+        "sampleRateHz": 50,
+        "samples": build_samples(spike=True),
+    }
+    return http("POST", "/api/v1/telemetry/windows", payload, token=device_token)
 
 t_fall = time.perf_counter()
-fall_resp = http("POST", "/api/v1/telemetry/windows", fall_window)
+first_fall = post_fall_window(0)
+if not first_fall["prediction"]["fallDetected"]:
+    raise SystemExit("fallDetected=false en 1ª ventana — spike no clasificado como caída")
+
+fall_resp = post_fall_window(3000)
 t_after_fall = time.perf_counter()
 
 if not fall_resp["prediction"]["fallDetected"]:
-    raise SystemExit("fallDetected=false — ventana no clasificada como caída")
+    raise SystemExit("fallDetected=false en 2ª ventana — spike no clasificado como caída")
 
 # Poll GET /alerts hasta ver alerta PENDING
 alert_id = None
@@ -136,25 +154,29 @@ if not alert_id:
 # ── 4. Latencia push (RabbitMQ → FCM intent) ────────────────────────────────
 push_ms = None
 push_status = "not_observed"
-deadline = time.time() + 5.0
-while time.time() < deadline:
-    logs = subprocess.run(
-        ["docker", "logs", "sentilife-backend", "--since", "30s"],
-        capture_output=True, text=True
-    ).stdout
-    for line in logs.splitlines():
-        if f"[Push] Processing alert.created: alertId={alert_id}" in line:
-            push_ms = int((time.perf_counter() - t_fall) * 1000)
-            push_status = "rabbitmq_processed"
-        if "[FCM]" in line and ("Push sent" in line or "Error sending" in line or "Token invalid" in line):
-            push_status = "fcm_attempted"
-    if push_ms is not None:
-        break
-    time.sleep(0.2)
-
-if push_ms is None:
+if os.environ.get("SMOKE_SKIP_DOCKER_LOGS") == "1":
     push_ms = int((time.perf_counter() - t_fall) * 1000)
-    push_status = "timeout_no_push_log"
+    push_status = "remote_skip_docker_logs"
+else:
+    deadline = time.time() + 5.0
+    while time.time() < deadline:
+        logs = subprocess.run(
+            ["docker", "logs", "sentilife-backend", "--since", "30s"],
+            capture_output=True, text=True
+        ).stdout
+        for line in logs.splitlines():
+            if f"[Push] Processing alert.created: alertId={alert_id}" in line:
+                push_ms = int((time.perf_counter() - t_fall) * 1000)
+                push_status = "rabbitmq_processed"
+            if "[FCM]" in line and ("Push sent" in line or "Error sending" in line or "Token invalid" in line):
+                push_status = "fcm_attempted"
+        if push_ms is not None:
+            break
+        time.sleep(0.2)
+
+    if push_ms is None:
+        push_ms = int((time.perf_counter() - t_fall) * 1000)
+        push_status = "timeout_no_push_log"
 
 # ── 5. CAREGIVER confirma alerta ────────────────────────────────────────────
 feedback = http("PATCH", f"/api/v1/alerts/{alert_id}",

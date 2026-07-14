@@ -10,7 +10,7 @@ import 'services/auth_session.dart';
 import 'services/firebase_bootstrap.dart';
 import 'services/push_notification_service.dart';
 import 'services/push_registration_service.dart';
-import 'services/session_manager.dart';
+import 'services/session_repository.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
 
@@ -29,7 +29,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Locale _locale = const Locale('es');
-  final _authSession = AuthSession();
+  final _session = SessionRepository.instance;
 
   void _changeLocale(Locale locale) {
     if (_locale == locale) return;
@@ -53,20 +53,23 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       home: _AppRoot(
-        authSession: _authSession,
+        session: _session,
         onLocaleChanged: _changeLocale,
+        locale: _locale,
       ),
     );
   }
 }
 
 class _AppRoot extends StatefulWidget {
-  final AuthSession authSession;
+  final SessionRepository session;
   final ValueChanged<Locale> onLocaleChanged;
+  final Locale locale;
 
   const _AppRoot({
-    required this.authSession,
+    required this.session,
     required this.onLocaleChanged,
+    required this.locale,
   });
 
   @override
@@ -79,7 +82,9 @@ class _AppRootState extends State<_AppRoot> {
   @override
   void initState() {
     super.initState();
-    widget.authSession.addListener(_onAuthChanged);
+    _updateService.setLocale(widget.locale);
+    widget.session.addListener(_onAuthChanged);
+    unawaited(_bootstrapSession());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUpdate();
       unawaited(PushNotificationService.tryNavigateToPendingAlert());
@@ -87,39 +92,43 @@ class _AppRootState extends State<_AppRoot> {
   }
 
   @override
+  void didUpdateWidget(covariant _AppRoot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.locale != widget.locale) {
+      _updateService.setLocale(widget.locale);
+    }
+  }
+
+  Future<void> _bootstrapSession() async {
+    await widget.session.restoreSession();
+    if (!mounted) return;
+    _onSessionReady(widget.session.user);
+  }
+
+  void _onSessionReady(User? user) {
+    if (user == null) return;
+    widget.onLocaleChanged(Locale(user.locale));
+    if (user.role == UserRole.caregiver) {
+      unawaited(
+        PushRegistrationService().registerForCaregiver(locale: user.locale),
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(PushNotificationService.tryNavigateToPendingAlert());
+      });
+    }
+  }
+
+  @override
   void dispose() {
-    widget.authSession.removeListener(_onAuthChanged);
+    widget.session.removeListener(_onAuthChanged);
     _updateService.dispose();
     super.dispose();
   }
 
   void _onAuthChanged() => setState(() {});
 
-  /// Called by LoginScreen after successful login.
-  /// Bridges SessionManager (used by login_screen.dart) → AuthSession
-  /// so AppShell and role-based screens work without changes.
   void _onLoginSuccess() {
-    final sm = SessionManager();
-    if (sm.currentUser != null) {
-      widget.authSession.setSession(AuthTokens(
-        accessToken: sm.accessToken ?? '',
-        refreshToken: sm.refreshToken ?? '',
-        expiresIn: 3600,
-        user: sm.currentUser!,
-      ));
-      // Sync locale from user preference
-      final userLocale = sm.currentUser!.locale;
-      widget.onLocaleChanged(Locale(userLocale));
-
-      if (sm.currentUser!.role == UserRole.caregiver) {
-        unawaited(
-          PushRegistrationService().registerForCaregiver(locale: userLocale),
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          unawaited(PushNotificationService.tryNavigateToPendingAlert());
-        });
-      }
-    }
+    _onSessionReady(widget.session.user);
   }
 
   Future<void> _checkUpdate() async {
@@ -136,9 +145,14 @@ class _AppRootState extends State<_AppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.authSession.isLoggedIn) {
+    if (widget.session.isRestoring) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (widget.session.isLoggedIn) {
       return AppShell(
-        session: widget.authSession,
+        session: widget.session,
         onLocaleChanged: widget.onLocaleChanged,
       );
     }

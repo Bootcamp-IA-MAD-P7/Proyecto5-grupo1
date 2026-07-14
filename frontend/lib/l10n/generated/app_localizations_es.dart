@@ -166,6 +166,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginTitle => 'Iniciar sesión';
 
   @override
+  String get loginSubtitle => 'Inicia sesión para continuar';
+
+  @override
+  String get registerSubtitle => 'Crea tu cuenta';
+
+  @override
+  String get requiredField => 'Obligatorio';
+
+  @override
+  String get invalidEmail => 'Email inválido';
+
+  @override
+  String get passwordMinLength => 'Mín. 8 caracteres';
+
+  @override
+  String get connectionError => 'Error de conexión. ¿Está el backend activo?';
+
+  @override
+  String get register => 'Registrarse';
+
+  @override
+  String get signIn => 'Iniciar sesión';
+
+  @override
+  String get alreadyHaveAccount => '¿Ya tienes cuenta? Inicia sesión';
+
+  @override
+  String get noAccountRegister => '¿No tienes cuenta? Regístrate';
+
+  @override
   String get email => 'Correo electrónico';
 
   @override
@@ -179,6 +209,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get demoAccounts => 'Cuentas de demostración';
+
+  @override
+  String get registrationRolePrompt => 'Tipo de perfil';
 
   @override
   String get roleCaregiver => 'Cuidador';
@@ -250,6 +283,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get emergencyContact => 'Contacto de emergencia';
+
+  @override
+  String get monitoredUserEmail => 'Email de la cuenta monitorizada';
+
+  @override
+  String get monitoredUserEmailRequired =>
+      'Introduce el email de una cuenta MONITORED existente.';
+
+  @override
+  String get pendingLinkStatus => 'PENDING_LINK';
+
+  @override
+  String get pendingLinkTitle => 'Vinculación pendiente';
+
+  @override
+  String get pendingLinkBody =>
+      'Tu cuidador debe registrar tu ficha con el email de esta cuenta antes de vincular el dispositivo.';
 
   @override
   String get save => 'Guardar';
@@ -395,4 +445,54 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get sensorStartError =>
       'No se pudieron iniciar el acelerómetro y el giroscopio.';
+
+  @override
+  String get updateNoRemoteVersion =>
+      'No hay versión remota cargada. Llama a checkForUpdate() primero.';
+
+  @override
+  String get updateVersionCheckUnexpected =>
+      'Error inesperado al comprobar la versión.';
+
+  @override
+  String get updateDownloadUnexpected =>
+      'Error inesperado durante la descarga.';
+
+  @override
+  String get updatePhaseVersionCheck => 'comprobación de versión';
+
+  @override
+  String get updatePhaseApkDownload => 'descarga del APK';
+
+  @override
+  String updateTimeout(String phase) {
+    return 'La $phase tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.';
+  }
+
+  @override
+  String updateServerError(String code) {
+    return 'El servidor devolvió un error (código $code). Inténtalo más tarde.';
+  }
+
+  @override
+  String get updateInstallPermissionDetail =>
+      'No tienes permiso para instalar apps de fuentes desconocidas.\nVe a Ajustes > Aplicaciones > esta app > Instalar apps desconocidas y actívalo.';
+
+  @override
+  String updateApkNotFound(String path) {
+    return 'El archivo APK no se encontró en \"$path\". Intenta descargar de nuevo.';
+  }
+
+  @override
+  String get updateNoPackageManager =>
+      'No se encontró ningún gestor de paquetes para instalar el APK.';
+
+  @override
+  String updateInstallerError(String message) {
+    return 'Error al abrir el instalador: $message';
+  }
+
+  @override
+  String get updateSignatureMismatchDetail =>
+      'La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión.';
 }

@@ -4,12 +4,18 @@ import 'package:http/testing.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
 import 'package:sentilife/services/monitored_service.dart';
 
+const _testUserId = 'user-monitored-consent';
+
 void main() {
   group('MonitoredContextStore', () {
-    tearDown(() => MonitoredContextStore().clear());
+    tearDown(() async {
+      final store = MonitoredContextStore()..bindUser(_testUserId);
+      await store.clear();
+    });
 
     test('pairing resets consent flag', () async {
-      final store = MonitoredContextStore()..setConsentActive(true);
+      final store = MonitoredContextStore()..bindUser(_testUserId);
+      await store.setConsentActive(true);
       await store.setPairing(
         personId: 'person-1',
         deviceId: 'device-1',

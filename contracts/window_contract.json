@@ -13,7 +13,7 @@
     "resampleMethod": "linear_interpolation_to_50hz",
     "accelerationUnit": "m/s^2",
     "gyroscopeUnit": "deg/s",
-    "gravityHandling": "preserve_gravity_component",
+    "gravityHandling": "align_to_sisfall_reference_before_features",
     "missingSamples": "reject_window_if_any_required_signal_has_less_than_125_samples",
     "extraSamples": "trim_or_resample_to_exactly_125_samples_per_required_signal",
     "normalization": "model_pipeline_only; payloads stay in physical units"

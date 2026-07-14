@@ -57,6 +57,8 @@ Desarrollar un MVP capaz de:
 3. **Gestionar tres perfiles de usuario** con autenticación y roles (JWT).
 4. **Recoger el consentimiento explícito** de la persona monitorizada antes de capturar cualquier dato (GDPR).
 5. **Almacenar telemetría y predicciones** para historial, auditoría y futuros reentrenamientos del modelo.
+6. **Evitar falsas alarmas y spam:** validar el modelo con telemetría real del móvil y agrupar las predicciones positivas antes de notificar.
+7. **Mantener la monitorización en background** sin perder la sesión y aislar completamente los datos y procesos al cambiar de usuario.
 
 El MVP debe demostrar la viabilidad técnica de integrar: app móvil, backend Java, servicio de inferencia ML en Python, mensajería de eventos, bases de datos relacional y de series temporales, observabilidad y despliegue moderno.
 
@@ -73,6 +75,7 @@ La persona vulnerable que lleva el dispositivo encima. Es el sujeto cuya telemet
 Necesidades principales:
 
 - Ser monitorizada de forma pasiva y no intrusiva.
+- Mantener la captura activa con la app en background o la pantalla bloqueada, mediante un servicio visible del sistema.
 - Entender y controlar qué datos se recogen (modal de consentimiento claro, revocable).
 - Ver su propio estado de forma simple (monitorización activa/inactiva, última evaluación).
 
@@ -83,6 +86,7 @@ Familiar o cuidador responsable del seguimiento de una o varias personas monitor
 Necesidades principales:
 
 - **Registrar a la persona a monitorizar** mediante un formulario con los datos mínimos necesarios para mejorar la predicción (nombre, edad, sexo, peso, altura), sin violar el GDPR: solo datos pertinentes, con consentimiento registrado.
+- Vincular cada ficha monitorizada a una cuenta `MONITORED` real y existente; no se admiten fichas huérfanas ni identidades inventadas.
 - Ver en tiempo casi real el estado de la persona monitorizada.
 - Recibir **alertas inmediatas** cuando se detecta una caída.
 - Consultar el historial de eventos y la evolución.
@@ -125,14 +129,17 @@ Necesidades principales:
 
 ### Persona monitorizada
 
+- Registrarse seleccionando explícitamente el perfil `MONITORED`; el registro público nunca crea `IT_ADMIN`.
+- Esperar la vinculación por email de un cuidador antes de activar su ficha monitorizada.
+- Conservar la sesión tras reiniciar la app; cerrar sesión explícitamente detiene la captura antes de permitir el acceso de otra cuenta.
 - Aceptar (o revocar) el consentimiento de recogida de datos mediante un modal claro al primer uso.
 - Iniciar/detener la monitorización pasiva de sensores.
 - Ver su estado actual y su última evaluación de forma simple.
 
 ### Cuidador
 
-- Registrarse y autenticarse en la plataforma.
-- Registrar personas a monitorizar mediante formulario (datos mínimos: nombre, edad, sexo, peso, altura).
+- Registrarse seleccionando explícitamente el perfil `CAREGIVER` y autenticarse en la plataforma.
+- Vincular por email una cuenta `MONITORED` existente y completar su ficha con los datos mínimos: nombre, edad, sexo, peso y altura.
 - Ver el estado en tiempo casi real de las personas bajo su cuidado.
 - Recibir alertas de caída con la información del evento.
 - Consultar el historial de eventos y confirmar/descartar caídas (feedback que alimenta al modelo).
@@ -147,6 +154,8 @@ Necesidades principales:
 ### Capacidades de la plataforma
 
 - Autenticación y autorización con **JWT y roles**.
+- Sesión persistida de forma segura, restauración mediante refresh token y separación del estado local por cuenta.
+- Captura Android en background mediante foreground service mientras la monitorización esté activa.
 - Ingesta de telemetría en tiempo real (InfluxDB) y eventos desacoplados (RabbitMQ).
 - Comunicación segura entre app y APIs.
 - Observabilidad de extremo a extremo (Prometheus + Grafana).
@@ -172,6 +181,8 @@ Necesidades principales:
 ### Alertas
 
 - Evento de caída publicado en RabbitMQ y entregado al cuidador mediante **notificación push** (Firebase Cloud Messaging), incluso con la app cerrada; la consulta in-app queda como respaldo.
+- Una única ventana positiva no genera una alerta: el backend exige al menos **2 predicciones positivas entre las últimas 3 ventanas** de la persona.
+- Tras una alerta, el backend aplica un **cooldown de 60 segundos por persona**. Si la condición de caída persiste, puede emitir una nueva alerta al finalizar cada minuto, nunca antes.
 - Cambios de estado del monitoreado (monitorización iniciada/detenida, consentimiento revocado) también notificados al cuidador.
 - Registro del evento en historial.
 
@@ -235,8 +246,14 @@ Durante el MVP no se contempla:
 El MVP se considerará satisfactorio cuando:
 
 - Una caída simulada con el móvil genere una alerta en el perfil del cuidador en **menos de 5 segundos**.
+- Diez minutos de actividad normal con el móvil (caminar, sentarse y manipularlo) no generen ninguna alerta.
+- Una condición persistente de caída genere como máximo una alerta/notificación por minuto y por persona.
 - El modelo cumpla las métricas del bootcamp (overfitting < 5%, informe completo de rendimiento).
 - Los tres perfiles funcionen con autenticación JWT y permisos correctos.
+- El registro permita elegir `CAREGIVER` o `MONITORED`, y toda ficha monitorizada esté vinculada de forma única a una cuenta `MONITORED` existente.
+- La sesión sobreviva a background y reinicio del proceso mediante restauración segura; nunca se persiste la contraseña.
+- Una monitorización iniciada continúe con la app en background/pantalla bloqueada, mostrando la notificación permanente exigida por Android.
+- Tras cerrar sesión de `MONITORED` y entrar como `CAREGIVER` en el mismo dispositivo, no se envíen ventanas ni se muestren alertas originadas por el proceso anterior.
 - Ningún dato se recoja sin consentimiento registrado, y la revocación detenga la recogida.
 - El stack completo se levante con Docker Compose y se despliegue en la nube con CI/CD.
 - Grafana muestre métricas reales de API e inferencia.
@@ -269,6 +286,12 @@ El MVP se considerará satisfactorio cuando:
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
 | Sesgo de datasets (caídas simuladas por jóvenes en SisFall) | Modelo poco fiable en mayores | Documentar limitación; MobiAct como complemento; feedback real vía app |
+| Diferencia entre telemetría móvil y datos de entrenamiento | Falsos positivos masivos y spam de alertas | Comparar unidades, frecuencia, gravedad, features y distribución antes de recalibrar o reentrenar |
+| Cada ventana positiva crea una alerta independiente | Notificaciones repetidas por un mismo evento | Confirmación 2-de-3 y cooldown persistente de 60 s en backend |
+| Fichas monitorizadas sin cuenta real | Identidad inconsistente y `user_id` nulo | Registro de rol explícito y vinculación obligatoria por email a una cuenta `MONITORED` |
+| Sesión y tokens solo en memoria | Android mata la app y el usuario pierde el acceso | Una única sesión en secure storage + restauración/refresh al arrancar |
+| Pipeline de sensores propiedad de una pantalla | Logout o cambio de rol deja trabajo asíncrono en vuelo | Coordinador de monitorización y logout ordenado que espera la parada |
+| Pairing/FCM global en dispositivo compartido | Una cuenta hereda estado o notificaciones de otra | Estado por `userId`, baja de FCM al logout y validación de destinatario |
 | Complejidad del stack (Java + Python + RabbitMQ + InfluxDB + observabilidad) | No llegar al MVP | Fases incrementales en `3_plan.md`; fallback: HTTP directo sin cola, PostgreSQL sin InfluxDB |
 | Curva de aprendizaje Java/Spring Boot | Retrasos en backend | Alcance de negocio mínimo; plantillas y arquetipos; inferencia sigue en Python |
 | Latencia extremo a extremo > objetivo | Núcleo del producto falla | Medir desde el día 1 (Prometheus); ventanas de telemetría optimizadas |
@@ -294,11 +317,11 @@ El MVP se considerará satisfactorio cuando:
 
 | Campo | Valor |
 |--------|--------|
-| Estado | Draft v0.2 |
+| Estado | Draft v0.5 — añade sesión persistente, background e aislamiento entre cuentas |
 | Autores | Gabriela Granja (Scrum Master) · Arnaldo Rodrigues (Developer) |
 | Revisión técnica | José · Josué |
 | Product Owner | Alex |
-| Última actualización | 08/07/2026 |
+| Última actualización | 14/07/2026 |
 
 ---
 
@@ -309,3 +332,5 @@ El MVP se considerará satisfactorio cuando:
 | 0.1 | 06/07/2026 | Gabriela Granja · Arnaldo Rodrigues | Primera versión del documento de intención (Fall-Sentinel). |
 | 0.2 | 08/07/2026 | Equipo Grupo 1 | Renombrado a **SentiLife**. Ampliación de visión (calidad de vida), 3 perfiles de usuario, backend Java, RabbitMQ, InfluxDB, Prometheus/Grafana, GDPR y consentimiento, criterios de éxito de tiempo real. |
 | 0.3 | 08/07/2026 | Equipo Grupo 1 | Notificaciones push (FCM), multiidioma, modal de transparencia de datos y premisa de infraestructura con un solo compose. |
+| 0.4 | 14/07/2026 | Equipo Grupo 1 | Registro con rol explícito, vinculación obligatoria a cuenta `MONITORED`, validación de telemetría móvil y política anti-spam 2-de-3 con cooldown de 60 s. |
+| 0.5 | 14/07/2026 | Equipo Grupo 1 | Persistencia segura de sesión, captura Android en background, logout ordenado y aislamiento de pairing, telemetría y push al cambiar de cuenta. |

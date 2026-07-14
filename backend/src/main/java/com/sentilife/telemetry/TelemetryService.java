@@ -1,9 +1,11 @@
 package com.sentilife.telemetry;
 
+import com.sentilife.alerts.AlertDecisionService;
 import com.sentilife.alerts.AlertService;
 import com.sentilife.config.DomainConstants;
 import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.ConsentRepository;
+import com.sentilife.devices.DeviceAuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,23 +35,32 @@ public class TelemetryService {
     private final TelemetryWindowRepository repository;
     private final InferenceClient inferenceClient;
     private final ConsentRepository consentRepository;
+    private final DeviceAuthService deviceAuthService;
     private final AlertService alertService;
+    private final AlertDecisionService alertDecisionService;
     private final ABTestingService abTestingService;
 
     public TelemetryService(TelemetryWindowRepository repository,
                             InferenceClient inferenceClient,
                             ConsentRepository consentRepository,
+                            DeviceAuthService deviceAuthService,
                             AlertService alertService,
+                            AlertDecisionService alertDecisionService,
                             ABTestingService abTestingService) {
-        this.repository        = repository;
-        this.inferenceClient   = inferenceClient;
-        this.consentRepository = consentRepository;
-        this.alertService      = alertService;
-        this.abTestingService  = abTestingService;
+        this.repository             = repository;
+        this.inferenceClient        = inferenceClient;
+        this.consentRepository      = consentRepository;
+        this.deviceAuthService      = deviceAuthService;
+        this.alertService           = alertService;
+        this.alertDecisionService   = alertDecisionService;
+        this.abTestingService       = abTestingService;
     }
 
     @Transactional
-    public TelemetryDtos.WindowResponse ingest(TelemetryDtos.WindowRequest request) {
+    public TelemetryDtos.WindowResponse ingest(TelemetryDtos.WindowRequest request,
+                                               String authorization) {
+        deviceAuthService.validateForIngest(
+                authorization, request.monitoredPersonId(), request.deviceId());
         log.debug("Ingesting window for person={} device={}",
                 request.monitoredPersonId(), request.deviceId());
 
@@ -91,8 +102,8 @@ public class TelemetryService {
         abTestingService.recordOutcome(
                 prediction.modelVersion(), prediction.fallDetected(), prediction.confidence());
 
-        if (prediction.fallDetected()) {
-            log.warn("FALL DETECTED — person={} confidence={} window={}",
+        if (alertDecisionService.shouldCreateAlert(request.monitoredPersonId())) {
+            log.warn("FALL ALERT — person={} confidence={} window={} (2-of-3 + cooldown passed)",
                     request.monitoredPersonId(), prediction.confidence(), window.getId());
             alertService.createAlert(
                     request.monitoredPersonId(),

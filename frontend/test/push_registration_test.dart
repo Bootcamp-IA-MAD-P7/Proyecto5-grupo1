@@ -5,7 +5,9 @@ import 'package:sentilife/models/user.dart';
 import 'package:sentilife/services/device_id_service.dart';
 import 'package:sentilife/services/devices_service.dart';
 import 'package:sentilife/services/push_registration_service.dart';
+import 'package:sentilife/services/secure_token_storage.dart';
 import 'package:sentilife/services/session_manager.dart';
+import 'package:sentilife/services/session_repository.dart';
 
 /// DevicesService que responde 200 a POST /push-token (backend real simulado).
 DevicesService _devices() => DevicesService(
@@ -14,14 +16,21 @@ DevicesService _devices() => DevicesService(
 
 void main() {
   group('PushRegistrationService', () {
+    setUp(() {
+      SessionRepository.resetForTests();
+      SessionRepository.useForTests(
+        SessionRepository(storage: InMemorySecureTokenStorage()),
+      );
+    });
+
     tearDown(() {
-      SessionManager().logout();
+      SessionRepository.resetForTests();
       DeviceIdService.resetForTests();
       PushRegistrationService.resetForTests();
     });
 
     test('skips registration for MONITORED role', () async {
-      SessionManager().login(_tokensFor(UserRole.monitored));
+      await SessionManager().login(_tokensFor(UserRole.monitored));
       PushRegistrationService.fcmTokenOverride = () async => 'fcm-should-not-send';
 
       await expectLater(
@@ -33,7 +42,7 @@ void main() {
     });
 
     test('skips registration when FCM token is unavailable', () async {
-      SessionManager().login(_tokensFor(UserRole.caregiver));
+      await SessionManager().login(_tokensFor(UserRole.caregiver));
       PushRegistrationService.fcmTokenOverride = () async => null;
 
       await expectLater(
@@ -45,7 +54,7 @@ void main() {
     });
 
     test('registers push token for CAREGIVER after login', () async {
-      SessionManager().login(_tokensFor(UserRole.caregiver));
+      await SessionManager().login(_tokensFor(UserRole.caregiver));
       DeviceIdService.testOverride = 'android-caregiver-push-001';
       PushRegistrationService.fcmTokenOverride = () async => 'fcm-test-token-abc';
 

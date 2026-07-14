@@ -76,18 +76,18 @@ public class NotificationService {
             return;
         }
 
-        // Build the notification
-        String title = "Fall Alert";
-        String body = String.format("%s may have fallen (confidence: %.0f%%)",
-                personName, confidence * 100);
+        int confidencePercent = (int) Math.round(confidence * 100);
 
         for (PushToken token : tokens) {
+            FallAlertPushMessages.Content notification =
+                    FallAlertPushMessages.forLocale(token.getLocale(), personName, confidencePercent);
+
             try {
                 Message message = Message.builder()
                         .setToken(token.getFcmToken())
                         .setNotification(Notification.builder()
-                                .setTitle(title)
-                                .setBody(body)
+                                .setTitle(notification.title())
+                                .setBody(notification.body())
                                 .build())
                         // Data payload for app navigation
                         .putData("type", "FALL_ALERT")
@@ -95,6 +95,7 @@ public class NotificationService {
                         .putData("monitoredPersonId", monitoredPersonId.toString())
                         .putData("personName", personName)
                         .putData("confidence", String.valueOf(confidence))
+                        .putData("recipientUserId", caregiverId.toString())
                         .build();
 
                 String messageId = FirebaseMessaging.getInstance().send(message);

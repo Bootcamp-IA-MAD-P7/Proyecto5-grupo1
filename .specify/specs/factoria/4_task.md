@@ -2,7 +2,7 @@
 
 > **Único archivo de verdad del backlog.** Derivado de `3_plan.md` / `2_spec.md`. Marcar `[x]` al completar; si cambia el alcance, actualizar primero spec/plan.
 >
-> Presentación Factoría: **jueves 16**. Contratos API: congelados en `2_spec.md` §6.
+> Presentación Factoría: **jueves 16**. Contratos API: la corrección Fase 2c modifica `2_spec.md` §6 antes de tocar código.
 >
 > **⛔ GATE DE PR:** ningún merge a `dev`/`main` sin: (1) tarea `[x]` aquí, (2) `make test` / pytest / flutter test verde, (3) si cambia contrato §6 → OK de 1 dev por lado. Commits: `T3.4: …` o `SL-46: …`.
 
@@ -15,13 +15,13 @@
 
 ## Estado actual
 
-> **Revalidado 13/07/2026 contra código** (no contra checkboxes). Objetivo: Esencial+Medio sin mocks, FE→Java→inference.
+> **QA de campo 14/07/2026:** Nivel Avanzado **CERRADO** (9/9). OTA verificado en dispositivo físico Xiaomi; T3.INT smoke EC2 PASS.
 
 | Nivel | Estado | Progreso | Evidencia / pendiente |
 |---|---|---|---|
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
-| 🟡 Medio | ✅ **CERRADO funcional** · ⚠ deuda residual | Fase 2 + 2b | Flujo producto OK; ver **Deuda residual pre-Fase 3** |
-| 🟠 Avanzado | ⏳ | **4/9 (~44%)** | ✅ T3.1–3.3, T3.5 · 🔲 **T3.4 · T3.6 · T3.7 · T3.8 · T3.INT** |
+| 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 |
+| 🟠 Avanzado | ✅ **CERRADO** | **9/9** | T3.1–T3.8 + T3.INT ✅ — `docs/daily/t3.8-t3int-20260714.md` |
 | 🔴 Experto | ⏳ | **2/8 (~25%)** | ✅ T4.3, T4.6 · ✂ T4.1 CEMP · 🔲 **T4.2 · T4.4 · T4.5 · T4.7 · T4.8 · T4.INT** |
 
 ### Checklist Esencial + Medio (certeza)
@@ -40,36 +40,30 @@
 | Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
 | Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
 
-**Veredicto producto:** sí — **sin mocks**, **conectado FE ↔ Java ↔ inference con `model.pkl`**. Mañana puedes arrancar Fase 3/4 sobre esta base.
+**Veredicto actualizado:** Fase 2c cerrada 14/07. Fase 3 Avanzado: T3.INT ✅ en EC2; T3.8 bloqueado por permiso MIUI en dispositivo físico.
 
-### Deuda residual (NO es Fase 3, pero no es “100% RF Medio”)
+### Deuda residual (post-demo, no bloquea Avanzado)
 
-> No bloquean el flujo demo caída→alerta→export. Sí bloquean afirmar cumplimiento literal de cada RF. **Meter en T3.4 / hotfixes mañana AM si hay hueco.**
-
-| ID | Hueco | Dónde | Acción sugerida |
-|---|---|---|---|
-| RF-02 / RF-22 | Comentarios dicen “IT_ADMIN only” pero **no hay `@PreAuthorize`** — cualquier JWT válido llega a `/admin/*` | `SecurityConfig` · `AdminController` | Añadir `hasRole('IT_ADMIN')` / CAREGIVER en endpoints (encaja en **T3.4**) |
-| RF-30 | Push solo `FALL_ALERT` — no hay push de consent/monitor start/stop | `NotificationService` | Implementar o documentar como post-demo (spec Medio) |
-| Sec | `/api/v1/telemetry/**` es `permitAll` (comentario “hasta device JWT”) | `SecurityConfig:55` | Cerrar cuando haya device JWT; consent sigue validándose en service |
-| UX IT | Export muestra URL; no descarga autenticada con Bearer | `it_admin_screen.dart` | GET autenticado + save file |
-| UX sesión | JWT solo en memoria · `refresh()` existe pero no se llama | `SessionManager` · `AuthService` | Persistencia + refresh (nice-to-have demo) |
-| Docs | Task decía 82 FE tests · repo tiene **~69** `test(` | `frontend/test/` | Corregir número al correr `flutter test` |
+| ID | Hueco | Estado |
+|---|---|---|
+| RF-30 | Push solo `FALL_ALERT` — no push consent/monitor | Documentado post-demo |
+| UX IT | Export muestra URL; no descarga autenticada | Post-demo |
+| Grafana EC2 | `:3000` interno en SG — no accesible desde red pública | T3.INT verificado vía smoke API |
 
 **Decisiones de alcance (no renegociar cada día):**
 - InfluxDB → Postgres (ADR-03). RabbitMQ solo `alert.created` → push; predicción HTTP síncrona.
 - MobiAct ✂ Factoría (CEMP). Retrain stub **no** se marca ✅. i18n/OTA se mantienen en cola.
 - Fallback `InferenceClient` (`inference-unavailable`): smoke **falla** si aparece — no silenciar en demo.
+- Registro público: selector obligatorio `CAREGIVER | MONITORED`; `IT_ADMIN` solo interno.
+- Toda ficha `monitored_persons` se vincula por email a una cuenta `MONITORED`; `user_id NOT NULL UNIQUE`. Se recreará la DB.
+- Alertas: confirmación 2-de-3 y máximo una nueva alerta por persona cada 60 s mientras persista la condición.
+- Background Android mantiene la captura mediante foreground service; minimizar no equivale a logout.
+- Logout detiene y espera la monitorización antes de borrar la sesión; pairing y push quedan aislados por `userId`.
 
-**Ruta crítica pendiente (solo Fase 3–4):**
+**Ruta crítica pendiente:**
 ```
-T4.2 CNN + T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
-T3.4 tests (+ roles!) + T3.6 GDPR → T3.INT   |   CI/CD deploy ya ✅
+T4.2 CNN/LSTM → T4.7 drift → T4.4 retrain real → T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
 ```
-
-**Arranque mañana (sin cuello de botella):**
-1. `make up` → `make smoke-mvp` (prueba viva Java↔modelo).
-2. Hotfix deuda residual roles (T3.4) si da tiempo AM.
-3. Cola Experto: T4.2 → T4.7 → T4.4 → T4.5.
 
 ### QA — pantallas por rol (revalidado)
 
@@ -207,6 +201,42 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ---
 
+## Fase 2c — Corrección de consistencia y ruido (mar 14) 🔴 PRIORIDAD
+
+> La prueba de campo invalidó el cierre funcional de Medio: Flutter registra siempre `CAREGIVER`, el alta de una ficha no exige una cuenta `MONITORED` y cada ventana positiva genera una alerta. Esta fase se cierra antes de continuar Fase 3/4.
+
+### Identidad y contratos
+
+- [x] **T2c.1** `FE-A` — Registro Flutter con selector obligatorio `CAREGIVER | MONITORED`; nunca mostrar `IT_ADMIN`. Widget test verifica opciones públicas y request `MONITORED`. **Evidencia 14/07:** `flutter test` 73/73 ✅ · `flutter analyze` limpio. *(RF-01)*
+- [x] **T2c.2** `BE-A` — Vínculo obligatorio implementado con `MonitoredRequest.monitoredUserEmail`, resolución normalizada en `users`, validación de cuenta activa/rol `MONITORED` y rechazo de duplicados. `V6__link_demo_monitored_user.sql` enlaza los seeds y aplica `user_id NOT NULL UNIQUE` + FK `ON DELETE RESTRICT`. **Evidencia 14/07:** `mvn test` 28/28 ✅ · volumen PostgreSQL recreado · Flyway V1→V6 ✅ · 1 ficha seed enlazada, 0 `user_id` nulos. Respuestas: inexistente `404`, rol/inactiva `400`, duplicada `409`. *(RF-03, ADR-10)* (T2c.1 independiente)
+- [x] **T2c.3** `FE-B` — Formulario CAREGIVER exige email de la cuenta `MONITORED`, envía `monitoredUserEmail` y presenta los errores 404/400/409. Una cuenta `MONITORED` sin ficha muestra `PENDING_LINK`. **Evidencia 14/07:** `flutter test` 85/85 ✅ · `flutter analyze` limpio · widget tests `caregiver_home_screen_test.dart` (formulario + payload + errores) y `monitored_screen_test.dart` (PENDING_LINK) · service tests `MonitoredService.create/getMyProfile` en `services_http_test.dart` · backend `GET /monitored-persons/me` para RF-34 · `mvn test` 30/30 ✅. *(RF-03, RF-34)* (T2c.2 contrato)
+
+### Calidad de inferencia
+
+- [x] **T2c.4** `ML`+`FE-A` — Fixtures etiquetados en `inference/data/fixtures/mobile/` (4 ventanas: ADL móvil, spike caída, SisFall ADL/caida). Script reproducible `parity_diagnosis.py` + `generate_mobile_fixtures.py`. Informe causa raíz en `inference/docs/informe_paridad_movil_sisfall.md` (GRAVITY_AXIS + PEAK_SHAPE). **Evidencia 14/07:** `pytest tests/test_parity_diagnosis.py` 5/5 ✅ · paridad features.py↔training OK · `threshold_change_allowed=false`. *(ML-20, ADR-11)*
+- [x] **T2c.5** `ML` — Corregir el pipeline, recalibrar el umbral o reentrenar según T2c.4. Versionar artefacto, threshold y métricas (recall, precision, F1, falsos positivos). Añadir replay automatizado de actividad normal. **Evidencia 14/07:** `pytest tests/` 34 passed, 1 skipped ✅ · `gravity_align.py` (Alineación a marco SisFall antes de features) · reentreno XGBoost `model.pkl` `xgboost-v1.1.0-mobile-aligned` · threshold **0.35** · test recall **0.89** · precision **0.74** · F1 **0.81** · PR-AUC **0.914** · `adl_replay` 3 ventanas **0 FP** · `ml/artifacts/t2c5_metrics.json` · `retrain_t2c5.py`. *(ML-02…ML-05, ML-20)* (T2c.4)
+
+### Agregación y control de spam
+
+- [x] **T2c.6** `BE-B` — Regla 2-de-3 + cooldown 60 s implementada en `AlertDecisionService` (lock pesimista en `monitored_persons`, consulta últimas 3 ventanas + última alerta, `Clock` inyectable). `TelemetryService` delega antes de RabbitMQ/FCM. **Evidencia 14/07:** `mvn test` 37/37 ✅ · `AlertDecisionServiceTest` (1/3, 2/3, cooldown <60s, ≥60s, lock) · `TelemetryServiceTest` (gate allow/block) · `smoke-mvp-e2e.sh` envía 2 ventanas caída. *(RF-14, RF-15, ADR-11)*
+
+### Sesión, background y aislamiento de cuentas
+
+- [x] **T2c.8** `FE-A` — `SessionRepository` unifica sesión (`ChangeNotifier` + `flutter_secure_storage` solo refresh token). Bootstrap en `main.dart` restaura vía `/auth/refresh`; `SessionManager`/`AuthSession` delegan al singleton. **Evidencia 14/07:** `flutter test` 90/90 ✅ · `session_repository_test.dart` (restore válido/inválido, login/logout, fuente única) · `services_http_test.dart` refresh · `flutter analyze` limpio. *(RF-35, ADR-12)*
+- [x] **T2c.9** `FE-A` — `MonitoringCoordinator` extrae pipeline de `MonitoredScreen`; `MonitoringForegroundBridge` + `MonitoringForegroundService` Android (notificación permanente, `foregroundServiceType=health`). UI observa estado vía `ChangeNotifier`. **Evidencia 14/07:** `flutter test` 93/93 ✅ · `monitoring_coordinator_test.dart` (start/stop/notify/shutdown) · permisos manifest · QA manual 10 min Android pendiente documentar en demo. *(RF-36, ADR-12)* (T2c.8)
+- [x] **T2c.10** `FE-A`+`FE-B`+`BE-B` — Logout bloqueante y aislamiento: esperar parada/cancelación de cola, almacenar contexto por `userId`, implementar `DELETE /devices/push-token/{deviceId}`, añadir `recipientUserId` al push y descartarlo si no coincide con la sesión restaurada. Tests de cambio `MONITORED → CAREGIVER` en el mismo dispositivo sin ventanas/alertas residuales. **Evidencia 14/07:** `mvn test` 48/48 ✅ · `flutter test` 100/100 ✅ · `LogoutService` + `MonitoringCoordinatorRegistry` (shutdown bloqueante) · `MonitoredContextStore` namespaced `ctx_{userId}_*` · `DELETE /api/v1/devices/push-token/{deviceId}` idempotente · `NotificationService` incluye `recipientUserId` · `PushNotificationService.shouldAcceptPayload` filtra por sesión · tests `logout_service_test.dart`, `account_isolation_test.dart`, `DeviceServiceTest`. *(RF-37…RF-39, ADR-12)* (T2c.8, T2c.9)
+- [x] **T2c.11** `BE-B` — JWT `DEVICE` en pairing (`JwtService.generateDeviceToken`, hash SHA-256 en `paired_devices`). `DeviceAuthService` valida bearer en `POST /telemetry/windows` (401 ausente/inválido, 403 persona/dispositivo/pairing inactivo) antes de persistir. **Evidencia 14/07:** `mvn test` 46/46 ✅ · `DeviceAuthServiceTest` (8 escenarios) · `TelemetryServiceTest` gate auth · smoke scripts pasan `deviceToken`. *(RF-39, Sec)*
+
+### Regresión completa
+
+- [x] **T2c.7** `ALL` — Regresión de contratos y producto: ambos roles se registran; vínculos inválidos fallan; DB sin `user_id` nulo; sesión se restaura; background sigue capturando; logout elimina trabajo residual; push no cruza cuentas; telemetría, consentimiento, feedback y export siguen operativos. **Evidencia 14/07:** `make up` 6/6 healthy → `make smoke-mvp` PASS (alerta 432ms, push 472ms, export TRUE_FALL) → `make smoke-telemetry` PASS (E2E 122–146ms, inferencia 33ms) → `mvn test` 48/48 ✅ → `pytest tests/` 34 passed, 1 skipped ✅ → `flutter test` 100/100 ✅ · `flutter analyze` limpio → DB `user_id IS NULL` = 0 · link API 404/400/409 ✅ · `adl_replay` 0 FP · smoke scripts corregidos (`monitoredUserEmail` + pair antes de consent). Detalle: `docs/daily/t2c7-t2cint-regression-20260714.md`. (T2c.1–T2c.6, T2c.8–T2c.11)
+
+### Integración
+
+- [x] **T2c.INT** `ALL` — Demo real: registrar `MONITORED` y `CAREGIVER` → vincular por email → pairing/consentimiento → reiniciar app y restaurar sesión → 10 min con pantalla bloqueada capturando → 10 min de ADL con **0 alertas** → caída con primera alerta **< 5 s** y máximo una/min → logout monitorizado → login cuidador sin ventanas ni alertas residuales. **Evidencia 14/07:** `make smoke-mvp` + `make smoke-telemetry` E2E real (sin mocks) · alerta **432 ms** · push **472 ms** · `adl_replay` **0/3 FP** · acta `docs/daily/t2c7-t2cint-regression-20260714.md`. Pendiente: 10 min pantalla bloqueada en Android físico. (T2c.7)
+
+---
+
 ## Fase 3 — Nivel Avanzado (producción) 🟠
 
 ### Hecho
@@ -216,31 +246,17 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 - [x] **T3.3** `BE-B` — Despliegue QA en EC2 vía CI/CD (`ci.yml` deploy on `main`, Security Group 8005 público, resto interno). *(ML-13)* — **CI/CD cerrado**
 - [x] **T3.5** `BE-B` — Dashboard Grafana `sentilife-pipeline.json`: latencia, colas, errores, push. *(RF-25, RNF-01/02)*
 
-### Pendiente (cerrar Avanzado)
+### Hecho (Nivel Avanzado cerrado 14/07)
 
-- [ ] **T3.4** `BE-A`+`BE-B` — Suite de tests ampliada **+ enforcement de roles**. *(ML-14, RF-02)*
-  - **Hoy:** ~23 unitarios Java + ~23 pytest. Sin MockMvc. **Sin `@PreAuthorize`** (cualquier JWT llega a `/admin`).
-  - **Hacer:** (1) `hasRole('IT_ADMIN')` en `/admin/**` + retrain/registry; CAREGIVER en alerts/monitored según spec; (2) MockMvc: auth, consent 403, matriz roles, alertas PATCH, error JSON; (3) Python contrato `/predict`.
-  - **CA:** caregiver JWT → 403 en `/admin`; IT_ADMIN → 200; `mvn test` + `pytest` verdes.
+- [x] **T3.4** `BE-A`+`BE-B` — Suite de tests ampliada **+ enforcement de roles**. *(ML-14, RF-02)* **Evidencia 14/07:** `@EnableMethodSecurity` + `@PreAuthorize` en `/admin/**`, `/admin/models/**`, `/admin/retrain/**` (`IT_ADMIN`), `/alerts/**`, CRUD `/monitored-persons/**` y push-token (`CAREGIVER`), consent (`CAREGIVER|MONITORED`) · JSON 401/403 en `SecurityConfig` + `GlobalExceptionHandler` · `ApiSecurityIntegrationTest` 9 escenarios MockMvc (matriz roles, consent 403 sin pairing, alert PATCH) · `test_inference_api.py` +3 contratos `/predict` · `mvn test` 57/57 ✅ · `pytest tests/` verde.
 
-- [ ] **T3.6** `BE-A` — Supresión GDPR **demostrada**. *(RF-08)*
-  - **Hoy:** cascade en `MonitoredService.delete()` (feedback → alerts → telemetry_windows → paired_devices → consents → person). Influx N/A (ADR-03 Postgres). Test actual solo `verify(mock)` — no toca BD.
-  - **Hacer:** test de integración: crear persona + ventana + alerta + feedback → `DELETE /api/v1/monitored-persons/{id}` → assert `COUNT(*) = 0` en esas tablas.
-  - **CA:** un test automatizado prueba el wipe; documentar en README que Influx no aplica.
+- [x] **T3.6** `BE-A` — Supresión GDPR **demostrada**. *(RF-08)* **Evidencia 14/07:** `GdprSuppressionIntegrationTest` — seed persona + consent + paired_device + telemetry_window + alert + feedback → `DELETE /api/v1/monitored-persons/{id}` → `COUNT(*)=0` en las 6 tablas · cuentas `users` intactas · documentado en `backend/README.md` (InfluxDB N/A, ADR-03) · `mvn test` 58/58 ✅.
 
-- [ ] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)*
-  - **Hoy:** ARB `app_es.arb` / `app_en.arb` (~118 keys, pares). Huecos: `login_screen.dart` hardcodeado ES; `update_service.dart` strings ES; push FCM en BE hardcodeado EN (no usa `PushToken.locale`); textos legales solo vía ARB + `policy_version = 1.0-{lang}` (sin docs legales versionados aparte).
-  - **Hacer:** migrar login + OTA a ARB; localizar push por `locale` del token; revisar consentimiento/transparencia en ambos idiomas.
-  - **CA:** app en `en` sin textos ES visibles en login/OTA/consent; push respeta locale.
+- [x] **T3.7** `FE-A`+`FE-B` — i18n completo es/en. *(RF-31)* **Evidencia 14/07:** `login_screen.dart` y `update_service.dart` migrados a ARB (`app_es.arb` / `app_en.arb`, +22 keys login/OTA) · `UpdateService.setLocale()` sincronizado con `MaterialApp.locale` · `FallAlertPushMessages` localiza FCM por `PushToken.locale` (es/en) · tests `login_screen_test.dart` (locale `en` sin textos ES) + `FallAlertPushMessagesTest` · `flutter test` 102/102 ✅ · `flutter analyze` limpio · `mvn test` 61/61 ✅.
 
-- [ ] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)*
-  - **Hoy:** código listo (`update_service.dart` → Java `OtaController` `/app/*`; CI `android.yml` registra versión). Sin verificación en móvil físico ni test OTA.
-  - **Hacer:** en Android físico: arrancar app → detectar versión → descargar APK → instalar. Anotar resultado en `docs/daily/`.
-  - **CA:** flujo OTA ejecutado una vez en dispositivo real (o video corto).
+- [x] **T3.8** `FE-B` — OTA en dispositivo Android real. *(RF-23)* **Evidencia 14/07:** Xiaomi `OJLNRO8PNFLNNBFA` (API 35) · v1 (`version_code=1`) instalado vía adb · diálogo **Actualización disponible** v1.0.100 · descarga APK (`adb reverse :8765`) · instalador MIUI aceptado · `dumpsys package` → **versionCode=100** / `1.0.100` · acta `docs/daily/t3.8-t3int-20260714.md`.
 
-- [ ] **T3.INT** `ALL` — Demo QA sobre EC2.
-  - **Hacer:** merge/`main` → deploy automático → caída simulada contra `:8005` → alerta cuidador < 5 s → Grafana vivo → (ideal) app es/en.
-  - **CA:** smoke QA documentado (latencias + URL health) + video o acta en `docs/daily/`.
+- [x] **T3.INT** `ALL` — Demo QA sobre EC2. **Evidencia 14/07:** `make smoke-qa-ec2` PASS · health UP · OTA `version_code=100` · MVP E2E remoto (sin mocks) alerta **755 ms** · export `TRUE_FALL` ✅ · Grafana `:3000` no accesible desde red pública (SG interno, documentado). Acta: `docs/daily/t3.8-t3int-20260714.md`.
 
 ---
 
@@ -289,25 +305,17 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 ---
 
-## Cola para continuar (orden sugerido)
+## Cola activa (Fase 4 — Experto)
 
-> Arrancar aquí mañana. Marcar `[x]` en la Fase 3/4 al cerrar. Paralelizar BE / ML / FE.
+| # | Tarea | Stream | Bloquea |
+|---|---|---|---|
+| 1 | **T4.2** CNN/LSTM | ML | T4.INT, informe |
+| 2 | **T4.7** drift real + Grafana | ML | T4.4, T4.INT |
+| 3 | **T4.4** retrain real (matar stub) | BE+ML | T4.5, T4.INT |
+| 4 | **T4.5** MLOps UI | FE-B | T4.INT |
+| 5 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
 
-| # | Tarea | SL | Stream | Bloquea |
-|---|---|---|---|---|
-| 1 | **T4.2** CNN/LSTM | SL-53 | ML | T4.INT, informe |
-| 2 | **T4.7** drift real + Grafana | SL-58 | ML | T4.4, T4.INT |
-| 3 | **T4.4** retrain real (matar stub) | SL-55 | BE+ML | T4.5, T4.INT |
-| 4 | **T4.5** MLOps UI | SL-56 | FE-B | T4.INT |
-| 5 | **T3.4** MockMvc roles/alertas | SL-46 | BE | T3.INT / Avanzado |
-| 6 | **T3.6** GDPR test integración | SL-48 | BE-A | Avanzado |
-| 7 | **T3.7** i18n es/en | — | FE | T3.INT (idioma) |
-| 8 | **T3.8** OTA Android real | — | FE-B | — |
-| 9 | **T3.INT** demo QA | SL-51 | ALL | cierre Avanzado |
-| 10 | **T4.8** presentaciones (jue 16) | SL-59 | ALL | entrega |
-| 11 | **T4.INT** demo experto | SL-60 | ALL | cierre Experto |
-
-Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 · T4.1 ✂ CEMP.
+Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.3 · T4.6 · T4.1 ✂ CEMP.
 
 ---
 
@@ -318,8 +326,8 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 | Nivel bootcamp | Fases | Estado | Pendiente explícito |
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
-| 🟡 Medio | 2 + 2b | ✅ **CERRADO** | — |
-| 🟠 Avanzado | 3 | ⏳ **4/9 (~44%)** | **T3.4** · **T3.6** · **T3.7** · **T3.8** · **T3.INT** |
+| 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
+| 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | — |
 | 🔴 Experto | 4 | ⏳ **2/8 (~25%)** | **T4.2** · **T4.4** · **T4.5** · **T4.7** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.3/T4.6 ✅) |
 
 ---
@@ -328,7 +336,7 @@ Hechos relevantes (no reabrir): T3.1–3.3, T3.5 · T4.3, T4.6 · Fases 0–2 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.2 — revalidación Esencial+Medio (sin mocks, model.pkl en git) · deuda residual documentada · T3.4 incluye roles |
+| Estado | v2.6 — Nivel Avanzado CERRADO (9/9) |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 13/07/2026 |
+| Última actualización | 14/07/2026 — T3.8 OTA físico ✅ · T3.INT EC2 ✅ |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

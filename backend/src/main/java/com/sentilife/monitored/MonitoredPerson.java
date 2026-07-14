@@ -18,7 +18,7 @@ public class MonitoredPerson extends BaseEntity {
     @Column(name = "caregiver_id", nullable = false)
     private UUID caregiverId;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false, unique = true)
     private UUID userId;
 
     @Column(name = "full_name", nullable = false)

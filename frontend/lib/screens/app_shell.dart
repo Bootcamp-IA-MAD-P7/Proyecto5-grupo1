@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
 import '../models/user.dart';
 import '../services/auth_session.dart';
-import '../services/monitored_context_store.dart';
+import '../services/logout_service.dart';
 import '../services/session_manager.dart';
 import 'caregiver_home_screen.dart';
 import 'it_admin_screen.dart';
@@ -63,12 +65,20 @@ class AppTopActions extends StatelessWidget {
           icon: const Icon(Icons.logout),
           tooltip: l10n.logout,
           onPressed: () {
-            SessionManager().logout();
-            MonitoredContextStore().clear();
-            session.clear();
+            unawaited(_logout(context));
           },
         ),
       ],
+    );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    final user = SessionManager().currentUser ?? session.user;
+    if (user == null) return;
+
+    await LogoutService().performLogout(
+      user: user,
+      clearSession: session.clear,
     );
   }
 }

@@ -122,8 +122,25 @@ class PushNotificationService {
     final payload = PushAlertPayload.fromData(
       Map<String, dynamic>.from(message.data),
     );
-    if (!payload.isFallAlert || payload.alertId.isEmpty) return null;
+    if (!shouldAcceptPayload(payload)) return null;
     return payload;
+  }
+
+  /// Returns true when the push targets the active CAREGIVER session (T2c.10).
+  @visibleForTesting
+  static bool shouldAcceptPayload(PushAlertPayload payload) {
+    if (!payload.isFallAlert || payload.alertId.isEmpty) return false;
+
+    final user = SessionManager().currentUser;
+    if (user == null || user.role != UserRole.caregiver) return false;
+
+    final recipientId = payload.recipientUserId;
+    if (recipientId != null &&
+        recipientId.isNotEmpty &&
+        recipientId != user.id) {
+      return false;
+    }
+    return true;
   }
 
   @visibleForTesting
