@@ -380,4 +380,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userStatusError => 'Could not update the user status.';
+
+  @override
+  String get pairingCredentialMissing =>
+      'The saved link belongs to an earlier version. Pair the device again to continue.';
+
+  @override
+  String get lastEvaluationLoadError =>
+      'The latest evaluation could not be loaded. The device remains linked.';
+
+  @override
+  String get sensorStartError =>
+      'The accelerometer and gyroscope could not be started.';
 }

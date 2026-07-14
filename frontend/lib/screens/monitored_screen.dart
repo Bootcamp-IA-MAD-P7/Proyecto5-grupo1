@@ -21,11 +21,17 @@ import 'app_shell.dart';
 class MonitoredScreen extends StatefulWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
+  final MonitoredContextStore? contextStore;
+  final TelemetryService? telemetryService;
+  final TelemetryPipelineService? pipeline;
 
   const MonitoredScreen({
     super.key,
     required this.session,
     required this.onLocaleChanged,
+    this.contextStore,
+    this.telemetryService,
+    this.pipeline,
   });
 
   @override
@@ -33,7 +39,8 @@ class MonitoredScreen extends StatefulWidget {
 }
 
 class _MonitoredScreenState extends State<MonitoredScreen> {
-  final _contextStore = MonitoredContextStore();
+  late final MonitoredContextStore _contextStore;
+  late final TelemetryService _telemetryService;
   final _monitoredService = MonitoredService();
   final _devicesService = DevicesService();
   final _deviceIdService = DeviceIdService();
@@ -51,10 +58,15 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   @override
   void initState() {
     super.initState();
+    _contextStore = widget.contextStore ?? MonitoredContextStore();
+    _telemetryService = widget.telemetryService ?? TelemetryService();
     _consentAccepted = _contextStore.consentActive;
-    _pipeline = TelemetryPipelineService(
-      onTelemetryError: _handleTelemetryError,
-    );
+    _pipeline =
+        widget.pipeline ??
+        TelemetryPipelineService(
+          onTelemetryError: _handleTelemetryError,
+          onCaptureError: _handleCaptureError,
+        );
     _hydrateContext();
   }
 
@@ -62,7 +74,29 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     await _contextStore.load();
     if (!mounted) return;
     setState(() => _consentAccepted = _contextStore.consentActive);
+    if (_contextStore.isPaired) {
+      await _loadLastEvaluation();
+    }
     await _maybeShowConsent();
+  }
+
+  Future<void> _loadLastEvaluation() async {
+    final personId = _contextStore.monitoredPersonId;
+    if (personId == null) return;
+
+    try {
+      final status = await _telemetryService.getStatus(personId);
+      if (!mounted) return;
+      setState(() {
+        _lastPrediction = status.lastPrediction;
+        _lastWindowAt = status.lastWindowAt;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.lastEvaluationLoadError)),
+      );
+    }
   }
 
   void _handleTelemetryError(TelemetryException error) {
@@ -70,10 +104,25 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     unawaited(_stopMonitoring());
     _contextStore.setConsentActive(false);
     setState(() => _consentAccepted = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.consentRequired)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.consentRequired)));
     _maybeShowConsent();
+  }
+
+  void _handleCaptureError(Object error) {
+    unawaited(_handleCaptureFailure());
+  }
+
+  Future<void> _handleCaptureFailure() async {
+    await _predictionSub?.cancel();
+    _predictionSub = null;
+    await _pipeline.stopMonitoring();
+    if (!mounted) return;
+    setState(() => _monitoring = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.sensorStartError)));
   }
 
   Future<void> _maybeShowConsent() async {
@@ -96,26 +145,27 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
         pairingCode: pairingCode,
         deviceId: deviceId,
       );
-      _contextStore.setPairing(
+      await _contextStore.setPairing(
         personId: result.monitoredPersonId,
         deviceId: deviceId,
+        deviceToken: result.deviceToken,
       );
       if (!mounted) return;
       setState(() => _consentAccepted = _contextStore.consentActive);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.pairingSuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.pairingSuccess)));
       await _maybeShowConsent();
     } on DeviceException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.pairingError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.pairingError)));
     } finally {
       if (mounted) setState(() => _pairingInFlight = false);
     }
@@ -136,19 +186,19 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
       _contextStore.setConsentActive(true);
       if (!mounted) return;
       setState(() => _consentAccepted = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.consentSaved)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.consentSaved)));
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.consentError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.consentError)));
     } finally {
       if (mounted) setState(() => _consentInFlight = false);
     }
@@ -184,19 +234,19 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
       _contextStore.setConsentActive(false);
       if (!mounted) return;
       setState(() => _consentAccepted = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.consentRevoked)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.consentRevoked)));
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.consentRevokeError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.consentRevokeError)));
     } finally {
       if (mounted) setState(() => _consentInFlight = false);
     }
@@ -212,9 +262,9 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   Future<void> _toggleMonitoring() async {
     if (!_contextStore.isPaired) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.pairingRequired)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.pairingRequired)));
       return;
     }
 
@@ -225,29 +275,36 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
 
     final personId = _contextStore.monitoredPersonId;
     final deviceId = _contextStore.deviceId;
-    if (personId == null || deviceId == null) {
+    final deviceToken = _contextStore.deviceToken;
+    if (personId == null || deviceId == null || deviceToken == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.pairingRequired)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.pairingRequired)));
       return;
     }
 
     if (_monitoring) {
       await _stopMonitoring();
     } else {
-      _predictionSub = _pipeline.predictions.listen((prediction) {
-        if (!mounted) return;
-        setState(() {
-          _lastPrediction = prediction;
-          _lastWindowAt = DateTime.now();
+      try {
+        _predictionSub = _pipeline.predictions.listen((prediction) {
+          if (!mounted) return;
+          setState(() {
+            _lastPrediction = prediction;
+            _lastWindowAt = DateTime.now();
+          });
         });
-      });
-      await _pipeline.startMonitoring(
-        monitoredPersonId: personId,
-        deviceId: deviceId,
-      );
-      setState(() => _monitoring = true);
+        await _pipeline.startMonitoring(
+          monitoredPersonId: personId,
+          deviceId: deviceId,
+          deviceToken: deviceToken,
+        );
+        if (!mounted) return;
+        setState(() => _monitoring = _pipeline.isRunning);
+      } catch (_) {
+        await _handleCaptureFailure();
+      }
     }
   }
 
@@ -266,8 +323,8 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
     final theme = Theme.of(context);
     final user = widget.session.user!;
     final isPaired = _contextStore.isPaired;
-    final canPressMonitoring = _monitoring ||
-        (isPaired && !_consentInFlight && !_pairingInFlight);
+    final canPressMonitoring =
+        _monitoring || (isPaired && !_consentInFlight && !_pairingInFlight);
 
     return Scaffold(
       appBar: AppBar(
@@ -371,11 +428,15 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
             if (_lastWindowAt != null)
               Text(
                 l10n.lastWindowAt(
-                    _lastWindowAt!.toLocal().toString().substring(0, 19)),
+                  _lastWindowAt!.toLocal().toString().substring(0, 19),
+                ),
                 style: theme.textTheme.bodySmall,
               ),
           ] else
-            Text(l10n.noEvaluationYet, style: TextStyle(color: Colors.grey[600])),
+            Text(
+              l10n.noEvaluationYet,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
           const SizedBox(height: 24),
           SizedBox(
             height: 52,
@@ -383,7 +444,8 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
               onPressed: canPressMonitoring ? _toggleMonitoring : null,
               icon: Icon(_monitoring ? Icons.stop : Icons.sensors),
               label: Text(
-                  _monitoring ? l10n.stopMonitoring : l10n.startMonitoring),
+                _monitoring ? l10n.stopMonitoring : l10n.startMonitoring,
+              ),
             ),
           ),
           if (isPaired && _consentAccepted) ...[
@@ -406,6 +468,13 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_contextStore.requiresRepairing) ...[
+              Text(
+                l10n.pairingCredentialMissing,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              const SizedBox(height: 12),
+            ],
             Text(l10n.pairingTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             TextField(

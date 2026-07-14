@@ -805,6 +805,24 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo actualizar el estado del usuario.'**
   String get userStatusError;
+
+  /// No description provided for @pairingCredentialMissing.
+  ///
+  /// In es, this message translates to:
+  /// **'El vínculo guardado pertenece a una versión anterior. Vuelve a emparejar el dispositivo para continuar.'**
+  String get pairingCredentialMissing;
+
+  /// No description provided for @lastEvaluationLoadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar la última evaluación. El dispositivo continúa vinculado.'**
+  String get lastEvaluationLoadError;
+
+  /// No description provided for @sensorStartError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron iniciar el acelerómetro y el giroscopio.'**
+  String get sensorStartError;
 }
 
 class _AppLocalizationsDelegate

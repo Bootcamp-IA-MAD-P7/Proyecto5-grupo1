@@ -8,10 +8,13 @@ void main() {
   group('MonitoredContextStore', () {
     tearDown(() => MonitoredContextStore().clear());
 
-    test('pairing resets consent flag', () {
-      final store = MonitoredContextStore()
-        ..setConsentActive(true)
-        ..setPairing(personId: 'person-1', deviceId: 'device-1');
+    test('pairing resets consent flag', () async {
+      final store = MonitoredContextStore()..setConsentActive(true);
+      await store.setPairing(
+        personId: 'person-1',
+        deviceId: 'device-1',
+        deviceToken: 'token-1',
+      );
 
       expect(store.isPaired, isTrue);
       expect(store.consentActive, isFalse);
