@@ -56,6 +56,12 @@ public class GlobalExceptionHandler {
         return buildResponse(400, "BAD_REQUEST", ex.getMessage());
     }
 
+    @ExceptionHandler(DomainExceptions.ServiceUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleServiceUnavailable(
+            DomainExceptions.ServiceUnavailableException ex) {
+        return buildResponse(503, "SERVICE_UNAVAILABLE", ex.getMessage());
+    }
+
     private ResponseEntity<Map<String, Object>> buildResponse(int status, String error, String message) {
         return ResponseEntity.status(status).body(Map.of(
                 "timestamp", Instant.now().toString(),

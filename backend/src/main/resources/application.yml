@@ -71,6 +71,7 @@ sentilife:
   # ── FastAPI inferencia (interna) ─────────────────────────────
   inference:
     url: ${INFERENCE_URL:http://localhost:8000}
+    fail-fast: ${INFERENCE_FAIL_FAST:false}
 
   # ── Firebase (push notifications) ──────────────────────────
   firebase:
