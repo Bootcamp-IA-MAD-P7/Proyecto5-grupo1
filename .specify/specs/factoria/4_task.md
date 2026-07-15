@@ -22,7 +22,7 @@
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
 | 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 |
 | 🟠 Avanzado | ✅ **CERRADO** | **9/9** | T3.1–T3.8 + T3.INT ✅ — `docs/daily/t3.8-t3int-20260714.md` |
-| 🔴 Experto | ⏳ | **5/8 (62%)** | ✅ T4.2, T4.3, T4.4, T4.6, T4.7 · ✂ T4.1 CEMP · 🔲 **T4.5 · T4.8 · T4.INT** |
+| 🔴 Experto | ⏳ | **6/8 (75%)** | ✅ T4.2, T4.3, T4.4, T4.5, T4.6, T4.7 · ✂ T4.1 CEMP · 🔲 **T4.8 · T4.INT** |
 
 ### Checklist Esencial + Medio (certeza)
 
@@ -62,7 +62,7 @@
 
 **Ruta crítica pendiente:**
 ```
-T4.5 MLOps UI → T4.INT → T4.8 (jue 16)
+T4.INT → T4.8 (jue 16)
 ```
 
 ### QA — pantallas por rol (revalidado)
@@ -277,17 +277,15 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
   - **Evidencia 14/07:** `ml/training/compare_cnn1d.py` + `raw_windows.py` · ventanas crudas `(125, 6)` SisFall · GroupShuffleSplit 70/15/15 + LOSO 38 sujetos · artefacto `ml/models/cnn1d-v1.0.0.keras` · métricas `ml/artifacts/cnn1d_comparison.json` · CNN test PR-AUC **0.862** recall **0.760** overfitting **1.36 pp** ✅ · XGBoost mismo split PR-AUC **0.891** LOSO **0.925** · ganador LOSO: **XGBoost** · informe `inference/docs/informe_tecnico_v3.md` · `pytest tests/` **39 passed**, 4 skipped ✅ · pipeline FastAPI sin cambios.
 
 - [x] **T4.4** `BE-B`+`ML` — **Reentrenamiento real** + auto-reemplazo. *(RF-33, ML-19, ADR-09)*
-  - **Evidencia 14/07:** `ml/training/retrain_feedback.py` · SisFall + feedback `data/feedback/` · `POST /train` FastAPI devuelve recall/precision/F1/overfitting reales · artefacto versionado `ml/models/retrain-*.pkl` · métricas `ml/artifacts/retrain_metrics.json` · registry CANDIDATE en `ml/registry/registry.json` · `RetrainService.callTrainingEndpoint()` → `POST /train` (sin stub) · promoción si recall ↑ vs ACTIVE y overfitting ≤ 5% · hot-reload vía `RegistryService.promote()` · `pytest tests/` **50 passed**, 4 skipped ✅ · `mvn test` **61/61** ✅.
+  - **Evidencia 14/07:** `ml/training/retrain_feedback.py` · SisFall + feedback `data/feedback/` · `POST /train` FastAPI devuelve recall/precision/F1/overfitting reales · artefacto versionado `ml/models/retrain-*.pkl` · métricas `ml/artifacts/retrain_metrics.json` · registry CANDIDATE en `ml/registry/registry.json` · `RetrainService.callTrainingEndpoint()` → `POST /train` (sin stub) · promoción si recall ↑ vs ACTIVE y overfitting ≤ 5% · hot-reload vía `RegistryService.promote()` · `RetrainServiceTest` 5 escenarios (PROMOTED/CANDIDATE/DISCARDED/FAILED/POST /train) · `pytest tests/` **52 passed**, 4 skipped ✅ · `mvn test` **66/66** ✅.
 
 - [x] **T4.7** `ML` — Data drift **real** + panel Grafana. *(ML-18)*
   - **Evidencia 14/07:** `api/inference/drift.py` PSI vs SisFall baseline · buffer producción en `/predict` · `GET /drift` + `POST /drift/recompute` · Prometheus `feature_drift_psi`/`feature_drift_detected`/`feature_drift_samples` · Grafana dashboard v3 (gauge + timeseries + stat) · alerta `observability/grafana/provisioning/alerting/drift.yml` · `RetrainService` fase DRIFT → HTTP real (sin `Thread.sleep`) · baseline `ml/artifacts/drift_baseline.json` · `pytest tests/` **45 passed**, 4 skipped ✅ · `mvn test` **61/61** ✅.
 
 ### Pendiente (cerrar Experto)
 
-- [ ] **T4.5** `FE-B` — Pantalla IT MLOps. *(RF-33)*
-  - **Hoy:** `AdminService.startRetrain()` / `getRetrainStatus()` existen; `it_admin_screen.dart` solo tabs History / Export / Users. Posible mismatch JSON backend↔`RetrainJobStatus`.
-  - **Hacer:** tab MLOps: botón retrain, polling de fases, historial/versión, mostrar decisión. Alinear DTO con `RetrainDtos`.
-  - **CA:** IT_ADMIN lanza retrain desde la app y ve fases hasta completed.
+- [x] **T4.5** `FE-B` — Pantalla IT MLOps. *(RF-33)*
+  - **Evidencia 14/07:** tab MLOps en `it_admin_screen.dart` (4ª pestaña) · botón retrain + polling 2s · fases/decisión/métricas visibles · `RetrainJobStatus.fromJson` alineado con `RetrainDtos` backend (`phase`, `decision`, `metrics`) · i18n es/en (+16 keys MLOps) · `retrain_status_test.dart` + contrato HTTP actualizado · `flutter test` **104/104** ✅ · `mvn test` **66/66** ✅.
 
 - [ ] **T4.8** `ALL` — Informe técnico final + presentación negocio + presentación técnica. *(constitución §4)*
   - **Hoy:** solo `inference/docs/informe_tecnico_v1.md` y `v2.md`. Cero pptx/pdf de presentación.
@@ -305,10 +303,10 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 | # | Tarea | Stream | Bloquea |
 |---|---|---|---|
-| 1 | **T4.5** MLOps UI | FE-B | T4.INT |
+| 1 | **T4.INT** demo experto en vivo | ALL | Entrega Factoría |
 | 2 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
 
-Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 · T4.4 · T4.6 · T4.7 · T4.1 ✂ CEMP.
+Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 · T4.4 · T4.5 · T4.6 · T4.7 · T4.1 ✂ CEMP.
 
 ---
 
@@ -321,7 +319,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 ·
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | — |
-| 🔴 Experto | 4 | ⏳ **5/8 (62%)** | **T4.5** · **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.2/T4.3/T4.4/T4.6/T4.7 ✅) |
+| 🔴 Experto | 4 | ⏳ **6/8 (75%)** | **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.2/T4.3/T4.4/T4.5/T4.6/T4.7 ✅) |
 
 ---
 
@@ -329,7 +327,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.10 — T4.4 retrain real ✅ · Experto 5/8 |
+| Estado | v2.11 — T4.5 MLOps UI ✅ · Experto 6/8 |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — T4.4 retrain · pytest 50/50 · mvn 61/61 |
+| Última actualización | 14/07/2026 — T4.5 MLOps · pytest 52/52 · mvn 66/66 · flutter 104/104 |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

@@ -491,4 +491,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updateSignatureMismatchDetail =>
       'The APK signature does not match the installed version.\nUninstall the app manually and install the new version.';
+
+  @override
+  String get mlops => 'MLOps';
+
+  @override
+  String get mlopsTitle => 'Model retraining';
+
+  @override
+  String get mlopsDescription =>
+      'Start a retraining job with production feedback. The pipeline checks drift, trains, and decides whether to promote the new model.';
+
+  @override
+  String get mlopsStartRetrain => 'Start retraining';
+
+  @override
+  String get mlopsRetrainRunning => 'Retraining in progress…';
+
+  @override
+  String get mlopsPhase => 'Phase';
+
+  @override
+  String get mlopsDecision => 'Decision';
+
+  @override
+  String get mlopsRecall => 'Recall (test)';
+
+  @override
+  String get mlopsCurrentRecall => 'Current recall';
+
+  @override
+  String get mlopsOverfitting => 'Overfitting';
+
+  @override
+  String get mlopsModelVersion => 'Candidate version';
+
+  @override
+  String get mlopsRetrainStarted => 'Retraining job started.';
+
+  @override
+  String get mlopsRetrainError => 'Could not start retraining.';
+
+  @override
+  String get mlopsDecisionPromoted => 'Promoted to ACTIVE';
+
+  @override
+  String get mlopsDecisionCandidate => 'Candidate (not promoted)';
+
+  @override
+  String get mlopsDecisionDiscarded => 'Discarded';
+
+  @override
+  String get mlopsDecisionPending => 'Pending';
 }

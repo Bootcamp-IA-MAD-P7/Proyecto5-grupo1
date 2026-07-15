@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sentilife/config/window_contract.dart';
 import 'package:sentilife/models/alert.dart';
+import 'package:sentilife/models/retrain_status.dart';
 import 'package:sentilife/models/user.dart';
 import 'package:sentilife/services/admin_service.dart';
 import 'package:sentilife/services/alerts_service.dart';
@@ -656,24 +657,31 @@ void main() {
       );
     });
 
-    test('getRetrainStatus parsea el job completado', () async {
+    test('getRetrainStatus parsea RetrainDtos del backend', () async {
       final service = AdminService(
         client: MockClient((req) async => _json({
-              'status': 'completed',
-              'decision': 'promoted',
-              'details': {
-                'currentRecall': 0.91,
-                'newRecall': 0.94,
-                'overfittingGap': 0.03,
-                'driftDetected': false,
-                'modelReloaded': true,
+              'phase': 'COMPLETED',
+              'decision': 'PROMOTED',
+              'message': 'Model promoted — recall=0.930 (was 0.890)',
+              'modelVersion': 'xgboost-retrain-test',
+              'metrics': {
+                'recall': 0.93,
+                'current_recall': 0.89,
+                'overfitting': 0.02,
               },
+              'startedAt': '2026-07-14T12:00:00Z',
+              'completedAt': '2026-07-14T12:05:00Z',
             })),
       );
 
       final status = await service.getRetrainStatus();
+      expect(status.status, RetrainStatus.completed);
+      expect(status.phase, 'completed');
       expect(status.decision, 'promoted');
-      expect(status.details!.newRecall, greaterThan(status.details!.currentRecall));
+      expect(status.modelVersion, 'xgboost-retrain-test');
+      expect(status.details!.newRecall, closeTo(0.93, 0.001));
+      expect(status.details!.currentRecall, closeTo(0.89, 0.001));
+      expect(status.details!.overfittingGap, closeTo(0.02, 0.001));
     });
   });
 }

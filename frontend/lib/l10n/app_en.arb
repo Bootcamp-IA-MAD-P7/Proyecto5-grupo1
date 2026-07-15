@@ -173,5 +173,22 @@
       "message": { "type": "String" }
     }
   },
-  "updateSignatureMismatchDetail": "The APK signature does not match the installed version.\nUninstall the app manually and install the new version."
+  "updateSignatureMismatchDetail": "The APK signature does not match the installed version.\nUninstall the app manually and install the new version.",
+  "mlops": "MLOps",
+  "mlopsTitle": "Model retraining",
+  "mlopsDescription": "Start a retraining job with production feedback. The pipeline checks drift, trains, and decides whether to promote the new model.",
+  "mlopsStartRetrain": "Start retraining",
+  "mlopsRetrainRunning": "Retraining in progress…",
+  "mlopsPhase": "Phase",
+  "mlopsDecision": "Decision",
+  "mlopsRecall": "Recall (test)",
+  "mlopsCurrentRecall": "Current recall",
+  "mlopsOverfitting": "Overfitting",
+  "mlopsModelVersion": "Candidate version",
+  "mlopsRetrainStarted": "Retraining job started.",
+  "mlopsRetrainError": "Could not start retraining.",
+  "mlopsDecisionPromoted": "Promoted to ACTIVE",
+  "mlopsDecisionCandidate": "Candidate (not promoted)",
+  "mlopsDecisionDiscarded": "Discarded",
+  "mlopsDecisionPending": "Pending"
 }

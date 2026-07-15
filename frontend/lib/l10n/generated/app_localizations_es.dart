@@ -495,4 +495,56 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get updateSignatureMismatchDetail =>
       'La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión.';
+
+  @override
+  String get mlops => 'MLOps';
+
+  @override
+  String get mlopsTitle => 'Reentrenamiento del modelo';
+
+  @override
+  String get mlopsDescription =>
+      'Lanza un job de reentrenamiento con feedback de producción. El pipeline evalúa drift, entrena y decide si promover el nuevo modelo.';
+
+  @override
+  String get mlopsStartRetrain => 'Iniciar reentrenamiento';
+
+  @override
+  String get mlopsRetrainRunning => 'Reentrenamiento en curso…';
+
+  @override
+  String get mlopsPhase => 'Fase';
+
+  @override
+  String get mlopsDecision => 'Decisión';
+
+  @override
+  String get mlopsRecall => 'Recall (test)';
+
+  @override
+  String get mlopsCurrentRecall => 'Recall actual';
+
+  @override
+  String get mlopsOverfitting => 'Overfitting';
+
+  @override
+  String get mlopsModelVersion => 'Versión candidata';
+
+  @override
+  String get mlopsRetrainStarted => 'Job de reentrenamiento iniciado.';
+
+  @override
+  String get mlopsRetrainError => 'No se pudo iniciar el reentrenamiento.';
+
+  @override
+  String get mlopsDecisionPromoted => 'Promovido a ACTIVE';
+
+  @override
+  String get mlopsDecisionCandidate => 'Candidato (sin promover)';
+
+  @override
+  String get mlopsDecisionDiscarded => 'Descartado';
+
+  @override
+  String get mlopsDecisionPending => 'Pendiente';
 }

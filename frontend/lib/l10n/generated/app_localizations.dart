@@ -991,6 +991,108 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión.'**
   String get updateSignatureMismatchDetail;
+
+  /// No description provided for @mlops.
+  ///
+  /// In es, this message translates to:
+  /// **'MLOps'**
+  String get mlops;
+
+  /// No description provided for @mlopsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reentrenamiento del modelo'**
+  String get mlopsTitle;
+
+  /// No description provided for @mlopsDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Lanza un job de reentrenamiento con feedback de producción. El pipeline evalúa drift, entrena y decide si promover el nuevo modelo.'**
+  String get mlopsDescription;
+
+  /// No description provided for @mlopsStartRetrain.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar reentrenamiento'**
+  String get mlopsStartRetrain;
+
+  /// No description provided for @mlopsRetrainRunning.
+  ///
+  /// In es, this message translates to:
+  /// **'Reentrenamiento en curso…'**
+  String get mlopsRetrainRunning;
+
+  /// No description provided for @mlopsPhase.
+  ///
+  /// In es, this message translates to:
+  /// **'Fase'**
+  String get mlopsPhase;
+
+  /// No description provided for @mlopsDecision.
+  ///
+  /// In es, this message translates to:
+  /// **'Decisión'**
+  String get mlopsDecision;
+
+  /// No description provided for @mlopsRecall.
+  ///
+  /// In es, this message translates to:
+  /// **'Recall (test)'**
+  String get mlopsRecall;
+
+  /// No description provided for @mlopsCurrentRecall.
+  ///
+  /// In es, this message translates to:
+  /// **'Recall actual'**
+  String get mlopsCurrentRecall;
+
+  /// No description provided for @mlopsOverfitting.
+  ///
+  /// In es, this message translates to:
+  /// **'Overfitting'**
+  String get mlopsOverfitting;
+
+  /// No description provided for @mlopsModelVersion.
+  ///
+  /// In es, this message translates to:
+  /// **'Versión candidata'**
+  String get mlopsModelVersion;
+
+  /// No description provided for @mlopsRetrainStarted.
+  ///
+  /// In es, this message translates to:
+  /// **'Job de reentrenamiento iniciado.'**
+  String get mlopsRetrainStarted;
+
+  /// No description provided for @mlopsRetrainError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo iniciar el reentrenamiento.'**
+  String get mlopsRetrainError;
+
+  /// No description provided for @mlopsDecisionPromoted.
+  ///
+  /// In es, this message translates to:
+  /// **'Promovido a ACTIVE'**
+  String get mlopsDecisionPromoted;
+
+  /// No description provided for @mlopsDecisionCandidate.
+  ///
+  /// In es, this message translates to:
+  /// **'Candidato (sin promover)'**
+  String get mlopsDecisionCandidate;
+
+  /// No description provided for @mlopsDecisionDiscarded.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartado'**
+  String get mlopsDecisionDiscarded;
+
+  /// No description provided for @mlopsDecisionPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente'**
+  String get mlopsDecisionPending;
 }
 
 class _AppLocalizationsDelegate

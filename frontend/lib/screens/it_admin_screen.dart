@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
+import '../models/retrain_status.dart';
 import '../models/user.dart';
 import '../services/admin_service.dart';
 import '../services/auth_session.dart';
 import 'app_shell.dart';
 
-/// SL-40 / T2.17 — Perfil IT_ADMIN: historial, export, usuarios.
+/// SL-40 / T2.17 + T4.5 — Perfil IT_ADMIN: historial, export, usuarios, MLOps.
 class ItAdminScreen extends StatefulWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
@@ -48,6 +51,7 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
           NavigationDestination(icon: const Icon(Icons.history), label: l10n.history),
           NavigationDestination(icon: const Icon(Icons.download), label: l10n.export),
           NavigationDestination(icon: const Icon(Icons.people), label: l10n.users),
+          NavigationDestination(icon: const Icon(Icons.model_training), label: l10n.mlops),
         ],
       ),
       body: IndexedStack(
@@ -60,6 +64,7 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
             onExport: (url) => setState(() => _exportUrl = url),
           ),
           _UsersTab(admin: _admin),
+          _MlopsTab(admin: _admin),
         ],
       ),
     );
@@ -190,6 +195,163 @@ class _UsersTabState extends State<_UsersTab> {
           },
         );
       },
+    );
+  }
+}
+
+class _MlopsTab extends StatefulWidget {
+  final AdminService admin;
+  const _MlopsTab({required this.admin});
+
+  @override
+  State<_MlopsTab> createState() => _MlopsTabState();
+}
+
+class _MlopsTabState extends State<_MlopsTab> {
+  RetrainJobStatus? _status;
+  bool _loading = false;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshStatus();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshStatus() async {
+    try {
+      final status = await widget.admin.getRetrainStatus();
+      if (!mounted) return;
+      setState(() => _status = status);
+      _syncPolling(status);
+    } catch (_) {
+      // Keep last known status on poll errors.
+    }
+  }
+
+  void _syncPolling(RetrainJobStatus status) {
+    _pollTimer?.cancel();
+    if (status.isRunning) {
+      _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _refreshStatus());
+    }
+  }
+
+  Future<void> _startRetrain() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    setState(() => _loading = true);
+    try {
+      await widget.admin.startRetrain();
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l10n.mlopsRetrainStarted)));
+      await _refreshStatus();
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l10n.mlopsRetrainError)));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _decisionLabel(AppLocalizations l10n, String? decision) {
+    switch (decision?.toLowerCase()) {
+      case 'promoted':
+        return l10n.mlopsDecisionPromoted;
+      case 'candidate':
+        return l10n.mlopsDecisionCandidate;
+      case 'discarded':
+        return l10n.mlopsDecisionDiscarded;
+      default:
+        return l10n.mlopsDecisionPending;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final status = _status;
+    final details = status?.details;
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text(l10n.mlopsTitle, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Text(l10n.mlopsDescription),
+        const SizedBox(height: 24),
+        FilledButton.icon(
+          onPressed: (_loading || (status?.isRunning ?? false)) ? null : _startRetrain,
+          icon: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.play_arrow),
+          label: Text(l10n.mlopsStartRetrain),
+        ),
+        if (status?.isRunning ?? false) ...[
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(l10n.mlopsRetrainRunning)),
+            ],
+          ),
+        ],
+        if (status != null) ...[
+          const SizedBox(height: 24),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (status.phase != null)
+                    Text('${l10n.mlopsPhase}: ${status.phase!.toUpperCase()}'),
+                  if (status.message != null) ...[
+                    const SizedBox(height: 8),
+                    Text(status.message!),
+                  ],
+                  if (status.decision != null) ...[
+                    const SizedBox(height: 8),
+                    Text('${l10n.mlopsDecision}: ${_decisionLabel(l10n, status.decision)}'),
+                  ],
+                  if (status.modelVersion != null) ...[
+                    const SizedBox(height: 8),
+                    Text('${l10n.mlopsModelVersion}: ${status.modelVersion}'),
+                  ],
+                  if (details?.newRecall != null) ...[
+                    const SizedBox(height: 8),
+                    Text('${l10n.mlopsRecall}: ${(details!.newRecall! * 100).toStringAsFixed(1)}%'),
+                  ],
+                  if (details?.currentRecall != null) ...[
+                    const SizedBox(height: 4),
+                    Text('${l10n.mlopsCurrentRecall}: ${(details!.currentRecall! * 100).toStringAsFixed(1)}%'),
+                  ],
+                  if (details?.overfittingGap != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${l10n.mlopsOverfitting}: ${(details!.overfittingGap! * 100).toStringAsFixed(1)}%',
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

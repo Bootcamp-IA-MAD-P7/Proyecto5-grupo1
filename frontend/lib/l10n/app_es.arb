@@ -187,5 +187,22 @@
       "message": { "type": "String" }
     }
   },
-  "updateSignatureMismatchDetail": "La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión."
+  "updateSignatureMismatchDetail": "La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión.",
+  "mlops": "MLOps",
+  "mlopsTitle": "Reentrenamiento del modelo",
+  "mlopsDescription": "Lanza un job de reentrenamiento con feedback de producción. El pipeline evalúa drift, entrena y decide si promover el nuevo modelo.",
+  "mlopsStartRetrain": "Iniciar reentrenamiento",
+  "mlopsRetrainRunning": "Reentrenamiento en curso…",
+  "mlopsPhase": "Fase",
+  "mlopsDecision": "Decisión",
+  "mlopsRecall": "Recall (test)",
+  "mlopsCurrentRecall": "Recall actual",
+  "mlopsOverfitting": "Overfitting",
+  "mlopsModelVersion": "Versión candidata",
+  "mlopsRetrainStarted": "Job de reentrenamiento iniciado.",
+  "mlopsRetrainError": "No se pudo iniciar el reentrenamiento.",
+  "mlopsDecisionPromoted": "Promovido a ACTIVE",
+  "mlopsDecisionCandidate": "Candidato (sin promover)",
+  "mlopsDecisionDiscarded": "Descartado",
+  "mlopsDecisionPending": "Pendiente"
 }
