@@ -11,13 +11,18 @@ import '../services/monitoring_coordinator.dart';
 import '../services/monitoring_coordinator_registry.dart';
 import '../services/monitored_context_store.dart';
 import '../services/monitored_service.dart';
+import '../services/sensor_capability_service.dart';
 import '../services/telemetry_service.dart';
 import '../widgets/consent_dialog.dart';
 import '../widgets/transparency_dialog.dart';
 import 'app_shell.dart';
+import 'sensor_unavailable_screen.dart';
 
 /// Estado de vínculo ficha↔cuenta MONITORED (RF-34).
 enum MonitoredLinkStatus { loading, pendingLink, linked }
+
+/// Estado de comprobación IMU obligatoria (RF-40 / T4e.1).
+enum ImuGateStatus { checking, available, unavailable }
 
 /// SL-24 / T1.11 — Pantalla MONITORED v1: estado + última evaluación.
 /// T2.20 — Consentimiento real contra API Java.
@@ -29,6 +34,7 @@ class MonitoredScreen extends StatefulWidget {
   final MonitoredService? monitoredService;
   final TelemetryService? telemetryService;
   final MonitoringCoordinator? coordinator;
+  final SensorCapabilityService? sensorCapabilityService;
 
   const MonitoredScreen({
     super.key,
@@ -38,6 +44,7 @@ class MonitoredScreen extends StatefulWidget {
     this.monitoredService,
     this.telemetryService,
     this.coordinator,
+    this.sensorCapabilityService,
   });
 
   @override
@@ -52,6 +59,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   final _deviceIdService = DeviceIdService();
   final _pairingCodeController = TextEditingController();
   late final MonitoringCoordinator _coordinator;
+  late final SensorCapabilityService _sensorCapabilityService;
   bool _monitoring = false;
   WindowPrediction? _lastPrediction;
   DateTime? _lastWindowAt;
@@ -59,6 +67,8 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   bool _consentInFlight = false;
   bool _pairingInFlight = false;
   MonitoredLinkStatus _linkStatus = MonitoredLinkStatus.loading;
+  ImuGateStatus _imuGateStatus = ImuGateStatus.checking;
+  ImuCapabilityResult? _imuCapabilityResult;
 
   void _onCoordinatorChanged() {
     if (!mounted) return;
@@ -82,9 +92,23 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
           onTelemetryError: _handleTelemetryError,
           onCaptureError: _handleCaptureError,
         );
+    _sensorCapabilityService =
+        widget.sensorCapabilityService ?? SensorCapabilityService();
     MonitoringCoordinatorRegistry.instance.register(_coordinator);
     _coordinator.addListener(_onCoordinatorChanged);
+    unawaited(_checkImuGate());
     _hydrateContext();
+  }
+
+  Future<void> _checkImuGate() async {
+    final result = await _sensorCapabilityService.checkImuAvailability();
+    if (!mounted) return;
+    setState(() {
+      _imuCapabilityResult = result;
+      _imuGateStatus = result.isFullyAvailable
+          ? ImuGateStatus.available
+          : ImuGateStatus.unavailable;
+    });
   }
 
   Future<void> _hydrateContext() async {
@@ -162,7 +186,8 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _maybeShowConsent() async {
-    if (_linkStatus != MonitoredLinkStatus.linked ||
+    if (_imuGateStatus != ImuGateStatus.available ||
+        _linkStatus != MonitoredLinkStatus.linked ||
         _consentAccepted ||
         _consentInFlight ||
         !_contextStore.isPaired) {
@@ -299,7 +324,10 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   }
 
   Future<void> _toggleMonitoring() async {
-    if (_linkStatus == MonitoredLinkStatus.pendingLink) return;
+    if (_imuGateStatus != ImuGateStatus.available ||
+        _linkStatus == MonitoredLinkStatus.pendingLink) {
+      return;
+    }
 
     if (!_contextStore.isPaired) {
       if (!mounted) return;
@@ -353,12 +381,38 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_imuGateStatus == ImuGateStatus.checking ||
+        _linkStatus == MonitoredLinkStatus.loading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(context.l10n.monitoredTitle),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_imuGateStatus == ImuGateStatus.unavailable &&
+        _imuCapabilityResult != null) {
+      return SensorUnavailableScreen(
+        session: widget.session,
+        onLocaleChanged: widget.onLocaleChanged,
+        result: _imuCapabilityResult!,
+        onRetry: () {
+          setState(() => _imuGateStatus = ImuGateStatus.checking);
+          unawaited(_checkImuGate());
+        },
+      );
+    }
+
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final user = widget.session.user!;
     final isPendingLink = _linkStatus == MonitoredLinkStatus.pendingLink;
     final isPaired = _contextStore.isPaired;
-    final canPressMonitoring = !isPendingLink &&
+    final canPressMonitoring = _imuGateStatus == ImuGateStatus.available &&
+        !isPendingLink &&
         (_monitoring || (isPaired && !_consentInFlight && !_pairingInFlight));
 
     if (_linkStatus == MonitoredLinkStatus.loading) {

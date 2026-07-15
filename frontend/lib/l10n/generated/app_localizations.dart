@@ -920,6 +920,36 @@ abstract class AppLocalizations {
   /// **'No se pudieron iniciar el acelerómetro y el giroscopio.'**
   String get sensorStartError;
 
+  /// No description provided for @sensorUnavailableTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Sensores no disponibles'**
+  String get sensorUnavailableTitle;
+
+  /// No description provided for @sensorUnavailableBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Este dispositivo no tiene los sensores inerciales necesarios para monitorizar caídas. Usa un móvil con acelerómetro y giroscopio.'**
+  String get sensorUnavailableBody;
+
+  /// No description provided for @sensorUnavailableRetry.
+  ///
+  /// In es, this message translates to:
+  /// **'Comprobar de nuevo'**
+  String get sensorUnavailableRetry;
+
+  /// No description provided for @sensorAvailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Disponible'**
+  String get sensorAvailable;
+
+  /// No description provided for @sensorMissing.
+  ///
+  /// In es, this message translates to:
+  /// **'No disponible'**
+  String get sensorMissing;
+
   /// No description provided for @updateNoRemoteVersion.
   ///
   /// In es, this message translates to:
@@ -1093,6 +1123,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Pendiente'**
   String get mlopsDecisionPending;
+
+  /// No description provided for @mlopsFeedbackRecords.
+  ///
+  /// In es, this message translates to:
+  /// **'Registros de feedback'**
+  String get mlopsFeedbackRecords;
+
+  /// No description provided for @mlopsAugmentedWindows.
+  ///
+  /// In es, this message translates to:
+  /// **'Ventanas augmentadas'**
+  String get mlopsAugmentedWindows;
 }
 
 class _AppLocalizationsDelegate

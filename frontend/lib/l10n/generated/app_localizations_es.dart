@@ -447,6 +447,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudieron iniciar el acelerómetro y el giroscopio.';
 
   @override
+  String get sensorUnavailableTitle => 'Sensores no disponibles';
+
+  @override
+  String get sensorUnavailableBody =>
+      'Este dispositivo no tiene los sensores inerciales necesarios para monitorizar caídas. Usa un móvil con acelerómetro y giroscopio.';
+
+  @override
+  String get sensorUnavailableRetry => 'Comprobar de nuevo';
+
+  @override
+  String get sensorAvailable => 'Disponible';
+
+  @override
+  String get sensorMissing => 'No disponible';
+
+  @override
   String get updateNoRemoteVersion =>
       'No hay versión remota cargada. Llama a checkForUpdate() primero.';
 
@@ -547,4 +563,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get mlopsDecisionPending => 'Pendiente';
+
+  @override
+  String get mlopsFeedbackRecords => 'Registros de feedback';
+
+  @override
+  String get mlopsAugmentedWindows => 'Ventanas augmentadas';
 }

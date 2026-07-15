@@ -444,6 +444,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'The accelerometer and gyroscope could not be started.';
 
   @override
+  String get sensorUnavailableTitle => 'Sensors unavailable';
+
+  @override
+  String get sensorUnavailableBody =>
+      'This device does not have the inertial sensors required for fall monitoring. Use a phone with an accelerometer and gyroscope.';
+
+  @override
+  String get sensorUnavailableRetry => 'Check again';
+
+  @override
+  String get sensorAvailable => 'Available';
+
+  @override
+  String get sensorMissing => 'Unavailable';
+
+  @override
   String get updateNoRemoteVersion =>
       'No remote version loaded. Call checkForUpdate() first.';
 
@@ -543,4 +559,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mlopsDecisionPending => 'Pending';
+
+  @override
+  String get mlopsFeedbackRecords => 'Feedback records';
+
+  @override
+  String get mlopsAugmentedWindows => 'Augmented windows';
 }

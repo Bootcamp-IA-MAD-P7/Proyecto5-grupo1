@@ -156,6 +156,11 @@
   "pairingCredentialMissing": "El vínculo guardado pertenece a una versión anterior. Vuelve a emparejar el dispositivo para continuar.",
   "lastEvaluationLoadError": "No se pudo cargar la última evaluación. El dispositivo continúa vinculado.",
   "sensorStartError": "No se pudieron iniciar el acelerómetro y el giroscopio.",
+  "sensorUnavailableTitle": "Sensores no disponibles",
+  "sensorUnavailableBody": "Este dispositivo no tiene los sensores inerciales necesarios para monitorizar caídas. Usa un móvil con acelerómetro y giroscopio.",
+  "sensorUnavailableRetry": "Comprobar de nuevo",
+  "sensorAvailable": "Disponible",
+  "sensorMissing": "No disponible",
   "updateNoRemoteVersion": "No hay versión remota cargada. Llama a checkForUpdate() primero.",
   "updateVersionCheckUnexpected": "Error inesperado al comprobar la versión.",
   "updateDownloadUnexpected": "Error inesperado durante la descarga.",
@@ -204,5 +209,7 @@
   "mlopsDecisionPromoted": "Promovido a ACTIVE",
   "mlopsDecisionCandidate": "Candidato (sin promover)",
   "mlopsDecisionDiscarded": "Descartado",
-  "mlopsDecisionPending": "Pendiente"
+  "mlopsDecisionPending": "Pendiente",
+  "mlopsFeedbackRecords": "Registros de feedback",
+  "mlopsAugmentedWindows": "Ventanas augmentadas"
 }
