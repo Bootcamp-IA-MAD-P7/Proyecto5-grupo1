@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../models/user.dart';
 import '../services/auth_session.dart';
 import '../services/sensor_capability_service.dart';
 import 'app_shell.dart';
@@ -34,6 +35,7 @@ class SensorUnavailableScreen extends StatelessWidget {
           AppTopActions(
             session: session,
             onLocaleChanged: onLocaleChanged,
+            role: UserRole.monitored,
           ),
         ],
       ),

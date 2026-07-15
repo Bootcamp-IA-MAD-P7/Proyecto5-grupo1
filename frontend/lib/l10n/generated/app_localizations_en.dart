@@ -589,4 +589,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mlopsAugmentedWindows => 'Augmented windows';
+
+  @override
+  String get mlopsPrerequisitesTitle => 'Labelled data available';
+
+  @override
+  String mlopsFeedbackProgress(int current, int minimum) {
+    return '$current of $minimum minimum records';
+  }
+
+  @override
+  String mlopsFeedbackRecommended(int count) {
+    return 'Recommended: at least $count records for a reliable retrain.';
+  }
+
+  @override
+  String get mlopsInsufficientFeedbackTitle => 'Not enough feedback yet';
+
+  @override
+  String get mlopsInsufficientFeedbackBody =>
+      'Retraining blends the SisFall dataset with IMU windows that caregivers confirmed or dismissed. With too few new examples the model cannot improve meaningfully and compute is wasted.\n\nAsk caregivers to review alerts (confirm true falls or mark false alarms) until the minimum is reached. Each record must include the full sensor window (125 samples).';
+
+  @override
+  String get mlopsConfirmTitle => 'Start retraining?';
+
+  @override
+  String get mlopsConfirmBody =>
+      'The pipeline runs these phases:\n1. Drift — compares recent telemetry with SisFall.\n2. Training — blends SisFall + labelled feedback from the database.\n3. Evaluation — measures recall, precision and overfitting.\n4. Decision — promotes only if fall recall improves and overfitting is ≤ 5%.\n\nIf it does not improve, the current model stays active (discarded/candidate).';
+
+  @override
+  String get mlopsCriteriaTitle => 'MLOps criteria and explainability';
+
+  @override
+  String get mlopsCriteriaBody =>
+      'Minimum threshold: valid labelled records in Postgres (IMU window + TRUE_FALL or FALSE_ALARM label).\n\nRecommended: accumulate diverse feedback (confirmed falls and false alarms) before retraining.\n\nAutomatic promotion only if:\n• Candidate fall recall > ACTIVE model recall.\n• Overfitting (train − test) ≤ 5%.\n\nThe last job\'s «Augmented windows» count shows how many real production samples entered training.';
+
+  @override
+  String get mlopsWhyDisabled => 'Why is this disabled?';
+
+  @override
+  String get helpButton => 'Help';
+
+  @override
+  String get helpClose => 'Got it';
+
+  @override
+  String get helpMonitoredTitle => 'Guide — Monitored person';
+
+  @override
+  String get helpMonitoredBody =>
+      '1. Check that your phone has accelerometer and gyroscope.\n2. Pair the device with the code from your caregiver.\n3. Accept informed consent (you can revoke anytime).\n4. Start monitoring: the app captures sensors in background with a persistent notification.\n5. Status tab: latest model evaluation (fall yes/no, confidence).\n6. Sensors tab: live charts of what the phone measures now.\n\nYour data is sent only with active consent and is used to improve the model (transparency modal).';
+
+  @override
+  String get helpCaregiverTitle => 'Guide — Caregiver';
+
+  @override
+  String get helpCaregiverBody =>
+      '1. Register the person with their MONITORED account email (must exist and be active).\n2. Share the pairing code so they can link their phone.\n3. You will receive push notifications on possible fall alerts.\n4. Review each alert: confirm a real fall or dismiss as false alarm.\n\nYour feedback labels IMU windows and feeds model retraining. Higher-quality feedback improves the next model.';
+
+  @override
+  String get helpItAdminTitle => 'Guide — IT administration';
+
+  @override
+  String get helpItAdminBody =>
+      'History: global system alerts.\n\nExport: authenticated CSV download with labelled windows (caregiver feedback).\n\nUsers: enable or disable accounts.\n\nMLOps — Retraining:\n• Reads Postgres feedback automatically (no manual CSV).\n• Requires a minimum of labelled records before starting the job.\n• Shows phases, metrics and decision (promoted / candidate / discarded).\n• Promotes only if fall recall improves without overfitting.\n\nGrafana (QA): http://100.52.221.179:3006 — latency, queue and drift dashboards.';
 }

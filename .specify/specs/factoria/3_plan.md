@@ -28,9 +28,11 @@
                     │  (red interna, no expuesto) │
                     └─────────────────────────────┘
 
-        Prometheus ──scrape──> Java, FastAPI, RabbitMQ, Postgres, InfluxDB
+        Prometheus ──scrape──> Java, FastAPI, RabbitMQ, Postgres
         Grafana ──lee──> Prometheus  (dashboard pipeline + salud)
 ```
+
+> **Nota ADR-03 (sprint):** telemetría y predicciones persisten en **PostgreSQL** (`telemetry_windows`). InfluxDB del diagrama original queda post-Factoría / CEMP.
 
 ### Responsabilidades
 
@@ -104,13 +106,13 @@ El repo actual tiene FastAPI como API única (`Backend/api/main.py` con `classif
 ### ADR-09 — Ciclo de reentrenamiento con datos reales (patrón proyecto4-grupo4)
 
 - **Decisión:** replicar el patrón validado en `proyecto4-grupo4` (nivel Experto) adaptándolo a SentiLife:
-  1. **Recogida de data real:** cada predicción que el usuario ve se persiste; el feedback del cuidador (confirmar/descartar) la convierte en muestra etiquetada (`feedback_labels` + ventana en InfluxDB).
+  1. **Recogida de data real:** cada predicción que el usuario ve se persiste; el feedback del cuidador (confirmar/descartar) la convierte en muestra etiquetada (`feedback_labels` + ventana en PostgreSQL `telemetry_windows`).
   2. **Modal de transparencia** (RF-32): el usuario sabe que esa data se usa para reentrenar — mismo patrón de modal informativo del proyecto 4.
   3. **Job de reentrenamiento** con estado consultable (`POST /admin/retrain`, `GET /admin/retrain/status` — spec §6.6): fases `drift → training → reload`, decisión `promoted | candidate | discarded | skipped`.
   4. **Hot-reload del modelo:** la promoción no requiere reiniciar contenedores — FastAPI expone `POST /model/reload` interno y recarga el artefacto `ACTIVE` del registry.
   5. El candidato no promovido queda en **A/B** con ~20% del tráfico (ML-17).
 - **Diferencia clave con el proyecto 4:** la métrica de decisión aquí es **recall de caídas** (no R²), con guardas de overfitting < 5% y validación por sujeto.
-- **⚠ Hueco T4d (14/07):** el job `POST /admin/retrain` llama a `POST /train` sin pasar el export de Postgres. El feedback confirmado en app queda en DB y en `GET /admin/export`, pero no entra al entrenamiento hasta Fase 4d (`RetrainService` → body `feedback_rows`).
+- **⚠ Estado 15/07:** hueco T4d **cerrado** — `RetrainService` exporta Postgres → body `feedback_rows` → `augmented_windows ≥ 1` verificado en `T4d.INT`.
 
 ### ADR-10 — Identidad obligatoria de la persona monitorizada
 
@@ -287,25 +289,28 @@ EDA SisFall completo, pipeline de ventanas, primer modelo con overfitting < 5%, 
 Ensembles + LOSO + Optuna; backend Java con auth JWT, roles, personas, consentimiento; alertas vía RabbitMQ + **notificaciones push FCM**; perfiles CAREGIVER e IT_ADMIN; modal de transparencia; feedback y export; **mock-off completo** (T2.18–T2.22).
 **Demo (T2.INT ✅):** `make smoke-mvp` — alerta 291 ms, push 325 ms, export IT `TRUE_FALL`.
 
-### Fase 2c — Corrección de consistencia y ruido — 🔴 PRIORIDAD ACTUAL
-Corregir el registro que fija siempre `CAREGIVER`, exigir vínculo por email a una cuenta `MONITORED`, recrear el esquema con `user_id NOT NULL UNIQUE`, diagnosticar la paridad móvil↔entrenamiento, añadir confirmación 2-de-3 con cooldown de 60 s y cerrar los fallos de sesión/background/cambio de cuenta.
-**Demo (T2c.INT):** registrar ambos roles → vincular por email → restaurar sesión tras reinicio → 10 min de background con pantalla bloqueada → 10 min de ADL sin alertas → caída < 5 s y máximo una alerta/min → logout monitorizado → login cuidador sin telemetría ni alertas residuales.
+### Fase 2c — Corrección de consistencia y ruido — ✅ CERRADA
+Registro con selector de rol, vínculo por email, paridad móvil↔SisFall, agregación 2-de-3 + cooldown 60 s, sesión/background/aislamiento de cuentas.
+**Demo (T2c.INT ✅):** ambos roles → vincular → sesión restaurada → ADL 0 FP → caída < 5 s → logout sin residuos. Acta QA Android 10 min: `docs/daily/t2c11-android-background-qa-20260715.md`.
 
-### Fase 3 — Nivel Avanzado (producción)
-Stack completo dockerizado y desplegado en EC2, InfluxDB en producción, tests unitarios Java + Python, Prometheus + Grafana con dashboard del pipeline, supresión GDPR end-to-end, i18n completo es/en.
-**Demo (T3.INT):** despliegue automático desde `main`; demo de caída sobre QA con dashboard en vivo y app en ambos idiomas.
+### Fase 3 — Nivel Avanzado (producción) — ✅ CERRADA (9/9)
+Stack dockerizado en EC2, CI/CD, tests ampliados + roles, Prometheus + Grafana, GDPR, i18n es/en, OTA físico.
+**Demo (T3.INT ✅):** `make smoke-qa-ec2` · acta `docs/daily/t3.8-t3int-20260714.md`.
 
-### Fase 4 — Nivel Experto (MLOps) — infra ✅ · RF-33 real pendiente
-CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con estado consultable (ADR-09), hot-reload, A/B testing, drift, auto-reemplazo condicionado.
-**Demo (T4.INT ✅):** IT lanza reentrenamiento → decisión visible → drift/A/B en Grafana.
-**Pendiente (Fase 4d):** cablear feedback Postgres → `POST /train` (`augmented_windows >= 1`).
+### Fase 4 — Nivel Experto (MLOps) — ✅ CERRADA
+CNN 1D vs ensemble, registry, retrain con estado consultable, hot-reload, A/B, drift, presentaciones.
+**Demo (T4.INT ✅):** `make smoke-expert` · acta `docs/daily/t4int-expert-demo-20260714.md`.
 
-### Fase 4d — Feedback producción → retrain — 🔴 PRIORIDAD
-Cerrar RF-33/ML-19: el retrain debe mezclar SisFall con ventanas etiquetadas que el cuidador confirmó/descartó en la app (sin CSV manual).
-**Demo (T4d.INT):** `smoke-mvp` (feedback en DB) → `smoke-expert` → métricas con `augmented_windows >= 1`.
+### Fase 4d — Feedback producción → retrain — ✅ CERRADA
+RF-33/ML-19: retrain mezcla SisFall con ventanas etiquetadas de Postgres (`feedback_rows` en body).
+**Demo (T4d.INT ✅):** `augmented_windows=3` · acta `docs/daily/t4dint-feedback-retrain-20260715.md`.
 
-### Fase 4e — Gate sensores + deuda post-auditoría — 🟠 PRIORIDAD
-RF-40: pantalla bloqueante si el móvil no tiene IMU obligatoria; no enviar telemetría inválida. Además: contracts en imagen prod, InferenceClient fail-fast opcional, alinear doc InfluxDB→Postgres (ADR-03), acta QA Android 10 min (T2c.11).
+### Fase 4e — Gate sensores + deuda post-auditoría — ✅ CERRADA
+RF-40 gate IMU, contracts en prod, InferenceClient fail-fast, spec alineada ADR-03.
+
+### Fase 5 — Post-demo UX — ✅ CERRADA + T5.5/T5.6
+Push completo (RF-30), export CSV autenticado (RF-42), Grafana EC2 (RF-43), sensores en vivo (RF-41).
+Guías de ayuda por perfil (RF-44) y umbral mínimo feedback + UX MLOps (RF-45).
 
 ---
 
@@ -330,16 +335,17 @@ RF-40: pantalla bloqueante si el móvil no tiene IMU obligatoria; no enviar tele
 
 ---
 
-## 9. Estado de ejecución (sincronizado con `4_task.md` — 14/07)
+## 9. Estado de ejecución (sincronizado con `4_task.md` — 15/07)
 
 | Nivel bootcamp | Fases | Estado | Evidencia clave |
 |---|---|---|---|
-| 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make up` + `make smoke-telemetry` |
+| 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make smoke-telemetry` |
 | 🟡 Medio | 2 + 2b + 2c | ✅ **CERRADO** | T2.INT + T2c.INT · `make smoke-mvp` |
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | T3.INT · `make smoke-qa-ec2` |
-| 🔴 Experto | 4 + **4d** + **4e** | ⏳ **infra 8/8 · RF-33 0/4 · RF-40 0/1** | T4.INT ✅ · **T4d + T4e pendientes** |
+| 🔴 Experto | 4 + 4d + 4e | ✅ **CERRADO** | T4.INT + T4d.INT · `make smoke-expert` |
+| 🟣 Post-demo | 5 | ✅ **CERRADO** | T5.1–T5.4 |
 
-**Mocks Flutter:** eliminados; servicios solo contra Java real. **MobiAct:** fuera de alcance Factoría (CEMP).
+**Mocks Flutter:** eliminados. **MobiAct:** ✂ CEMP. **Telemetría:** Postgres (ADR-03 fallback activo, no InfluxDB).
 
 ---
 
@@ -347,6 +353,6 @@ RF-40: pantalla bloqueante si el móvil no tiene IMU obligatoria; no enviar tele
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.7 — Fases 4d + 4e (retrain + gate sensores) |
+| Estado | v0.8 — **Backlog Factoría CERRADO** |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 |
+| Última actualización | 15/07/2026 — auditoría final |

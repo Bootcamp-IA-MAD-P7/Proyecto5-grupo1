@@ -464,6 +464,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
           AppTopActions(
             session: widget.session,
             onLocaleChanged: widget.onLocaleChanged,
+            role: UserRole.monitored,
           ),
         ],
       ),

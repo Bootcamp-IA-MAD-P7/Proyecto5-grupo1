@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/alert.dart';
 import '../models/monitored_person.dart';
+import '../models/retrain_prerequisites.dart';
 import '../models/retrain_status.dart';
 import '../models/user.dart';
 import 'api_headers.dart';
@@ -143,6 +144,17 @@ class AdminService {
     );
     _checkStatus(res);
     return User.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// GET /retrain/prerequisites — elegibilidad feedback (RF-45)
+  Future<RetrainPrerequisites> getRetrainPrerequisites() async {
+    final res = await _client.get(
+      Uri.parse('$_base/retrain/prerequisites'),
+      headers: _headers(),
+    );
+    _checkStatus(res);
+    return RetrainPrerequisites.fromJson(
+        jsonDecode(res.body) as Map<String, dynamic>);
   }
 
   /// POST /retrain — lanzar reentrenamiento (RF-33)

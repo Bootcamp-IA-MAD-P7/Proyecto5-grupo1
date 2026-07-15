@@ -44,6 +44,8 @@ public class RetrainService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final String inferenceUrl;
+    private final int minFeedbackRecords;
+    private final int recommendedFeedbackRecords;
 
     // Maximum allowed overfitting (train - test recall difference)
     private static final double MAX_OVERFITTING = 0.05;
@@ -60,8 +62,11 @@ public class RetrainService {
     @Autowired
     public RetrainService(RegistryService registryService,
                           AdminService adminService,
-                          @Value("${sentilife.inference.url}") String inferenceUrl) {
-        this(registryService, adminService, new RestTemplate(), new ObjectMapper(), inferenceUrl);
+                          @Value("${sentilife.inference.url}") String inferenceUrl,
+                          @Value("${sentilife.retrain.min-feedback-records:5}") int minFeedbackRecords,
+                          @Value("${sentilife.retrain.recommended-feedback-records:10}") int recommendedFeedbackRecords) {
+        this(registryService, adminService, new RestTemplate(), new ObjectMapper(), inferenceUrl,
+                minFeedbackRecords, recommendedFeedbackRecords);
     }
 
     /** Package-private for unit tests (T4.4 / T4d.1). */
@@ -70,11 +75,42 @@ public class RetrainService {
                    RestTemplate restTemplate,
                    ObjectMapper objectMapper,
                    String inferenceUrl) {
+        this(registryService, adminService, restTemplate, objectMapper, inferenceUrl, 5, 10);
+    }
+
+    /** Package-private for unit tests with custom thresholds (RF-45). */
+    RetrainService(RegistryService registryService,
+                   AdminService adminService,
+                   RestTemplate restTemplate,
+                   ObjectMapper objectMapper,
+                   String inferenceUrl,
+                   int minFeedbackRecords,
+                   int recommendedFeedbackRecords) {
         this.registryService = registryService;
         this.adminService = adminService;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.inferenceUrl = inferenceUrl;
+        this.minFeedbackRecords = minFeedbackRecords;
+        this.recommendedFeedbackRecords = recommendedFeedbackRecords;
+    }
+
+    /**
+     * Returns labelled feedback eligibility for the UI (RF-45).
+     */
+    public RetrainDtos.RetrainPrerequisites getPrerequisites() {
+        int count = countEligibleFeedbackRows();
+        boolean eligible = count >= minFeedbackRecords;
+        String message = eligible
+                ? String.format(
+                        "%d labelled feedback records available (minimum %d, recommended %d)",
+                        count, minFeedbackRecords, recommendedFeedbackRecords)
+                : String.format(
+                        "Insufficient feedback: %d of %d required labelled records. "
+                                + "Ask caregivers to confirm or dismiss more alerts before retraining.",
+                        count, minFeedbackRecords);
+        return new RetrainDtos.RetrainPrerequisites(
+                count, minFeedbackRecords, recommendedFeedbackRecords, eligible, message);
     }
 
     /**
@@ -88,6 +124,11 @@ public class RetrainService {
             current.phase() == RetrainDtos.Phase.DECIDING) {
             throw DomainExceptions.ConflictException.of(
                     "A retraining job is already in progress: " + current.phase());
+        }
+
+        RetrainDtos.RetrainPrerequisites prerequisites = getPrerequisites();
+        if (!prerequisites.eligible()) {
+            throw DomainExceptions.BadRequestException.of(prerequisites.message());
         }
 
         var status = new RetrainDtos.RetrainStatus(
@@ -285,6 +326,15 @@ public class RetrainService {
         body.put("skip_feature_build", true);
         log.info("[Retrain] POST /train with {} feedback_rows from DB export", feedbackRows.size());
         return body;
+    }
+
+    /**
+     * Counts export rows with valid IMU windows (125 samples × 6 signals).
+     */
+    int countEligibleFeedbackRows() {
+        return buildTrainRequestBody().get("feedback_rows") instanceof List<?> rows
+                ? rows.size()
+                : 0;
     }
 
     @SuppressWarnings("unchecked")

@@ -130,19 +130,18 @@ Panel Grafana: distribución de predicciones por versión.
 
 ---
 
-## Retrain pipeline (T4.4 + T4.5)
+## Retrain pipeline (T4.4 + T4d + RF-45)
 
 ```
 IT_ADMIN (Flutter MLOps tab)
+    → GET /retrain/prerequisites  (mín. 5 feedback etiquetado)
     → POST /api/v1/admin/retrain
-    → DRIFT (PSI)
-    → TRAINING (POST /train)
-    → EVALUATING
-    → DECIDING (recall ↑ + overfitting ≤ 5%)
+    → export Postgres → feedback_rows en POST /train
+    → DRIFT (PSI) → TRAINING → EVALUATING → DECIDING
     → PROMOTED | CANDIDATE | DISCARDED
 ```
 
-UI: polling 2s, fases + métricas visibles. Sin stubs.
+UI: contador feedback, panel criterios, modal si insuficiente, confirmación, polling 2s. Botón Ayuda `?` por perfil (RF-44).
 
 ---
 
@@ -159,11 +158,11 @@ Tests: `ApiSecurityIntegrationTest` 9 escenarios.
 
 ## CI/CD y tests
 
-| Suite | Resultado |
+| Suite | Resultado (15/07) |
 |---|---|
-| `mvn test` | **66/66** |
-| `pytest tests/` | **52/52** (4 skipped) |
-| `flutter test` | **104/104** |
+| `mvn test` | ✅ verde |
+| `pytest tests/` | **54** passed (4 skipped) |
+| `flutter test` | **114** passed |
 
 Smokes: `smoke-telemetry` · `smoke-mvp` · `smoke-qa-ec2` · **`smoke-expert`**
 

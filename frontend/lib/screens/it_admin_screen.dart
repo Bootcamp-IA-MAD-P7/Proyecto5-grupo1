@@ -8,10 +8,12 @@ import 'package:path_provider/path_provider.dart';
 
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
+import '../models/retrain_prerequisites.dart';
 import '../models/retrain_status.dart';
 import '../models/user.dart';
 import '../services/admin_service.dart';
 import '../services/auth_session.dart';
+import '../services/exceptions.dart';
 import 'app_shell.dart';
 
 /// SL-40 / T2.17 + T4.5 — Perfil IT_ADMIN: historial, export, usuarios, MLOps.
@@ -52,6 +54,7 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
           AppTopActions(
             session: widget.session,
             onLocaleChanged: widget.onLocaleChanged,
+            role: UserRole.itAdmin,
           ),
         ],
       ),
@@ -245,13 +248,14 @@ class _MlopsTab extends StatefulWidget {
 
 class _MlopsTabState extends State<_MlopsTab> {
   RetrainJobStatus? _status;
+  RetrainPrerequisites? _prerequisites;
   bool _loading = false;
   Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
-    _refreshStatus();
+    _refresh();
   }
 
   @override
@@ -260,33 +264,141 @@ class _MlopsTabState extends State<_MlopsTab> {
     super.dispose();
   }
 
-  Future<void> _refreshStatus() async {
+  Future<void> _refresh() async {
     try {
-      final status = await widget.admin.getRetrainStatus();
+      final results = await Future.wait([
+        widget.admin.getRetrainStatus(),
+        widget.admin.getRetrainPrerequisites(),
+      ]);
       if (!mounted) return;
-      setState(() => _status = status);
+      final status = results[0] as RetrainJobStatus;
+      setState(() {
+        _status = status;
+        _prerequisites = results[1] as RetrainPrerequisites;
+      });
       _syncPolling(status);
     } catch (_) {
-      // Keep last known status on poll errors.
+      // Keep last known state on poll errors.
     }
   }
 
   void _syncPolling(RetrainJobStatus status) {
     _pollTimer?.cancel();
     if (status.isRunning) {
-      _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _refreshStatus());
+      _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _refresh());
     }
+  }
+
+  Future<void> _showInsufficientFeedbackDialog() async {
+    final l10n = context.l10n;
+    final prereq = _prerequisites;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.info_outline, size: 40),
+        title: Text(l10n.mlopsInsufficientFeedbackTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (prereq != null)
+                Text(
+                  l10n.mlopsFeedbackProgress(
+                    prereq.feedbackRecords,
+                    prereq.minFeedbackRecords,
+                  ),
+                  style: Theme.of(ctx).textTheme.titleMedium,
+                ),
+              const SizedBox(height: 12),
+              Text(l10n.mlopsInsufficientFeedbackBody),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.helpClose),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _confirmRetrain() async {
+    final l10n = context.l10n;
+    final prereq = _prerequisites;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.mlopsConfirmTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (prereq != null) ...[
+                Text(
+                  l10n.mlopsFeedbackProgress(
+                    prereq.feedbackRecords,
+                    prereq.minFeedbackRecords,
+                  ),
+                  style: Theme.of(ctx).textTheme.titleMedium,
+                ),
+                if (prereq.feedbackRecords < prereq.recommendedFeedbackRecords)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      l10n.mlopsFeedbackRecommended(prereq.recommendedFeedbackRecords),
+                      style: TextStyle(color: Theme.of(ctx).colorScheme.tertiary),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+              ],
+              Text(l10n.mlopsConfirmBody),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.mlopsStartRetrain),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   Future<void> _startRetrain() async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = context.l10n;
+    final prereq = _prerequisites;
+
+    if (prereq != null && !prereq.eligible) {
+      await _showInsufficientFeedbackDialog();
+      return;
+    }
+
+    if (!await _confirmRetrain()) return;
+
     setState(() => _loading = true);
     try {
       await widget.admin.startRetrain();
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.mlopsRetrainStarted)));
-      await _refreshStatus();
+      await _refresh();
+    } on AdminException catch (e) {
+      if (!mounted) return;
+      if (e.status == 400 && (_prerequisites?.eligible == false)) {
+        await _showInsufficientFeedbackDialog();
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.mlopsRetrainError)));
@@ -313,6 +425,8 @@ class _MlopsTabState extends State<_MlopsTab> {
     final l10n = context.l10n;
     final status = _status;
     final details = status?.details;
+    final prereq = _prerequisites;
+    final canStart = prereq?.eligible ?? false;
 
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -320,9 +434,50 @@ class _MlopsTabState extends State<_MlopsTab> {
         Text(l10n.mlopsTitle, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         Text(l10n.mlopsDescription),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        ExpansionTile(
+          leading: const Icon(Icons.school_outlined),
+          title: Text(l10n.mlopsCriteriaTitle),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(l10n.mlopsCriteriaBody),
+            ),
+          ],
+        ),
+        if (prereq != null) ...[
+          const SizedBox(height: 8),
+          Card(
+            color: canStart
+                ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35)
+                : Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.35),
+            child: ListTile(
+              leading: Icon(
+                canStart ? Icons.check_circle_outline : Icons.warning_amber,
+                color: canStart
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.error,
+              ),
+              title: Text(l10n.mlopsPrerequisitesTitle),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.mlopsFeedbackProgress(
+                    prereq.feedbackRecords,
+                    prereq.minFeedbackRecords,
+                  )),
+                  if (prereq.feedbackRecords < prereq.recommendedFeedbackRecords)
+                    Text(l10n.mlopsFeedbackRecommended(prereq.recommendedFeedbackRecords)),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: (_loading || (status?.isRunning ?? false)) ? null : _startRetrain,
+          onPressed: (_loading || (status?.isRunning ?? false) || !canStart)
+              ? null
+              : _startRetrain,
           icon: _loading
               ? const SizedBox(
                   width: 18,
@@ -332,6 +487,14 @@ class _MlopsTabState extends State<_MlopsTab> {
               : const Icon(Icons.play_arrow),
           label: Text(l10n.mlopsStartRetrain),
         ),
+        if (!canStart && prereq != null) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _showInsufficientFeedbackDialog,
+            icon: const Icon(Icons.info_outline),
+            label: Text(l10n.mlopsWhyDisabled),
+          ),
+        ],
         if (status?.isRunning ?? false) ...[
           const SizedBox(height: 24),
           Row(

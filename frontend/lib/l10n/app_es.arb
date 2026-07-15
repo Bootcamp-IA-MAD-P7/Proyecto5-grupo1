@@ -218,5 +218,34 @@
   "mlopsDecisionDiscarded": "Descartado",
   "mlopsDecisionPending": "Pendiente",
   "mlopsFeedbackRecords": "Registros de feedback",
-  "mlopsAugmentedWindows": "Ventanas augmentadas"
+  "mlopsAugmentedWindows": "Ventanas augmentadas",
+  "mlopsPrerequisitesTitle": "Datos etiquetados disponibles",
+  "mlopsFeedbackProgress": "{current} de {minimum} registros mínimos",
+  "@mlopsFeedbackProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "minimum": { "type": "int" }
+    }
+  },
+  "mlopsFeedbackRecommended": "Recomendado: al menos {count} registros para un reentreno fiable.",
+  "@mlopsFeedbackRecommended": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "mlopsInsufficientFeedbackTitle": "Aún no hay suficiente feedback",
+  "mlopsInsufficientFeedbackBody": "El reentrenamiento mezcla el dataset SisFall con ventanas IMU que los cuidadores han confirmado o descartado. Con muy pocos ejemplos nuevos el modelo no mejora y se desperdician recursos de cómputo.\n\nPide a los cuidadores que revisen las alertas (confirmar caída real o marcar falsa alarma) hasta alcanzar el mínimo. Cada registro debe incluir la ventana de sensores completa (125 muestras).",
+  "mlopsConfirmTitle": "¿Iniciar reentrenamiento?",
+  "mlopsConfirmBody": "El pipeline ejecutará estas fases:\n1. Drift — compara la telemetría reciente con SisFall.\n2. Entrenamiento — mezcla SisFall + feedback etiquetado de la base de datos.\n3. Evaluación — mide recall, precision y overfitting.\n4. Decisión — solo promueve el modelo si el recall de caídas mejora y el overfitting es ≤ 5 %.\n\nSi no mejora, el modelo actual se mantiene (decisión discarded/candidate).",
+  "mlopsCriteriaTitle": "Criterios y explicabilidad MLOps",
+  "mlopsCriteriaBody": "Umbral mínimo: registros etiquetados válidos en Postgres (ventana IMU + etiqueta TRUE_FALL o FALSE_ALARM).\n\nRecomendado: acumular más feedback diverso (caídas confirmadas y falsas alarmas) antes de reentrenar.\n\nPromoción automática solo si:\n• Recall de caídas del candidato > recall del modelo ACTIVE.\n• Overfitting (train − test) ≤ 5 %.\n\nEl contador «Ventanas augmentadas» del último job indica cuántas muestras reales de producción entraron al entrenamiento.",
+  "mlopsWhyDisabled": "¿Por qué está deshabilitado?",
+  "helpButton": "Ayuda",
+  "helpClose": "Entendido",
+  "helpMonitoredTitle": "Guía — Persona monitorizada",
+  "helpMonitoredBody": "1. Comprueba que tu móvil tiene acelerómetro y giroscopio.\n2. Vincula el dispositivo con el código que te da tu cuidador.\n3. Acepta el consentimiento informado (puedes revocarlo cuando quieras).\n4. Inicia la monitorización: la app captura sensores en segundo plano con una notificación permanente.\n5. Pestaña Estado: última evaluación del modelo (caída sí/no, confianza).\n6. Pestaña Sensores: gráficos en vivo de lo que mide el móvil ahora.\n\nTus datos solo se envían con consentimiento activo y se usan para mejorar el modelo (modal de transparencia).",
+  "helpCaregiverTitle": "Guía — Cuidador/a",
+  "helpCaregiverBody": "1. Registra a la persona con el email de su cuenta MONITORED (debe existir y estar activa).\n2. Comparte el código de vinculación para que empareje su móvil.\n3. Recibirás notificaciones push cuando haya una alerta de posible caída.\n4. Revisa cada alerta: confirma si fue una caída real o descártala como falsa alarma.\n\nTu feedback etiqueta las ventanas IMU y alimenta el reentrenamiento del modelo. Cuanto más feedback de calidad aportes, mejor será el siguiente modelo.",
+  "helpItAdminTitle": "Guía — Administración IT",
+  "helpItAdminBody": "Historial: alertas globales del sistema.\n\nExportar: descarga CSV autenticado con ventanas etiquetadas (feedback de cuidadores).\n\nUsuarios: activar o desactivar cuentas.\n\nMLOps — Reentrenamiento:\n• Lee el feedback de Postgres automáticamente (sin CSV manual).\n• Requiere un mínimo de registros etiquetados antes de lanzar el job.\n• Muestra fases, métricas y decisión (promoted / candidate / discarded).\n• Solo promueve si mejora el recall de caídas sin sobreajuste.\n\nGrafana (QA): http://100.52.221.179:3006 — dashboards de latencia, colas y drift."
 }

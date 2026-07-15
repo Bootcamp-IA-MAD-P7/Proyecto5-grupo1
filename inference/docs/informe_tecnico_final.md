@@ -129,21 +129,23 @@ Artefacto: `ml/artifacts/t2c5_metrics.json` · Informe: `informe_paridad_movil_s
 **Decisión:** XGBoost mantiene producción. CNN documentada como experimento ML-15.  
 Artefacto: `ml/models/cnn1d-v1.0.0.keras` · `ml/artifacts/cnn1d_comparison.json`
 
-### 4.4 Reentrenamiento automático (T4.4 / RF-33)
+### 4.4 Reentrenamiento automático (T4.4 / T4d / RF-33 / RF-45)
 
 Pipeline: `DRIFT → TRAINING → EVALUATING → DECIDING → COMPLETED`
 
-| Criterio promoción | Umbral |
+| Criterio | Umbral |
 |---|---|
-| Recall nuevo > recall ACTIVE | obligatorio |
-| Overfitting ≤ 5% | obligatorio |
+| **Mínimo feedback** para arrancar job | **5** registros etiquetados válidos (Postgres) |
+| **Recomendado** | **10** registros (diversidad caídas + falsas alarmas) |
+| Promoción: recall nuevo > recall ACTIVE | obligatorio |
+| Promoción: overfitting ≤ 5% | obligatorio |
 
-- Script: `ml/training/retrain_feedback.py`
-- Endpoint: `POST /train` (métricas reales, sin stub)
-- Última ejecución: `ml/artifacts/retrain_metrics.json`
-  - Recall test: **0.890**
-  - Overfitting: **9.9%** → decisión **CANDIDATE** (no promovido por overfitting)
-- UI IT: pestaña MLOps en `ItAdminScreen` (polling 2s, fases visibles)
+- **T4d:** `RetrainService` exporta Postgres → body `feedback_rows` → `POST /train` (sin CSV manual). Verificado `augmented_windows ≥ 1` en T4d.INT.
+- Script: `ml/training/retrain_feedback.py` · Endpoint: `POST /train`
+- UI IT: pestaña MLOps — contador feedback, panel criterios, modal si insuficiente, confirmación antes de lanzar
+- Ayuda por perfil (RF-44): botón `?` en MONITORED / CAREGIVER / IT_ADMIN
+
+Última ejecución documentada: `ml/artifacts/retrain_metrics.json` · acta `docs/daily/t4dint-feedback-retrain-20260715.md`
 
 ### 4.5 Data Drift (T4.7 / ML-18)
 
@@ -172,7 +174,7 @@ Flutter (3 roles) → Spring Boot (JWT, negocio) → FastAPI (inferencia)
 
 - **6 servicios** dockerizados: db, rabbitmq, backend, api, prometheus, grafana
 - **0 mocks** en `frontend/lib/` — solo backend Java real
-- Tests: mvn **66/66** · pytest **52/52** (4 skipped) · flutter **104/104**
+- Tests (15/07): mvn ✅ · pytest **54** passed (4 skipped) · flutter **114** passed
 
 ---
 
@@ -182,8 +184,9 @@ Flutter (3 roles) → Spring Boot (JWT, negocio) → FastAPI (inferencia)
 |---|---|---|
 | 🟢 Esencial | Modelo + FastAPI + informe v1 | T1.INT smoke |
 | 🟡 Medio | Ensembles + Optuna + feedback | T2.INT smoke-mvp |
-| 🟠 Avanzado | Docker + CI/CD + tests + GDPR | T3.INT smoke-qa-ec2 |
-| 🔴 Experto | CNN + MLOps + drift + A/B + retrain | T4.INT smoke-expert |
+| 🟠 Avanzado | Docker + CI/CD + tests + GDPR + OTA | T3.INT smoke-qa-ec2 |
+| 🔴 Experto | CNN + MLOps + drift + A/B + retrain DB | T4.INT + T4d.INT |
+| 🟣 Post-demo | Push completo, export auth, Grafana, ayuda UX | T5.1–T5.6 |
 
 ---
 
@@ -191,9 +194,9 @@ Flutter (3 roles) → Spring Boot (JWT, negocio) → FastAPI (inferencia)
 
 1. **Sesgo de edad** en SisFall — validar con datos de mayores reales
 2. **MobiAct** cortado (CEMP) — no usado en Factoría
-3. **Retrain** en memoria — persistir jobs en DB para resiliencia
-4. **Push** solo `FALL_ALERT` — consent/monitor post-demo
-5. **Grafana EC2** — puerto interno en SG (smoke vía API)
+3. **Retrain** job state in-memory — persistir en DB para resiliencia post-Factoría
+4. **QA campo pendiente:** certificación 10 min pantalla bloqueada Android (protocolo en `docs/daily/t2c11-android-background-qa-20260715.md`, ejecución jue 16)
+5. **CORS abierto en EC2** — endurecer post-demo
 
 ---
 

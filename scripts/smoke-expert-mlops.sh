@@ -145,6 +145,57 @@ admin = http("POST", JAVA, "/api/v1/auth/login",
     {"email": admin_email, "password": admin_pw})
 admin_token = admin["accessToken"]
 
+def seed_labelled_feedback(target_min):
+    prereq = http("GET", JAVA, "/api/v1/admin/retrain/prerequisites", token=admin_token)
+    count = prereq.get("feedbackRecords", 0)
+    needed = max(0, target_min - count)
+    for i in range(needed):
+        cg_i = f"cg-seed-{ts}-{i}@sentilife.test"
+        mon_i = f"mon-seed-{ts}-{i}@sentilife.test"
+        cg_t = http("POST", JAVA, "/api/v1/auth/register",
+            {"email": cg_i, "password": pw, "fullName": f"CG Seed {i}", "role": "CAREGIVER", "locale": "es"})["accessToken"]
+        mon_t = http("POST", JAVA, "/api/v1/auth/register",
+            {"email": mon_i, "password": pw, "fullName": f"Mon Seed {i}", "role": "MONITORED", "locale": "es"})["accessToken"]
+        person_i = http("POST", JAVA, "/api/v1/monitored-persons",
+            {"fullName": f"Seed {i}", "birthDate": "1940-01-01", "sex": "F",
+             "weightKg": 60, "heightCm": 160, "emergencyContact": "600000000",
+             "monitoredUserEmail": mon_i}, token=cg_t)
+        pid = person_i["id"]
+        pair_i = person_i["pairingCode"]
+        dev_i = f"seed-{ts}-{i}"
+        dev_tok = http("POST", JAVA, "/api/v1/devices/pair",
+            {"pairingCode": pair_i, "deviceId": dev_i, "platform": "ANDROID"})["deviceToken"]
+        http("POST", JAVA, f"/api/v1/monitored-persons/{pid}/consent",
+            {"policyVersion": "1.0-es", "acceptedBy": "MONITORED"}, token=mon_t)
+        for j in range(2):
+            start_w = now + timedelta(seconds=i * 70 + j * 3)
+            end_w = start_w + timedelta(milliseconds=2500)
+            http("POST", JAVA, "/api/v1/telemetry/windows", {
+                "monitoredPersonId": pid,
+                "deviceId": dev_i,
+                "windowStart": start_w.isoformat().replace("+00:00", "Z"),
+                "windowEnd": end_w.isoformat().replace("+00:00", "Z"),
+                "sampleRateHz": 50,
+                "samples": build_samples(spike=True),
+            }, token=dev_tok, timeout=30)
+        alerts = http("GET", JAVA, "/api/v1/alerts?status=PENDING", token=cg_t)
+        alert_id = None
+        for a in alerts.get("content", []):
+            if a.get("monitoredPersonId") == pid:
+                alert_id = a["id"]
+                break
+        if not alert_id:
+            raise SystemExit(f"seed_labelled_feedback: no alert for seed {i}")
+        http("PATCH", JAVA, f"/api/v1/alerts/{alert_id}",
+            {"status": "CONFIRMED", "comment": f"Smoke seed {i}"}, token=cg_t)
+
+prereq = http("GET", JAVA, "/api/v1/admin/retrain/prerequisites", token=admin_token)
+if not prereq.get("eligible"):
+    seed_labelled_feedback(prereq.get("minFeedbackRecords", 5))
+    prereq = http("GET", JAVA, "/api/v1/admin/retrain/prerequisites", token=admin_token)
+    if not prereq.get("eligible"):
+        raise SystemExit(f"INSUFFICIENT_FEEDBACK tras seed: {prereq}")
+
 trigger = http("POST", JAVA, "/api/v1/admin/retrain", token=admin_token)
 if trigger.get("phase") != "DRIFT":
     raise SystemExit(f"Retrain no arrancó en DRIFT: {trigger}")

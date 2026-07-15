@@ -2,6 +2,7 @@ package com.sentilife.registry;
 
 import com.sentilife.admin.AdminDtos;
 import com.sentilife.admin.AdminService;
+import com.sentilife.config.DomainExceptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -44,8 +46,33 @@ class RetrainServiceTest {
                 adminService,
                 restTemplate,
                 new ObjectMapper(),
-                INFERENCE_URL);
-        when(adminService.exportLabelledDataset(isNull(), isNull())).thenReturn(List.of());
+                INFERENCE_URL,
+                5,
+                10);
+        stubMinimumFeedback(5);
+    }
+
+    @Test
+    void trigger_rejectsWhenFeedbackBelowMinimum() {
+        stubMinimumFeedback(2);
+
+        assertThatThrownBy(() -> service.trigger())
+                .isInstanceOf(DomainExceptions.BadRequestException.class);
+
+        var prerequisites = service.getPrerequisites();
+        assertThat(prerequisites.eligible()).isFalse();
+        assertThat(prerequisites.feedbackRecords()).isEqualTo(2);
+        assertThat(prerequisites.minFeedbackRecords()).isEqualTo(5);
+    }
+
+    @Test
+    void getPrerequisites_reportsEligibleWhenEnoughFeedback() {
+        stubMinimumFeedback(6);
+
+        var prerequisites = service.getPrerequisites();
+        assertThat(prerequisites.eligible()).isTrue();
+        assertThat(prerequisites.feedbackRecords()).isEqualTo(6);
+        assertThat(prerequisites.recommendedFeedbackRecords()).isEqualTo(10);
     }
 
     @Test
@@ -115,17 +142,7 @@ class RetrainServiceTest {
 
         UUID personId = UUID.randomUUID();
         String samplesJson = validSamplesJson();
-        when(adminService.exportLabelledDataset(isNull(), isNull())).thenReturn(List.of(
-                new AdminDtos.ExportRow(
-                        UUID.randomUUID(),
-                        personId,
-                        Instant.parse("2026-07-15T00:00:00Z"),
-                        Instant.parse("2026-07-15T00:00:02Z"),
-                        50,
-                        samplesJson,
-                        "TRUE_FALL"
-                )
-        ));
+        stubMinimumFeedback(5);
 
         service.trigger();
         waitForPhase(RetrainDtos.Phase.COMPLETED, Duration.ofSeconds(5));
@@ -133,7 +150,7 @@ class RetrainServiceTest {
         ArgumentCaptor<Map<String, Object>> bodyCaptor = ArgumentCaptor.forClass(Map.class);
         verify(restTemplate).postForEntity(eq(INFERENCE_URL + "/train"), bodyCaptor.capture(), eq(Map.class));
         assertThat(bodyCaptor.getValue()).containsKey("feedback_rows");
-        assertThat((List<?>) bodyCaptor.getValue().get("feedback_rows")).hasSize(1);
+        assertThat((List<?>) bodyCaptor.getValue().get("feedback_rows")).hasSize(5);
         verify(restTemplate, never()).getForEntity(contains("/model/info"), eq(Map.class));
     }
 
@@ -162,6 +179,24 @@ class RetrainServiceTest {
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).get("label")).isEqualTo("TRUE_FALL");
         assertThat(rows.get(0).get("monitored_person_id")).isEqualTo(personId.toString());
+    }
+
+    private void stubMinimumFeedback(int count) {
+        UUID personId = UUID.randomUUID();
+        String samplesJson = validSamplesJson();
+        List<AdminDtos.ExportRow> rows = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            rows.add(new AdminDtos.ExportRow(
+                    UUID.randomUUID(),
+                    personId,
+                    Instant.now(),
+                    Instant.now(),
+                    50,
+                    samplesJson,
+                    i % 2 == 0 ? "TRUE_FALL" : "FALSE_ALARM"
+            ));
+        }
+        when(adminService.exportLabelledDataset(isNull(), isNull())).thenReturn(rows);
     }
 
     private static String validSamplesJson() {

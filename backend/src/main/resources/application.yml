@@ -73,6 +73,10 @@ sentilife:
     url: ${INFERENCE_URL:http://localhost:8000}
     fail-fast: ${INFERENCE_FAIL_FAST:false}
 
+  retrain:
+    min-feedback-records: ${RETRAIN_MIN_FEEDBACK:5}
+    recommended-feedback-records: ${RETRAIN_RECOMMENDED_FEEDBACK:10}
+
   # ── Firebase (push notifications) ──────────────────────────
   firebase:
     service-account-path: ${FIREBASE_SERVICE_ACCOUNT:}

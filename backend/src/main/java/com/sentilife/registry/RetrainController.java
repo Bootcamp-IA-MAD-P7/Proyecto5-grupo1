@@ -30,6 +30,14 @@ public class RetrainController {
     }
 
     /**
+     * Returns labelled feedback eligibility (RF-45).
+     */
+    @GetMapping("/prerequisites")
+    public ResponseEntity<RetrainDtos.RetrainPrerequisites> getPrerequisites() {
+        return ResponseEntity.ok(service.getPrerequisites());
+    }
+
+    /**
      * Triggers a new retraining job. Returns immediately with status STARTED.
      * Actual training runs asynchronously.
      */

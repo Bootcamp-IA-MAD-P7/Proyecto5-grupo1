@@ -71,7 +71,8 @@ Persona mayor (móvil)  →  Detección IA  →  Alerta al cuidador
 
 - **Tiempo real**: predicción en milisegundos, no en batch
 - **Privacidad**: consentimiento GDPR, supresión demostrada, datos seudonimizados
-- **Mejora continua**: ciclo MLOps — el modelo se reentrena con feedback real
+- **Mejora continua**: ciclo MLOps — reentreno con feedback real (mín. 5 muestras etiquetadas)
+- **Transparencia**: guías de ayuda por perfil + modal de consentimiento/transparencia
 - **Observabilidad**: dashboards Grafana para el equipo técnico
 - **Evidencia académica**: entrenado con SisFall (dataset validado científicamente)
 

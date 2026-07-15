@@ -28,6 +28,7 @@ public class RetrainDtos {
         PROMOTED,       // New model is better → now ACTIVE
         CANDIDATE,      // New model exists but not promoted (didn't beat threshold)
         DISCARDED,      // New model is worse → discarded
+        SKIPPED,        // Job not started — insufficient feedback (RF-45)
         PENDING         // Decision not yet made
     }
 
@@ -42,5 +43,16 @@ public class RetrainDtos {
             Map<String, Object> metrics,
             Instant startedAt,
             Instant completedAt
+    ) {}
+
+    /**
+     * Feedback eligibility before starting a retrain job (RF-45).
+     */
+    public record RetrainPrerequisites(
+            int feedbackRecords,
+            int minFeedbackRecords,
+            int recommendedFeedbackRecords,
+            boolean eligible,
+            String message
     ) {}
 }

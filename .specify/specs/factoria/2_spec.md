@@ -92,6 +92,8 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-41 | Perfil `MONITORED`: pestaña **Sensores en vivo** con gráficos en tiempo real (últimos ~30 s) de `accX/Y/Z` (m/s²) y `gyroX/Y/Z` (°/s) mientras la monitorización está activa. Los datos se leen del `SensorCaptureService` local (sin round-trip al backend). Texto de transparencia: “esto es lo que el móvil está midiendo ahora”. Enlace desde modal de transparencia (RF-32). i18n es/en. | Medio |
 | RF-42 | Perfil `IT_ADMIN`: el botón Export descarga el CSV etiquetado con autenticación JWT (`Authorization: Bearer`), sin exponer URL copiable sin sesión. Respuesta `Content-Disposition: attachment`. | Medio |
 | RF-43 | Grafana QA accesible desde red de demo: puerto host `3006` abierto en Security Group EC2 **o** túnel SSH documentado; enlace en pestaña IT con credenciales de solo lectura. | Avanzado |
+| RF-44 | Cada perfil dispone de un botón **Ayuda** (icono `?`) en la barra superior con guía contextual en lenguaje claro (es/en): flujos MONITORED, CAREGIVER e IT_ADMIN. | Post-demo |
+| RF-45 | El reentrenamiento MLOps exige un **mínimo de registros etiquetados** válidos en Postgres antes de arrancar (`GET /admin/retrain/prerequisites`). Si no se alcanza, `POST /admin/retrain` responde `400 INSUFFICIENT_FEEDBACK` y la UI muestra modal explicativo + panel de criterios (mínimo, recomendado, reglas de promoción). | Post-demo |
 
 ---
 
@@ -411,7 +413,19 @@ Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaura
 - **GET `/history`** — historial global paginado (predicciones + alertas + feedback), filtros por fecha/persona/resultado.
 - **GET `/export?from=...&to=...&format=csv`** — dataset etiquetado (features de ventana + label de feedback) para reentrenamiento (RF-19, RF-42). Respuesta `text/csv` con header `Content-Disposition: attachment; filename="sentilife-feedback-{from}-{to}.csv"`. Requiere `IT_ADMIN` autenticado; el cliente Flutter descarga el body con el Bearer token (no URL pública).
 - **GET `/users`** / **PATCH `/users/{id}`** — gestión de usuarios (RF-04).
-- **POST `/retrain`** → `202` `{ "status": "running" }` (RF-33). Rechaza con `409` si ya hay un job en curso.
+- **GET `/retrain/prerequisites`** (RF-45) — elegibilidad antes de lanzar job:
+
+```json
+{
+  "feedbackRecords": 7,
+  "minFeedbackRecords": 5,
+  "recommendedFeedbackRecords": 10,
+  "eligible": true,
+  "message": "7 labelled feedback records available (minimum 5, recommended 10)"
+}
+```
+
+- **POST `/retrain`** → `202` fase `DRIFT` (RF-33). Rechaza con `409` si ya hay un job en curso. Rechaza con `400` `{ "error": "BAD_REQUEST", "message": "Insufficient feedback: …" }` si `feedbackRecords < minFeedbackRecords`.
 - **GET `/retrain/status`** (patrón proyecto 4):
 
 ```json
