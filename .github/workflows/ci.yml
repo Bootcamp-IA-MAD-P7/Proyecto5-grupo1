@@ -199,12 +199,14 @@ jobs:
 
       - name: Upload compose and configs to EC2
         run: |
-          ssh -i ~/.ssh/ec2_key.pem \
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -o TCPKeepAlive=yes \
+            -i ~/.ssh/ec2_key.pem \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "mkdir -p ~/sentilife/backend/config \
                        ~/sentilife/backend/observability/grafana/provisioning/dashboards \
                        ~/sentilife/backend/observability/grafana/provisioning/datasources \
-                       ~/sentilife/backend/observability/grafana/dashboards"
+                       ~/sentilife/backend/observability/grafana/dashboards \
+                       ~/sentilife/contracts"
 
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-service-account.json
           scp -i ~/.ssh/ec2_key.pem \
@@ -212,9 +214,15 @@ jobs:
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/backend/config/firebase-service-account.json
           rm -f /tmp/firebase-service-account.json
 
-          scp -i ~/.ssh/ec2_key.pem \
+          scp -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -o TCPKeepAlive=yes \
+            -i ~/.ssh/ec2_key.pem \
             docker-compose.prod.yml \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/docker-compose.prod.yml
+
+          scp -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -o TCPKeepAlive=yes \
+            -i ~/.ssh/ec2_key.pem \
+            contracts/window_contract.json \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/contracts/window_contract.json
 
           scp -i ~/.ssh/ec2_key.pem \
             backend/observability/prometheus.yml \
@@ -230,7 +238,8 @@ jobs:
 
       - name: Deploy on EC2
         run: |
-          ssh -i ~/.ssh/ec2_key.pem \
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -o TCPKeepAlive=yes \
+            -i ~/.ssh/ec2_key.pem \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             bash -s << 'ENDSSH'
             set -e
