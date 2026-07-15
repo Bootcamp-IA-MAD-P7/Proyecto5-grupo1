@@ -3,7 +3,7 @@
 .PHONY: up down logs verify \
         test-java test-python test-flutter test \
         flutter-local flutter-phone flutter-qa apk-qa \
-        env env-qa reset-db smoke-telemetry smoke-mvp smoke-qa-ec2
+        env env-qa reset-db smoke-telemetry smoke-mvp smoke-qa-ec2 smoke-expert
 
 # ── Entorno local ─────────────────────────────────────────────────────────────
 env:
@@ -56,6 +56,10 @@ smoke-mvp: verify
 # T3.INT — smoke QA contra EC2 :8005 (sin stack local)
 smoke-qa-ec2:
 	bash scripts/smoke-qa-ec2.sh
+
+# T4.INT — demo experto MLOps: retrain IT → decisión → drift → A/B (requiere make up)
+smoke-expert: verify
+	bash scripts/smoke-expert-mlops.sh
 
 # ── Flutter ───────────────────────────────────────────────────────────────────
 flutter-local: verify

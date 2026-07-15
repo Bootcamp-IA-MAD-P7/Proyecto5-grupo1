@@ -22,7 +22,7 @@
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
 | 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 |
 | 🟠 Avanzado | ✅ **CERRADO** | **9/9** | T3.1–T3.8 + T3.INT ✅ — `docs/daily/t3.8-t3int-20260714.md` |
-| 🔴 Experto | ⏳ | **6/8 (75%)** | ✅ T4.2, T4.3, T4.4, T4.5, T4.6, T4.7 · ✂ T4.1 CEMP · 🔲 **T4.8 · T4.INT** |
+| 🔴 Experto | ⏳ | **7/8 (88%)** | ✅ T4.2–T4.7, T4.INT · 🔲 **T4.8** · ✂ T4.1 CEMP |
 
 ### Checklist Esencial + Medio (certeza)
 
@@ -62,7 +62,7 @@
 
 **Ruta crítica pendiente:**
 ```
-T4.INT → T4.8 (jue 16)
+T4.8 (jue 16)
 ```
 
 ### QA — pantallas por rol (revalidado)
@@ -292,10 +292,8 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
   - **Hacer:** informe final (métricas + sesgo + Experto) + 2 decks. Entrega **jueves 16**.
   - **CA:** archivos en repo o `docs/` enlazados desde README.
 
-- [ ] **T4.INT** `ALL` — Demo experto en vivo.
-  - **Depende de:** T4.2, T4.4, T4.5, T4.7 (T4.6 ya ✅).
-  - **Hacer:** IT lanza retrain desde app → decisión visible → A/B en Grafana → drift visible → (opcional) CNN mencionado en informe.
-  - **CA:** guion de demo ejecutado una vez (local o QA) sin stubs.
+- [x] **T4.INT** `ALL` — Demo experto en vivo.
+  - **Evidencia 14/07:** `make smoke-expert` PASS (local, sin stubs) · IT `POST /admin/retrain` → decisión **DISCARDED** recall=0.890 overfitting=9.9% (20.3s) · drift PSI=0.0 samples=3 · Prometheus `ab_active=3` · `feature_drift_psi=0.0` · acta `docs/daily/t4int-expert-demo-20260714.md` · fix Docker `contracts` mount + `window_contract.py` fallback · `mvn test` **66/66** ✅ · `pytest tests/` **52/52** (4 skipped) ✅.
 
 ---
 
@@ -303,10 +301,9 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 | # | Tarea | Stream | Bloquea |
 |---|---|---|---|
-| 1 | **T4.INT** demo experto en vivo | ALL | Entrega Factoría |
-| 2 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
+| 1 | **T4.8** presentaciones jue 16 | ALL | Entrega Factoría |
 
-Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 · T4.4 · T4.5 · T4.6 · T4.7 · T4.1 ✂ CEMP.
+Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 · T4.4 · T4.5 · T4.6 · T4.7 · **T4.INT** · T4.1 ✂ CEMP.
 
 ---
 
@@ -319,7 +316,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 ·
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | — |
-| 🔴 Experto | 4 | ⏳ **6/8 (75%)** | **T4.8** · **T4.INT** · T4.1 ✂ CEMP · (T4.2/T4.3/T4.4/T4.5/T4.6/T4.7 ✅) |
+| 🔴 Experto | 4 | ⏳ **7/8 (88%)** | **T4.8** · T4.1 ✂ CEMP · (T4.2–T4.7 + T4.INT ✅) |
 
 ---
 
@@ -327,7 +324,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · T4.2 · T4.3 ·
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.11 — T4.5 MLOps UI ✅ · Experto 6/8 |
+| Estado | v2.12 — T4.INT demo experto ✅ · Experto 7/8 |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — T4.5 MLOps · pytest 52/52 · mvn 66/66 · flutter 104/104 |
+| Última actualización | 14/07/2026 — T4.INT smoke-expert PASS · mvn 66/66 · pytest 52/52 |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

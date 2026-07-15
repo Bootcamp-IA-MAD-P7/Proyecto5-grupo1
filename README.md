@@ -69,6 +69,8 @@ El diseño completo y sus decisiones están en
 | `make flutter-qa` | Flutter → Java API en EC2 (`:8005`) |
 | `make smoke-telemetry` | **T1.INT / SL-25** — smoke E2E telemetría real (requiere `make up`) |
 | `make smoke-mvp` | **T2.INT / SL-43** — MVP E2E: caída → alerta → push → confirmar → export IT |
+| `make smoke-expert` | **T4.INT** — demo experto MLOps: retrain IT → decisión → drift → A/B |
+| `make smoke-qa-ec2` | **T3.INT** — smoke QA contra EC2 `:8005` |
 | Clone limpio | **T0.INT / SL-15** — ver [§Clone limpio](#0-clone-limpio-t0int--sl-15) |
 
 ### Variables en `.env`
