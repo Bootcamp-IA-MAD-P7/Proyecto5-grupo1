@@ -304,6 +304,9 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con estado 
 Cerrar RF-33/ML-19: el retrain debe mezclar SisFall con ventanas etiquetadas que el cuidador confirmó/descartó en la app (sin CSV manual).
 **Demo (T4d.INT):** `smoke-mvp` (feedback en DB) → `smoke-expert` → métricas con `augmented_windows >= 1`.
 
+### Fase 4e — Gate sensores + deuda post-auditoría — 🟠 PRIORIDAD
+RF-40: pantalla bloqueante si el móvil no tiene IMU obligatoria; no enviar telemetría inválida. Además: contracts en imagen prod, InferenceClient fail-fast opcional, alinear doc InfluxDB→Postgres (ADR-03), acta QA Android 10 min (T2c.11).
+
 ---
 
 ## 8. Riesgos del plan y contingencias
@@ -334,7 +337,7 @@ Cerrar RF-33/ML-19: el retrain debe mezclar SisFall con ventanas etiquetadas que
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make up` + `make smoke-telemetry` |
 | 🟡 Medio | 2 + 2b + 2c | ✅ **CERRADO** | T2.INT + T2c.INT · `make smoke-mvp` |
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | T3.INT · `make smoke-qa-ec2` |
-| 🔴 Experto | 4 + **4d** | ⏳ **infra 8/8 · RF-33 0/4** | T4.INT ✅ · **T4d feedback→retrain pendiente** |
+| 🔴 Experto | 4 + **4d** + **4e** | ⏳ **infra 8/8 · RF-33 0/4 · RF-40 0/1** | T4.INT ✅ · **T4d + T4e pendientes** |
 
 **Mocks Flutter:** eliminados; servicios solo contra Java real. **MobiAct:** fuera de alcance Factoría (CEMP).
 
@@ -344,6 +347,6 @@ Cerrar RF-33/ML-19: el retrain debe mezclar SisFall con ventanas etiquetadas que
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.6 — Fase 4d: feedback Postgres → retrain (RF-33 real) |
+| Estado | v0.7 — Fases 4d + 4e (retrain + gate sensores) |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 |
+| Última actualización | 15/07/2026 |

@@ -143,9 +143,10 @@ jobs:
       - name: Build & push inference service image
         run: |
           docker build \
+            -f inference/Dockerfile \
             -t ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest \
             -t ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }} \
-            ./inference
+            .
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }}
 

@@ -22,7 +22,7 @@
 | 🟢 Esencial | ✅ **CERRADO (revalidado)** | Fase 0–1 | Ver checklist abajo |
 | 🟡 Medio | 🟢 **CERRADO (Fase 2c)** | Fase 2 + 2b + **2c** | T2c.7 + T2c.INT ✅ 14/07 |
 | 🟠 Avanzado | ✅ **CERRADO** | **9/9** | T3.1–T3.8 + T3.INT ✅ — `docs/daily/t3.8-t3int-20260714.md` |
-| 🔴 Experto | ⏳ | **8/8 infra · 0/4 T4d** | Infra MLOps ✅ (T4.2–T4.8, T4.INT) · **RF-33 real pendiente Fase 4d** · ✂ T4.1 CEMP |
+| 🔴 Experto | ⏳ | **8/8 infra · 4/4 T4d · 1/5 T4e** | Infra MLOps ✅ · **RF-33 Fase 4d ✅** · **RF-40 T4e.1 ✅** · T4e.2 ✅ · pendiente T4e.3–T4e.4, T2c.11 |
 
 ### Checklist Esencial + Medio (certeza)
 
@@ -36,7 +36,7 @@
 | Consent + 403 telemetría | ✅ | BE + FE pipeline para en 403 |
 | Pairing antes de monitorizar | ✅ | `MonitoredScreen` gate `isPaired` + consent |
 | Alertas + feedback → export | ✅ | RabbitMQ `alert.created` · `feedback_labels` · `GET /admin/export` |
-| Feedback → retrain automático | ⚠️ | Export DB existe; **retrain no lee Postgres** — ver Fase 4d |
+| Feedback → retrain automático | ✅ | `RetrainService` export DB → `POST /train` `feedback_rows` · `augmented_windows=3` (T4d.INT) |
 | Ensembles + Optuna + LOSO | ✅ | `ensemble_comparison.json` · `optuna_study.json` · informes v1/v2 |
 | Compose 6 servicios | ✅ | db · rabbitmq · backend · api · prometheus · grafana |
 | Smoke E2E documentados | ✅ | `make smoke-telemetry` · `make smoke-mvp` (correr local antes de demo) |
@@ -50,7 +50,12 @@
 | RF-30 | Push solo `FALL_ALERT` — no push consent/monitor | Documentado post-demo |
 | UX IT | Export muestra URL; no descarga autenticada | Post-demo |
 | Grafana EC2 | `:3000` interno en SG — no accesible desde red pública | T3.INT verificado vía smoke API |
-| **RF-33 / ML-19** | Retrain no consume feedback de Postgres automáticamente | **Fase 4d — bloquea cierre Experto real** |
+| **RF-33 / ML-19** | Retrain no consume feedback de Postgres automáticamente | **✅ Fase 4d cerrada 15/07** |
+| **RF-40** | Sin gate de hardware: dispositivos sin IMU pueden intentar monitorizar | **✅ T4e.1** |
+| Prod contracts | `docker-compose.prod.yml` / imagen inference sin `contracts/` | **✅ T4e.2** |
+| InferenceClient | Fallback `inference-unavailable` silencioso salvo smoke-telemetry | **Fase 4e — T4e.3** |
+| Doc InfluxDB | `2_spec.md` aún cita InfluxDB; código usa Postgres (ADR-03) | **Fase 4e — T4e.4** |
+| QA T2c.9 | Demo 10 min pantalla bloqueada Android sin acta | **T2c.11** |
 
 **Decisiones de alcance (no renegociar cada día):**
 - InfluxDB → Postgres (ADR-03). RabbitMQ solo `alert.created` → push; predicción HTTP síncrona.
@@ -62,9 +67,11 @@
 - Background Android mantiene la captura mediante foreground service; minimizar no equivale a logout.
 - Logout detiene y espera la monitorización antes de borrar la sesión; pairing y push quedan aislados por `userId`.
 
-**Ruta crítica pendiente:**
+**Ruta crítica pendiente (sesión 15/07):**
 ```
-T4d.1 → T4d.2 → T4d.3 → T4d.INT  (cierre RF-33 real — feedback Postgres → retrain)
+T4e.1 (gate sensores)  — en paralelo con T4d.1 si dos streams
+T4d.1 → T4d.2 → T4d.3 → T4d.INT  (cierre RF-33 real)
+T4e.2 (contracts prod) — antes de push/redeploy EC2
 ```
 
 ### QA — pantallas por rol (revalidado)
@@ -302,26 +309,45 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abiert
 
 > **Post-mortem 14/07:** T4.4/T4.INT demuestran el pipeline MLOps (drift, train, decisión, UI, Grafana), pero el retrain **no consume** los datos que la app recoge. El cuidador confirma/descarta → Postgres (`feedback_labels` + `telemetry_windows.samples_json`). Java exporta vía `GET /admin/export`. FastAPI solo lee CSVs locales sin `samples_json` → `augmented_windows=0`. Sin Fase 4d, RF-33/ML-19 no cumplen la promesa de “reentrenar con datos reales recogidos”.
 
-- [ ] **T4d.1** `BE-B` — **Cablear export DB → retrain.** `RetrainService` invoca `AdminService.exportLabelledDataset()` antes de `POST /train` y envía las filas etiquetadas (ventana IMU + `TRUE_FALL`/`FALSE_ALARM`) en el body HTTP. Sin paso manual de CSV. *(RF-33, ML-09, ADR-09)* (T4.4)
-- [ ] **T4d.2** `ML` — **`POST /train` acepta feedback en body.** Contrato §6.8: `{ "feedback_rows": [{ "samples": {...}, "label": "..." }] }`. `retrain_feedback.py` prioriza payload HTTP > CSV en `data/feedback/` > solo SisFall. Métricas incluyen `augmented_windows` real. *(ML-19)* (T4d.1)
-- [ ] **T4d.3** `BE-B`+`ML` — **Tests + contrato.** `RetrainServiceTest` verifica que export DB se serializa al body; `test_retrain_feedback.py` con payload HTTP y `augmented_windows >= 1`; actualizar `2_spec.md` §6.8. *(RF-33)*
-- [ ] **T4d.4** `FE-B` — **UI MLOps: contador feedback.** Pestaña MLOps muestra `feedback_records` y `augmented_windows` del último job (desde `RetrainDtos.metrics`). i18n es/en. *(RF-33)* (T4d.1)
+- [x] **T4d.1** `BE-B` — **Cablear export DB → retrain.** `RetrainService` invoca `AdminService.exportLabelledDataset()` antes de `POST /train` y envía las filas etiquetadas (ventana IMU + `TRUE_FALL`/`FALSE_ALARM`) en el body HTTP. Sin paso manual de CSV. *(RF-33, ML-09, ADR-09)* (T4.4)
+- [x] **T4d.2** `ML` — **`POST /train` acepta feedback en body.** Contrato §6.8: `{ "feedback_rows": [{ "samples": {...}, "label": "..." }] }`. `retrain_feedback.py` prioriza payload HTTP > CSV en `data/feedback/` > solo SisFall. Métricas incluyen `augmented_windows` real. *(ML-19)* (T4d.1)
+- [x] **T4d.3** `BE-B`+`ML` — **Tests + contrato.** `RetrainServiceTest` verifica que export DB se serializa al body; `test_retrain_feedback.py` con payload HTTP y `augmented_windows >= 1`; actualizar `2_spec.md` §6.8. *(RF-33)*
+- [x] **T4d.4** `FE-B` — **UI MLOps: contador feedback.** Pestaña MLOps muestra `feedback_records` y `augmented_windows` del último job (desde `RetrainDtos.metrics`). i18n es/en. *(RF-33)* (T4d.1)
 
 ### Integración
 
-- [ ] **T4d.INT** `ALL` — **E2E feedback → retrain.** `make smoke-mvp` (PATCH feedback `TRUE_FALL` en DB) → `make smoke-expert` → `retrain_metrics.json` con `feedback.augmented_windows >= 1`. Acta en `docs/daily/`. *(T4d.1–T4d.3)*
+- [x] **T4d.INT** `ALL` — **E2E feedback → retrain.** `make smoke-mvp` (PATCH feedback `TRUE_FALL` en DB) → `make smoke-expert` → `retrain_metrics.json` con `feedback.augmented_windows >= 1`. Acta en `docs/daily/`. *(T4d.1–T4d.3)*
 
 ---
 
-## Cola activa (Fase 4d — RF-33 real)
+## Fase 4e — Gate sensores + deuda post-auditoría (15/07) 🟠 PRIORIDAD
 
-| # | Tarea | Stream | Bloquea |
-|---|---|---|---|
-| 1 | **T4d.1** Java export → POST /train body | BE-B | RF-33 real |
-| 2 | **T4d.2** FastAPI acepta feedback_rows | ML | T4d.1 |
-| 3 | **T4d.3** tests + spec §6.8 | BE-B+ML | T4d.2 |
-| 4 | **T4d.4** UI contador feedback MLOps | FE-B | T4d.1 |
-| 5 | **T4d.INT** smoke augmented_windows ≥ 1 | ALL | Cierre Experto real |
+> **Post-auditoría 14/07:** huecos que no bloquean Avanzado pero sí calidad de demo/producción y RF-40.
+
+- [x] **T4e.1** `FE-A` — **Gate hardware MONITORED (RF-40).** Antes de pairing/consent/monitorizar, comprobar disponibilidad de acelerómetro y giroscopio (`sensors_plus` o probe con timeout). Si falta alguno obligatorio: pantalla bloqueante dedicada (no `MonitoredScreen` operativa), sin botón “Iniciar monitoreo”, sin `MonitoringCoordinator.start()`, sin `POST /telemetry/windows`. i18n es/en. Tests: unit `SensorCapabilityService` + widget pantalla bloqueada. *(RF-10, RF-11, RF-40)* (T2c.9)
+- [x] **T4e.2** `ALL` — **Contracts en prod/EC2.** Incluir `contracts/window_contract.json` en imagen inference (`inference/Dockerfile` `COPY` desde contexto build) **o** volumen en `docker-compose.prod.yml` (como dev). Verificar `make smoke-expert` con compose prod. *(T4.4, T4.INT)*
+- [ ] **T4e.3** `BE-B` — **InferenceClient fail-fast opcional.** Propiedad `sentilife.inference.fail-fast=true`: si FastAPI no responde, propagar error HTTP 503 en lugar de `inference-unavailable` silencioso. Mantener fallback solo en dev. Test `InferenceClientTest`. *(checklist Esencial)*
+- [ ] **T4e.4** `DOCS` — **Alinear spec con ADR-03.** Sustituir referencias InfluxDB por Postgres/`telemetry_windows` en `2_spec.md` §2.3, §5.2, CA-04, CA-18. Sin cambio de código. *(ADR-03)*
+- [ ] **T2c.11** `QA` — **Acta demo Android 10 min.** Documentar en `docs/daily/`: pantalla bloqueada, notificación foreground, telemetría continua ≥10 min. Dispositivo físico. *(T2c.9 — QA manual pendiente)*
+
+---
+
+## Cola activa (sesión 15/07 — hoy)
+
+| # | Tarea | Stream | Prioridad | Bloquea |
+|---|---|---|---|---|
+| 1 | **T4e.1** Gate sensores MONITORED | FE-A | 🔴 Alta | RF-40 · data basura |
+| 2 | **T4d.1** Java export → POST /train body | BE-B | 🔴 Alta | RF-33 real |
+| 3 | **T4d.2** FastAPI `feedback_rows` | ML | 🔴 Alta | T4d.1 |
+| 4 | **T4e.2** Contracts prod Docker/EC2 | ALL | 🟠 Media | redeploy EC2 |
+| 5 | **T4d.3** tests + spec §6.8 | BE-B+ML | 🟠 Media | T4d.2 |
+| 6 | **T4d.4** UI contador feedback MLOps | FE-B | 🟡 Baja | T4d.1 |
+| 7 | **T4d.INT** smoke `augmented_windows ≥ 1` | ALL | 🔴 Alta | Cierre Experto real |
+| 8 | **T4e.3** InferenceClient fail-fast | BE-B | 🟡 Baja | — |
+| 9 | **T4e.4** Doc InfluxDB → Postgres | DOCS | 🟡 Baja | — |
+| 10 | **T2c.11** Acta QA Android 10 min | QA | 🟡 Baja | — |
+
+**Orden sugerido implementación:** T4e.1 → T4d.1 → T4d.2 → T4d.3 → T4e.2 → T4d.4 → T4d.INT (T4e.3/T4e.4/T2c.11 en paralelo o al cierre).
 
 Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra (8/8)** · T4.2–T4.7 · T4.INT · T4.8 · T4.1 ✂ CEMP.
 
@@ -340,7 +366,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra 
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | — |
 | 🟡 Medio | 2 + 2b + 2c | 🟢 **CERRADO** | — |
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | — |
-| 🔴 Experto | 4 + **4d** | ⏳ **infra 8/8 · RF-33 0/4** | **T4d.1–T4d.INT** · T4.1 ✂ CEMP |
+| 🔴 Experto | 4 + **4d** + **4e** | ⏳ **infra 8/8 · RF-33 4/4 ✅ · RF-40 1/1 ✅** | T4e.3–T4e.4 · T2c.11 · T4.1 ✂ CEMP |
 
 ---
 
@@ -348,7 +374,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra 
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.13 — Fase 4d abierta: feedback Postgres → retrain |
+| Estado | v2.15 — Fase 4d cerrada (RF-33) · T4e.1/T4e.2 cerrados |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 — auditoría RF-33: retrain no lee DB · T4d.1–T4d.INT pendientes |
+| Última actualización | 15/07/2026 — T4d.INT PASS augmented_windows=3 · flutter 110/110 · mvn 68/68 · pytest 54/54 |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

@@ -88,6 +88,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-32 | **Modal de transparencia de datos** (patrón proyecto 4): la app informa al usuario, en lenguaje claro, de que las predicciones que ve y el feedback que emite se almacenan como datos reales para reentrenar el modelo. Accesible desde ajustes y enlazado desde el modal de consentimiento. | Medio |
 | RF-33 | El `IT_ADMIN` puede lanzar un **reentrenamiento** con los datos reales recogidos y consultar su estado (`idle / running / completed / failed`, fase actual y decisión final) mediante polling, sin reiniciar contenedores (hot-reload del modelo). | Experto |
 | RF-34 | Si una cuenta `MONITORED` inicia sesión antes de estar vinculada a una ficha, la app muestra el estado `PENDING_LINK` y no permite iniciar pairing, consentimiento ni telemetría. | Avanzado |
+| RF-40 | Antes de pairing, consentimiento o monitorización, la app **verifica** que el dispositivo expone acelerómetro y giroscopio funcionales. Si falta alguno obligatorio, muestra una pantalla bloqueante explicativa y **no** inicia `MonitoringCoordinator` ni envía ventanas al backend. | Avanzado |
 
 ---
 
@@ -459,7 +460,7 @@ Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaura
 }
 ```
 
-> **Estado 14/07:** `POST /train` existe pero Java envía body vacío; feedback solo se lee de CSV en `data/feedback/` (Fase 4d cableará `feedback_rows` desde Postgres).
+> **Estado 15/07:** Java `RetrainService` exporta Postgres vía `AdminService.exportLabelledDataset()` y envía `feedback_rows` en `POST /train`. FastAPI prioriza payload HTTP > CSV > solo SisFall.
 
 El backend Java es el **único** cliente de este servicio (más el worker de cola).
 
@@ -485,6 +486,7 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 16. **Aislamiento local y push:** dos cuentas alternadas en un dispositivo conservan contextos separados; un push cuyo `recipientUserId` no coincide no se muestra ni navega.
 17. **Autorización de dispositivo:** reutilizar un device token con otro `monitoredPersonId` o `deviceId` devuelve `403` y no persiste telemetría.
 18. **Retrain con feedback real (RF-33, Fase 4d):** tras confirmar una alerta en app, un job `POST /admin/retrain` incluye esa ventana en el entrenamiento (`metrics.feedback.augmented_windows >= 1`); no requiere export CSV manual.
+19. **Gate sensores (RF-40, Fase 4e):** en un dispositivo sin acelerómetro o giroscopio, la app MONITORED muestra pantalla bloqueante y no envía ninguna ventana al backend; en dispositivo con IMU, el flujo pairing → consent → monitorizar funciona con normalidad.
 
 ---
 
@@ -494,7 +496,7 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 |---|---|
 | 🟢 Esencial | ML-01…ML-05 · ML-20 · RF-10…RF-13 · RF-20 · RF-26 |
 | 🟡 Medio | ML-06…ML-10 · RF-14…RF-19 · RF-21 · RF-22 · RF-27…RF-30 · RF-32 |
-| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RF-34…RF-39 · RNF-01…RNF-07 |
+| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RF-34…RF-40 · RNF-01…RNF-07 |
 | 🔴 Experto | ML-15…ML-19 · RF-33 |
 
 ---
@@ -503,6 +505,6 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.6 — POST /train feedback_rows + CA-18 retrain con datos de producción |
+| Estado | Draft v0.7 — RF-40 gate sensores + CA-19 |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 14/07/2026 |
+| Última actualización | 15/07/2026 |
