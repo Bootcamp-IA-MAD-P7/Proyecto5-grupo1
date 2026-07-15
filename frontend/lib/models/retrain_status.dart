@@ -50,6 +50,8 @@ class RetrainDetails {
   final double? overfittingGap;
   final bool? driftDetected;
   final bool? modelReloaded;
+  final int? feedbackRecords;
+  final int? augmentedWindows;
 
   const RetrainDetails({
     this.currentRecall,
@@ -57,6 +59,8 @@ class RetrainDetails {
     this.overfittingGap,
     this.driftDetected,
     this.modelReloaded,
+    this.feedbackRecords,
+    this.augmentedWindows,
   });
 
   factory RetrainDetails.fromJson(Map<String, dynamic> json) {
@@ -71,12 +75,21 @@ class RetrainDetails {
 
   factory RetrainDetails.fromMetrics(Map<String, dynamic>? metrics, {String? decision}) {
     if (metrics == null) return const RetrainDetails();
+    final feedback = metrics['feedback'];
+    int? feedbackRecords;
+    int? augmentedWindows;
+    if (feedback is Map) {
+      feedbackRecords = _asInt(feedback['total_records'] ?? feedback['feedback_records']);
+      augmentedWindows = _asInt(feedback['augmented_windows'] ?? feedback['feedback_augmented_windows']);
+    }
     return RetrainDetails(
       currentRecall: _asDouble(metrics['current_recall'] ?? metrics['currentRecall']),
       newRecall: _asDouble(metrics['recall'] ?? metrics['newRecall']),
       overfittingGap: _asDouble(metrics['overfitting'] ?? metrics['overfittingGap']),
       driftDetected: metrics['drift_detected'] as bool? ?? metrics['driftDetected'] as bool?,
       modelReloaded: decision?.toLowerCase() == 'promoted',
+      feedbackRecords: feedbackRecords,
+      augmentedWindows: augmentedWindows,
     );
   }
 }
@@ -140,6 +153,11 @@ class RetrainJobStatus {
 
 double? _asDouble(Object? value) {
   if (value is num) return value.toDouble();
+  return null;
+}
+
+int? _asInt(Object? value) {
+  if (value is num) return value.toInt();
   return null;
 }
 

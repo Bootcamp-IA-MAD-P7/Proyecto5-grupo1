@@ -1,5 +1,7 @@
 package com.sentilife.registry;
 
+import com.sentilife.admin.AdminDtos;
+import com.sentilife.admin.AdminService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,8 +12,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -26,13 +32,20 @@ class RetrainServiceTest {
     private static final String INFERENCE_URL = "http://inference:8000";
 
     @Mock RegistryService registryService;
+    @Mock AdminService adminService;
     @Mock RestTemplate restTemplate;
 
     private RetrainService service;
 
     @BeforeEach
     void setUp() {
-        service = new RetrainService(registryService, restTemplate, INFERENCE_URL);
+        service = new RetrainService(
+                registryService,
+                adminService,
+                restTemplate,
+                new ObjectMapper(),
+                INFERENCE_URL);
+        when(adminService.exportLabelledDataset(isNull(), isNull())).thenReturn(List.of());
     }
 
     @Test
@@ -85,7 +98,7 @@ class RetrainServiceTest {
     void pipeline_failsWhenTrainEndpointUnavailable() throws Exception {
         when(restTemplate.postForEntity(eq(INFERENCE_URL + "/drift/recompute"), isNull(), eq(Map.class)))
                 .thenReturn(ResponseEntity.ok(driftResult()));
-        when(restTemplate.postForEntity(eq(INFERENCE_URL + "/train"), isNull(), eq(Map.class)))
+        when(restTemplate.postForEntity(eq(INFERENCE_URL + "/train"), any(), eq(Map.class)))
                 .thenReturn(ResponseEntity.status(503).build());
 
         service.trigger();
@@ -96,21 +109,77 @@ class RetrainServiceTest {
     }
 
     @Test
-    void trigger_callsPostTrainNotModelInfo() throws Exception {
+    void trigger_callsPostTrainWithExportBody() throws Exception {
         stubInferenceEndpoints(trainResult(0.88, 0.02, 0.89));
         when(registryService.register(any())).thenReturn(activeModel("candidate-v4"));
+
+        UUID personId = UUID.randomUUID();
+        String samplesJson = validSamplesJson();
+        when(adminService.exportLabelledDataset(isNull(), isNull())).thenReturn(List.of(
+                new AdminDtos.ExportRow(
+                        UUID.randomUUID(),
+                        personId,
+                        Instant.parse("2026-07-15T00:00:00Z"),
+                        Instant.parse("2026-07-15T00:00:02Z"),
+                        50,
+                        samplesJson,
+                        "TRUE_FALL"
+                )
+        ));
 
         service.trigger();
         waitForPhase(RetrainDtos.Phase.COMPLETED, Duration.ofSeconds(5));
 
-        verify(restTemplate).postForEntity(eq(INFERENCE_URL + "/train"), isNull(), eq(Map.class));
+        ArgumentCaptor<Map<String, Object>> bodyCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(restTemplate).postForEntity(eq(INFERENCE_URL + "/train"), bodyCaptor.capture(), eq(Map.class));
+        assertThat(bodyCaptor.getValue()).containsKey("feedback_rows");
+        assertThat((List<?>) bodyCaptor.getValue().get("feedback_rows")).hasSize(1);
         verify(restTemplate, never()).getForEntity(contains("/model/info"), eq(Map.class));
+    }
+
+    @Test
+    void buildTrainRequestBody_serializesExportRows() {
+        UUID personId = UUID.randomUUID();
+        String samplesJson = validSamplesJson();
+
+        when(adminService.exportLabelledDataset(isNull(), isNull())).thenReturn(List.of(
+                new AdminDtos.ExportRow(
+                        UUID.randomUUID(),
+                        personId,
+                        Instant.now(),
+                        Instant.now(),
+                        50,
+                        samplesJson,
+                        "TRUE_FALL"
+                )
+        ));
+
+        Map<String, Object> body = service.buildTrainRequestBody();
+
+        assertThat(body.get("skip_feature_build")).isEqualTo(true);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) body.get("feedback_rows");
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).get("label")).isEqualTo("TRUE_FALL");
+        assertThat(rows.get(0).get("monitored_person_id")).isEqualTo(personId.toString());
+    }
+
+    private static String validSamplesJson() {
+        StringBuilder signal = new StringBuilder("[");
+        for (int i = 0; i < 125; i++) {
+            if (i > 0) signal.append(',');
+            signal.append("0.1");
+        }
+        signal.append(']');
+        return """
+                {"accX":%s,"accY":%s,"accZ":%s,"gyroX":%s,"gyroY":%s,"gyroZ":%s}
+                """.formatted(signal, signal, signal, signal, signal, signal);
     }
 
     private void stubInferenceEndpoints(Map<String, Object> trainResult) {
         when(restTemplate.postForEntity(eq(INFERENCE_URL + "/drift/recompute"), isNull(), eq(Map.class)))
                 .thenReturn(ResponseEntity.ok(driftResult()));
-        when(restTemplate.postForEntity(eq(INFERENCE_URL + "/train"), isNull(), eq(Map.class)))
+        when(restTemplate.postForEntity(eq(INFERENCE_URL + "/train"), any(), eq(Map.class)))
                 .thenReturn(ResponseEntity.ok(trainResult));
     }
 

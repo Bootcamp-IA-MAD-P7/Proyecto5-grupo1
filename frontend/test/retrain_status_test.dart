@@ -40,5 +40,24 @@ void main() {
       expect(status.details!.newRecall, closeTo(0.93, 0.001));
       expect(status.details!.modelReloaded, isTrue);
     });
+
+    test('parses feedback counters from metrics.feedback', () {
+      final status = RetrainJobStatus.fromJson({
+        'phase': 'COMPLETED',
+        'decision': 'DISCARDED',
+        'message': 'Done',
+        'modelVersion': 'xgboost-retrain-2',
+        'metrics': {
+          'recall': 0.88,
+          'feedback': {
+            'total_records': 3,
+            'augmented_windows': 2,
+          },
+        },
+      });
+
+      expect(status.details!.feedbackRecords, 3);
+      expect(status.details!.augmentedWindows, 2);
+    });
   });
 }

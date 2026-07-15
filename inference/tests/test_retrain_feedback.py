@@ -16,6 +16,7 @@ from ml.training.retrain_feedback import (
     _label_to_fall_event,
     _parse_samples_json,
     load_feedback_records,
+    load_feedback_rows_from_payload,
     run_retrain,
 )
 
@@ -49,6 +50,57 @@ def test_load_feedback_records_reads_sample_csv():
     assert "labeled_feedback_sample.csv" in meta["files"]
     # Sample CSV has no samples_json — no augmented rows
     assert df is None or df.empty or meta["augmented_windows"] == 0
+
+
+def test_load_feedback_rows_from_payload_builds_augmented_windows():
+    samples = {sig: [0.1] * 125 for sig in ("accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ")}
+    df, meta = load_feedback_rows_from_payload(
+        [
+            {
+                "monitored_person_id": "person-1",
+                "samples": samples,
+                "label": "TRUE_FALL",
+            }
+        ]
+    )
+    assert meta["augmented_windows"] == 1
+    assert meta["true_fall"] == 1
+    assert df is not None
+    assert len(df) == 1
+
+
+def test_train_endpoint_accepts_feedback_rows_body():
+    mock_result = {
+        "version": "xgboost-retrain-test",
+        "algorithm": "XGBoost",
+        "recall": 0.91,
+        "precision": 0.75,
+        "f1": 0.82,
+        "overfitting": 0.02,
+        "artifact_uri": "ml/models/retrain-test.pkl",
+        "metrics": {
+            "recall": 0.91,
+            "feedback": {"augmented_windows": 1, "total_records": 1},
+        },
+    }
+    payload = {
+        "feedback_rows": [
+            {
+                "monitored_person_id": "person-1",
+                "samples": {sig: [0.1] * 125 for sig in ("accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ")},
+                "label": "TRUE_FALL",
+            }
+        ],
+        "skip_feature_build": True,
+    }
+    with patch("api.main.run_retrain", return_value=mock_result) as run_mock:
+        response = client.post("/train", json=payload)
+    assert response.status_code == 200
+    run_mock.assert_called_once()
+    _, kwargs = run_mock.call_args
+    assert kwargs["feedback_rows"] is not None
+    assert len(kwargs["feedback_rows"]) == 1
+    assert response.json()["metrics"]["feedback"]["augmented_windows"] == 1
 
 
 def test_train_endpoint_contract_with_mock():

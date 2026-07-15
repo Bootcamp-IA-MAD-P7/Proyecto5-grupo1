@@ -1,5 +1,9 @@
 package com.sentilife.registry;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sentilife.admin.AdminDtos;
+import com.sentilife.admin.AdminService;
 import com.sentilife.config.DomainExceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,7 +40,9 @@ public class RetrainService {
     private static final Logger log = LoggerFactory.getLogger(RetrainService.class);
 
     private final RegistryService registryService;
+    private final AdminService adminService;
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
     private final String inferenceUrl;
 
     // Maximum allowed overfitting (train - test recall difference)
@@ -50,16 +59,21 @@ public class RetrainService {
 
     @Autowired
     public RetrainService(RegistryService registryService,
+                          AdminService adminService,
                           @Value("${sentilife.inference.url}") String inferenceUrl) {
-        this(registryService, new RestTemplate(), inferenceUrl);
+        this(registryService, adminService, new RestTemplate(), new ObjectMapper(), inferenceUrl);
     }
 
-    /** Package-private for unit tests (T4.4). */
+    /** Package-private for unit tests (T4.4 / T4d.1). */
     RetrainService(RegistryService registryService,
+                   AdminService adminService,
                    RestTemplate restTemplate,
+                   ObjectMapper objectMapper,
                    String inferenceUrl) {
         this.registryService = registryService;
+        this.adminService = adminService;
         this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
         this.inferenceUrl = inferenceUrl;
     }
 
@@ -233,7 +247,8 @@ public class RetrainService {
     private Map<String, Object> callTrainingEndpoint() {
         try {
             String url = inferenceUrl + "/train";
-            var response = restTemplate.postForEntity(url, null, Map.class);
+            Map<String, Object> body = buildTrainRequestBody();
+            var response = restTemplate.postForEntity(url, body, Map.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
@@ -241,6 +256,57 @@ public class RetrainService {
             return null;
         } catch (Exception e) {
             log.warn("[Retrain] Training endpoint failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Exports labelled windows from Postgres and serializes them for POST /train (T4d.1).
+     */
+    Map<String, Object> buildTrainRequestBody() {
+        List<AdminDtos.ExportRow> rows = adminService.exportLabelledDataset(null, null);
+        List<Map<String, Object>> feedbackRows = new ArrayList<>();
+
+        for (AdminDtos.ExportRow row : rows) {
+            Map<String, Object> samples = parseSamplesJson(row.samplesJson());
+            if (samples == null) {
+                log.warn("[Retrain] Skipping export row {} — invalid samples_json", row.windowId());
+                continue;
+            }
+            feedbackRows.add(Map.of(
+                    "monitored_person_id", row.monitoredPersonId().toString(),
+                    "samples", samples,
+                    "label", row.label()
+            ));
+        }
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("feedback_rows", feedbackRows);
+        body.put("skip_feature_build", true);
+        log.info("[Retrain] POST /train with {} feedback_rows from DB export", feedbackRows.size());
+        return body;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseSamplesJson(String samplesJson) {
+        if (samplesJson == null || samplesJson.isBlank()) {
+            return null;
+        }
+        try {
+            Map<String, Object> parsed = objectMapper.readValue(
+                    samplesJson, new TypeReference<>() {});
+            Object nested = parsed.get("samples");
+            if (nested instanceof Map<?, ?> nestedMap) {
+                parsed = (Map<String, Object>) nestedMap;
+            }
+            for (String signal : List.of("accX", "accY", "accZ", "gyroX", "gyroY", "gyroZ")) {
+                if (!(parsed.get(signal) instanceof List<?> values) || values.size() != 125) {
+                    return null;
+                }
+            }
+            return parsed;
+        } catch (Exception e) {
+            log.warn("[Retrain] Could not parse samples_json: {}", e.getMessage());
             return null;
         }
     }

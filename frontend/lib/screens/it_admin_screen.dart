@@ -346,6 +346,14 @@ class _MlopsTabState extends State<_MlopsTab> {
                       '${l10n.mlopsOverfitting}: ${(details!.overfittingGap! * 100).toStringAsFixed(1)}%',
                     ),
                   ],
+                  if (details?.feedbackRecords != null) ...[
+                    const SizedBox(height: 8),
+                    Text('${l10n.mlopsFeedbackRecords}: ${details!.feedbackRecords}'),
+                  ],
+                  if (details?.augmentedWindows != null) ...[
+                    const SizedBox(height: 4),
+                    Text('${l10n.mlopsAugmentedWindows}: ${details!.augmentedWindows}'),
+                  ],
                 ],
               ),
             ),

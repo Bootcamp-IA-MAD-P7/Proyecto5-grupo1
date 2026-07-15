@@ -1,5 +1,7 @@
 package com.sentilife.admin;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sentilife.alerts.Alert;
 import com.sentilife.alerts.AlertRepository;
 import com.sentilife.alerts.FeedbackLabel;
@@ -35,17 +37,20 @@ public class AdminService {
     private final MonitoredPersonRepository monitoredPersonRepository;
     private final TelemetryWindowRepository telemetryRepository;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
 
     public AdminService(AlertRepository alertRepository,
                         FeedbackLabelRepository feedbackRepository,
                         MonitoredPersonRepository monitoredPersonRepository,
                         TelemetryWindowRepository telemetryRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        ObjectMapper objectMapper) {
         this.alertRepository           = alertRepository;
         this.feedbackRepository        = feedbackRepository;
         this.monitoredPersonRepository = monitoredPersonRepository;
         this.telemetryRepository       = telemetryRepository;
         this.userRepository            = userRepository;
+        this.objectMapper              = objectMapper;
     }
 
     // ── History ───────────────────────────────────────────────────────────────
@@ -82,7 +87,7 @@ public class AdminService {
                                     w.getWindowStart(),
                                     w.getWindowEnd(),
                                     w.getSampleRateHz(),
-                                    w.getSamplesJson() != null ? w.getSamplesJson().toString() : "{}",
+                                    serializeSamplesJson(w.getSamplesJson()),
                                     f.getLabel()
                             ))
                             .orElse(null);
@@ -133,5 +138,16 @@ public class AdminService {
         if (from != null && timestamp.isBefore(from)) return false;
         if (to != null && timestamp.isAfter(to)) return false;
         return true;
+    }
+
+    private String serializeSamplesJson(java.util.Map<String, Object> samplesJson) {
+        if (samplesJson == null || samplesJson.isEmpty()) {
+            return "{}";
+        }
+        try {
+            return objectMapper.writeValueAsString(samplesJson);
+        } catch (JsonProcessingException e) {
+            return "{}";
+        }
     }
 }

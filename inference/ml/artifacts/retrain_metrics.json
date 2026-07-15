@@ -1,7 +1,7 @@
 {
   "task": "T4.4",
-  "model_id": "xgboost-retrain-20260715-001323",
-  "artifact_uri": "ml/models/retrain-20260715-001323.pkl",
+  "model_id": "xgboost-retrain-20260715-101519",
+  "artifact_uri": "ml/models/retrain-20260715-101519.pkl",
   "algorithm": "XGBoost",
   "optuna_params": {
     "n_estimators": 221,
@@ -49,7 +49,8 @@
     "total_records": 2,
     "true_fall": 1,
     "false_alarm": 1,
-    "augmented_windows": 0
+    "augmented_windows": 0,
+    "source": "csv"
   },
   "previous_version": "xgboost-v1.1.0-mobile-aligned",
   "current_recall": 0.8903088391906283

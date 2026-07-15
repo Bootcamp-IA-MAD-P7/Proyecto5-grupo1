@@ -95,6 +95,61 @@ def _label_to_fall_event(label: str) -> int | None:
     return None
 
 
+def load_feedback_rows_from_payload(
+    feedback_rows: list[dict[str, Any]] | None,
+) -> tuple[pd.DataFrame | None, dict[str, Any]]:
+    """Build feature rows from HTTP POST /train feedback_rows (T4d.2)."""
+    meta: dict[str, Any] = {
+        "files": [],
+        "total_records": 0,
+        "true_fall": 0,
+        "false_alarm": 0,
+        "augmented_windows": 0,
+        "source": "http_payload",
+    }
+    rows: list[dict[str, Any]] = []
+
+    if not feedback_rows:
+        return None, meta
+
+    meta["total_records"] = len(feedback_rows)
+
+    for idx, row in enumerate(feedback_rows):
+        fall_event = _label_to_fall_event(str(row.get("label", "")))
+        if fall_event is None:
+            continue
+        if fall_event == 1:
+            meta["true_fall"] += 1
+        else:
+            meta["false_alarm"] += 1
+
+        samples_raw = row.get("samples")
+        if not isinstance(samples_raw, dict):
+            continue
+
+        samples = _parse_samples_json(json.dumps(samples_raw))
+        if samples is None:
+            continue
+
+        feat = extract_features(
+            samples["accX"],
+            samples["accY"],
+            samples["accZ"],
+            samples["gyroX"],
+            samples["gyroY"],
+            samples["gyroZ"],
+        )
+        feat[TARGET] = fall_event
+        person_id = row.get("monitored_person_id", f"feedback-{idx}")
+        feat[GROUP_COL] = f"feedback-{person_id}"
+        rows.append(feat)
+        meta["augmented_windows"] += 1
+
+    if not rows:
+        return None, meta
+    return pd.DataFrame(rows), meta
+
+
 def load_feedback_records(feedback_dir: Path = FEEDBACK_DIR) -> tuple[pd.DataFrame | None, dict[str, Any]]:
     """Load feedback CSVs; build feature rows when ``samples_json`` is present."""
     meta: dict[str, Any] = {
@@ -103,6 +158,7 @@ def load_feedback_records(feedback_dir: Path = FEEDBACK_DIR) -> tuple[pd.DataFra
         "true_fall": 0,
         "false_alarm": 0,
         "augmented_windows": 0,
+        "source": "csv",
     }
     rows: list[dict[str, Any]] = []
 
@@ -221,8 +277,12 @@ def _register_candidate(
     REGISTRY_OUT.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
 
 
-def run_retrain(*, skip_feature_build: bool = False) -> dict[str, Any]:
-    """Train a new model and return metrics for POST /train (T4.4)."""
+def run_retrain(
+    *,
+    skip_feature_build: bool = False,
+    feedback_rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Train a new model and return metrics for POST /train (T4.4 / T4d.2)."""
     if skip_feature_build and FEATURES_OUT.exists():
         df = pd.read_csv(FEATURES_OUT)
         manifest = json.loads(MANIFEST_OUT.read_text(encoding="utf-8"))
@@ -231,7 +291,10 @@ def run_retrain(*, skip_feature_build: bool = False) -> dict[str, Any]:
         write_outputs(df, manifest, FEATURES_OUT, MANIFEST_OUT)
 
     numeric_features = manifest["feature_columns"]
-    feedback_df, feedback_meta = load_feedback_records()
+    if feedback_rows:
+        feedback_df, feedback_meta = load_feedback_rows_from_payload(feedback_rows)
+    else:
+        feedback_df, feedback_meta = load_feedback_records()
     df = _merge_feedback(df, feedback_df, numeric_features)
 
     previous_version, current_recall = _current_active_recall()

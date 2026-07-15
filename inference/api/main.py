@@ -195,6 +195,17 @@ class RegistryResponse(BaseModel):
     models: list[RegistryModel]
 
 
+class FeedbackRowRequest(BaseModel):
+    monitored_person_id: Optional[str] = None
+    samples: dict[str, list[float]]
+    label: str
+
+
+class TrainRequest(BaseModel):
+    feedback_rows: list[FeedbackRowRequest] = Field(default_factory=list)
+    skip_feature_build: bool = True
+
+
 class TrainResponse(BaseModel):
     version: str
     algorithm: str
@@ -384,10 +395,17 @@ def drift_recompute():
 
 
 @app.post("/train", response_model=TrainResponse)
-def train_model(skip_feature_build: bool = True):
-    """Retrain XGBoost with SisFall + feedback data (T4.4 / ML-19)."""
+def train_model(request: TrainRequest | None = None):
+    """Retrain XGBoost with SisFall + feedback data (T4.4 / T4d.2)."""
+    body = request or TrainRequest()
     try:
-        result = run_retrain(skip_feature_build=skip_feature_build)
+        feedback_payload = None
+        if body.feedback_rows:
+            feedback_payload = [row.model_dump() for row in body.feedback_rows]
+        result = run_retrain(
+            skip_feature_build=body.skip_feature_build,
+            feedback_rows=feedback_payload,
+        )
         return TrainResponse(**result)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Training failed: {exc}") from exc

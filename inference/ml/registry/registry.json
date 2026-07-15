@@ -64,6 +64,24 @@
       "threshold": 0.35,
       "trainedAt": "2026-07-15",
       "gravity_alignment": "align_to_sisfall_reference_before_features"
+    },
+    {
+      "id": "xgboost-retrain-20260715-100135",
+      "path": "ml/models/retrain-20260715-100135.pkl",
+      "algorithm": "XGBoost",
+      "status": "CANDIDATE",
+      "metrics": {
+        "recall_fall_test": 0.8321635642355814,
+        "precision_fall_test": 0.8482115085536548,
+        "f1_fall_test": 0.8401109057301294,
+        "pr_auc_test": 0.9288495041708481,
+        "overfitting": 0.1504885093255831,
+        "feedback_records": 3,
+        "feedback_augmented_windows": 3
+      },
+      "threshold": 0.43,
+      "trainedAt": "2026-07-15",
+      "gravity_alignment": "align_to_sisfall_reference_before_features"
     }
   ]
 }
