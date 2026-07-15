@@ -31,8 +31,8 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-05 | Antes de iniciar cualquier recogida de sensores, la app muestra un **modal de consentimiento** que explica qué datos se recogen, con qué fin y por cuánto tiempo. | Avanzado |
 | RF-06 | El consentimiento se persiste en PostgreSQL con: persona, versión del texto legal, fecha de aceptación y estado. Sin consentimiento activo, la ingesta de telemetría se rechaza (HTTP 403). | Avanzado |
 | RF-07 | El consentimiento es **revocable** desde la app; la revocación detiene la recogida de inmediato. | Avanzado |
-| RF-08 | El sistema permite la **supresión** de los datos de una persona a petición (borrado de negocio en PostgreSQL y de telemetría en InfluxDB). | Avanzado |
-| RF-09 | La telemetría se almacena **seudonimizada**: InfluxDB solo conoce el identificador técnico (`monitored_id`), nunca nombre ni datos identificativos. | Avanzado |
+| RF-08 | El sistema permite la **supresión** de los datos de una persona a petición (borrado en cascada en PostgreSQL: `monitored_persons`, `telemetry_windows`, alertas, feedback y dispositivos asociados). | Avanzado |
+| RF-09 | La telemetría se almacena **seudonimizada** en `telemetry_windows`: solo `monitored_person_id` y `device_id` técnicos; nunca nombre ni datos identificativos del sujeto. | Avanzado |
 
 ### 2.3 Captura de telemetría y detección de caídas (núcleo)
 
@@ -40,7 +40,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 |---|---|---|
 | RF-10 | La app captura de forma continua acelerómetro (`accX/Y/Z` en m/s²) y giroscopio (`gyroX/Y/Z` en °/s) del móvil. Sensores adicionales (frecuencia cardíaca, temperatura ambiente, luz) se capturan si están disponibles, como datos de contexto para crecimiento futuro. | Esencial |
 | RF-11 | La app envía la telemetría en **ventanas deslizantes** según el contrato SL-14/T1.2 versionado en `contracts/window_contract.json` y documentado en `contracts/window_contract.md`: 2.5 s, 50 Hz, 50% de solape y 125 muestras por señal obligatoria. | Esencial |
-| RF-12 | El backend Java valida el consentimiento, persiste la ventana (InfluxDB) y solicita la clasificación al servicio de inferencia FastAPI. | Esencial |
+| RF-12 | El backend Java valida el consentimiento, persiste la ventana en PostgreSQL (`telemetry_windows`) y solicita la clasificación al servicio de inferencia FastAPI. | Esencial |
 | RF-13 | El servicio de inferencia devuelve: `fallDetected` (bool), `confidence` (0.0–1.0), versión del modelo y timestamp. | Esencial |
 | RF-14 | El backend persiste cada predicción, pero solo crea una **alerta** cuando al menos 2 de las últimas 3 ventanas de la persona tienen `fallDetected = true`. La alerta publica el evento correspondiente en RabbitMQ. | Medio |
 | RF-15 | El cuidador recibe la alerta en la app (polling o push según `3_plan.md`) con hora, confianza y persona afectada. Tras emitirla, el backend aplica un cooldown de 60 segundos por persona: una condición persistente puede generar una nueva alerta al terminar cada minuto, nunca antes. | Medio |
@@ -119,7 +119,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | ID | Requisito |
 |---|---|
 | ML-11 | Stack completo dockerizado, incluido el servicio de inferencia con el modelo. |
-| ML-12 | Persistencia de registros de la app en bases de datos (PostgreSQL + InfluxDB). |
+| ML-12 | Persistencia de registros de la app en PostgreSQL (negocio + `telemetry_windows`). |
 | ML-13 | Despliegue de APIs y bases de datos en la nube. |
 | ML-14 | Tests unitarios: preprocesado, contrato de `/predict`, métricas, y backend Java (auth, consentimiento, alertas). |
 
@@ -186,24 +186,21 @@ Notas:
 - La base de datos de desarrollo se recreará al aplicar este cambio; no se conservarán fichas históricas con `user_id` nulo.
 - Un `device_id` solo puede tener un token push activo asociado al usuario autenticado actual. El logout lo desregistra; el siguiente login puede reasignarlo.
 - El device token de `paired_devices` se almacena hasheado y sus claims identifican `monitored_person_id` + `device_id`.
-- `telemetry_window_ref` referencia la ventana en InfluxDB (measurement + rango temporal + `monitored_id`).
+- `telemetry_window_ref` referencia el UUID de la fila en `telemetry_windows` (`feedback_labels.telemetry_window_ref`).
 
-### 5.2 InfluxDB (telemetría en tiempo real)
+### 5.2 PostgreSQL — telemetría (`telemetry_windows`, ADR-03)
 
 ```
-measurement: sensor_window
-  tags:    monitored_id, device_id, window_id
-  fields:  acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z,
-           heart_rate?, room_temp?, room_light?
-  time:    timestamp de la muestra
-
-measurement: prediction
-  tags:    monitored_id, model_version, window_id
-  fields:  fall_detected (0/1), confidence, latency_ms
-  time:    timestamp de la predicción
+telemetry_windows
+  id, monitored_person_id, device_id
+  window_start, window_end, sample_rate_hz
+  samples_json   — { accX[], accY[], accZ[], gyroX[], gyroY[], gyroZ[], ... }
+  context_json   — señales opcionales (frecuencia cardíaca, temperatura, luz)
+  fall_detected, confidence, model_version, latency_ms
+  created_at
 ```
 
-Solo identificadores técnicos (RF-09). Retención configurable (RF-08: supresión por `monitored_id`).
+Solo identificadores técnicos (RF-09). La supresión GDPR elimina las filas en cascada al borrar la persona (RF-08).
 
 ### 5.3 Eventos RabbitMQ
 
@@ -471,7 +468,7 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 1. **Demo de caída:** con la app en un móvil y el stack desplegado, una caída simulada produce una alerta visible en el perfil del cuidador en < 5 s.
 2. **Roles:** un `CAREGIVER` no puede acceder a `/api/v1/admin/*` (403); un `MONITORED` no ve alertas de otros.
 3. **Consentimiento:** sin consentimiento activo, `POST /telemetry/windows` devuelve 403 y la app no envía datos.
-4. **Supresión:** tras `DELETE /monitored-persons/{id}`, no queda telemetría de esa persona en InfluxDB ni datos de negocio en PostgreSQL.
+4. **Supresión:** tras `DELETE /monitored-persons/{id}`, no queda telemetría de esa persona en `telemetry_windows` ni datos de negocio residuales en PostgreSQL.
 5. **ML:** informe técnico completo con overfitting < 5% y validación por sujeto (LOSO/GroupKFold).
 6. **Feedback:** una alerta confirmada aparece en el export de `IT_ADMIN` como muestra etiquetada.
 7. **Observabilidad:** dashboard Grafana con latencia del pipeline y salud de los servicios, alimentado por Prometheus.
@@ -485,7 +482,7 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 15. **Logout aislado:** al cerrar `MONITORED`, el sistema espera la parada total. Tras entrar como `CAREGIVER` en el mismo dispositivo no se envían más ventanas del usuario anterior ni se generan alertas por ellas.
 16. **Aislamiento local y push:** dos cuentas alternadas en un dispositivo conservan contextos separados; un push cuyo `recipientUserId` no coincide no se muestra ni navega.
 17. **Autorización de dispositivo:** reutilizar un device token con otro `monitoredPersonId` o `deviceId` devuelve `403` y no persiste telemetría.
-18. **Retrain con feedback real (RF-33, Fase 4d):** tras confirmar una alerta en app, un job `POST /admin/retrain` incluye esa ventana en el entrenamiento (`metrics.feedback.augmented_windows >= 1`); no requiere export CSV manual.
+18. **Retrain con feedback real (RF-33, Fase 4d):** tras confirmar una alerta en app, un job `POST /admin/retrain` incluye esa ventana (`telemetry_windows.samples_json`) en el entrenamiento (`metrics.feedback.augmented_windows >= 1`); no requiere export CSV manual.
 19. **Gate sensores (RF-40, Fase 4e):** en un dispositivo sin acelerómetro o giroscopio, la app MONITORED muestra pantalla bloqueante y no envía ninguna ventana al backend; en dispositivo con IMU, el flujo pairing → consent → monitorizar funciona con normalidad.
 
 ---
@@ -505,6 +502,6 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.7 — RF-40 gate sensores + CA-19 |
+| Estado | Draft v0.8 — ADR-03 Postgres telemetría + T4e.3 fail-fast |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 15/07/2026 |
