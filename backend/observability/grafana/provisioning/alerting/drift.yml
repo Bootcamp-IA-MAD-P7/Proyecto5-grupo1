@@ -1,0 +1,45 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: sentilife-mlops
+    folder: SentiLife
+    interval: 1m
+    rules:
+      - uid: sentilife-drift-psi
+        title: Feature drift PSI above threshold
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: feature_drift_psi{job="sentilife-inference"}
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.2]
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              refId: C
+        for: 2m
+        annotations:
+          summary: "Mean feature PSI exceeded 0.2 — consider retraining"
+        labels:
+          severity: warning

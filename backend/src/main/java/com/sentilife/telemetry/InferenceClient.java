@@ -2,8 +2,10 @@ package com.sentilife.telemetry;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sentilife.config.DomainExceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -31,17 +33,30 @@ public class InferenceClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final String predictUrl;
+    private final boolean failFast;
 
+    @Autowired
     public InferenceClient(@Value("${sentilife.inference.url}") String inferenceUrl,
+                           @Value("${sentilife.inference.fail-fast:false}") boolean failFast,
                            ObjectMapper objectMapper) {
+        this(inferenceUrl, failFast, objectMapper, new RestTemplate());
+    }
+
+    /** Package-private for unit tests with a mock {@link RestTemplate}. */
+    InferenceClient(String inferenceUrl,
+                    boolean failFast,
+                    ObjectMapper objectMapper,
+                    RestTemplate restTemplate) {
         this.objectMapper = objectMapper;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
         this.predictUrl = inferenceUrl + "/predict";
+        this.failFast = failFast;
     }
 
     /**
      * Calls FastAPI /predict with the window data.
-     * On failure, returns a fallback prediction so ingestion is not blocked.
+     * On failure, returns a fallback prediction in dev (fail-fast=false) so ingestion
+     * is not blocked; in prod (fail-fast=true) propagates HTTP 503.
      */
     public TelemetryDtos.PredictionResult predict(
             UUID windowId,
@@ -74,7 +89,7 @@ public class InferenceClient {
             long latency = System.currentTimeMillis() - start;
 
             if (response == null) {
-                return fallbackPrediction("null-response");
+                return handleInferenceFailure("null-response");
             }
 
             return new TelemetryDtos.PredictionResult(
@@ -86,14 +101,18 @@ public class InferenceClient {
 
         } catch (JsonProcessingException e) {
             log.error("Error serializing inference request: {}", e.getMessage());
-            return fallbackPrediction("serialization-error");
+            return handleInferenceFailure("serialization-error");
         } catch (RestClientException e) {
             log.error("Error calling inference service: {}", e.getMessage());
-            return fallbackPrediction("inference-unavailable");
+            return handleInferenceFailure("inference-unavailable");
         }
     }
 
-    private TelemetryDtos.PredictionResult fallbackPrediction(String reason) {
+    private TelemetryDtos.PredictionResult handleInferenceFailure(String reason) {
+        if (failFast) {
+            throw DomainExceptions.ServiceUnavailableException.of(
+                    "Inference service unavailable: " + reason);
+        }
         log.warn("Using fallback prediction (reason: {})", reason);
         return new TelemetryDtos.PredictionResult(false, 0.0, reason, 0);
     }

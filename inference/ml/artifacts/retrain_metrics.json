@@ -1,0 +1,57 @@
+{
+  "task": "T4.4",
+  "model_id": "xgboost-retrain-20260715-101519",
+  "artifact_uri": "ml/models/retrain-20260715-101519.pkl",
+  "algorithm": "XGBoost",
+  "optuna_params": {
+    "n_estimators": 221,
+    "max_depth": 8,
+    "learning_rate": 0.050301088221746504,
+    "subsample": 0.6686658877124959,
+    "colsample_bytree": 0.8902685543665002
+  },
+  "train": {
+    "threshold": 0.35,
+    "precision_fall": 0.975151344502323,
+    "recall_fall": 0.9894293264766802,
+    "f1_fall": 0.9822384514482221,
+    "pr_auc": 0.9987256723509583,
+    "false_positives": 353,
+    "false_negatives": 148
+  },
+  "validation": {
+    "threshold": 0.35,
+    "precision_fall": 0.8635798632691113,
+    "recall_fall": 0.8421212121212122,
+    "f1_fall": 0.8527155569193003,
+    "pr_auc": 0.9394039272323311,
+    "false_positives": 439,
+    "false_negatives": 521
+  },
+  "test": {
+    "threshold": 0.35,
+    "precision_fall": 0.7391688770999116,
+    "recall_fall": 0.8903088391906283,
+    "f1_fall": 0.8077294685990338,
+    "pr_auc": 0.9141129293318415,
+    "false_positives": 590,
+    "false_negatives": 206
+  },
+  "overfitting": 0.09912048728605194,
+  "adl_replay": {
+    "total_windows": 3,
+    "false_positives": 0
+  },
+  "feedback": {
+    "files": [
+      "labeled_feedback_sample.csv"
+    ],
+    "total_records": 2,
+    "true_fall": 1,
+    "false_alarm": 1,
+    "augmented_windows": 0,
+    "source": "csv"
+  },
+  "previous_version": "xgboost-v1.1.0-mobile-aligned",
+  "current_recall": 0.8903088391906283
+}

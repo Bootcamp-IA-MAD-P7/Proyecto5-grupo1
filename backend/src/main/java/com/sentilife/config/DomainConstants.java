@@ -42,6 +42,10 @@ public class DomainConstants {
     public static final String MONITORING_ACTIVE   = "ACTIVE";
     public static final String MONITORING_INACTIVE = "INACTIVE";
 
+    // Monitoring lifecycle events (RF-30)
+    public static final String MONITORING_EVENT_STARTED = "STARTED";
+    public static final String MONITORING_EVENT_STOPPED = "STOPPED";
+
     // Model registry statuses
     public static final String MODEL_ACTIVE    = "ACTIVE";
     public static final String MODEL_CANDIDATE = "CANDIDATE";

@@ -1,4 +1,4 @@
-/// Payload `data` de push FCM — spec §6.4 (RF-28/RF-29).
+/// Payload `data` de push FCM — spec §6.4 (RF-28/RF-29/RF-30).
 class PushAlertPayload {
   final String type;
   final String alertId;
@@ -17,6 +17,11 @@ class PushAlertPayload {
   });
 
   bool get isFallAlert => type == 'FALL_ALERT';
+
+  bool get isStatusEvent =>
+      type == 'MONITORING_STARTED' ||
+      type == 'MONITORING_STOPPED' ||
+      type == 'CONSENT_REVOKED';
 
   factory PushAlertPayload.fromData(Map<String, dynamic> data) {
     return PushAlertPayload(

@@ -88,4 +88,9 @@ public class MonitoredDtos {
         Instant acceptedAt,
         Instant revokedAt
     ) {}
+
+    /** POST /{id}/monitoring-events — RF-30 */
+    public record MonitoringEventRequest(
+        @NotBlank String event   // STARTED | STOPPED
+    ) {}
 }

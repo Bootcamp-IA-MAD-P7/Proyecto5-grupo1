@@ -734,6 +734,48 @@ abstract class AppLocalizations {
   /// **'Export listo'**
   String get exportReady;
 
+  /// No description provided for @exportDownloadSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Dataset descargado correctamente.'**
+  String get exportDownloadSuccess;
+
+  /// No description provided for @exportDownloadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo descargar el dataset. Inténtalo de nuevo.'**
+  String get exportDownloadError;
+
+  /// No description provided for @monitoredTabStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado'**
+  String get monitoredTabStatus;
+
+  /// No description provided for @monitoredTabSensors.
+  ///
+  /// In es, this message translates to:
+  /// **'Sensores'**
+  String get monitoredTabSensors;
+
+  /// No description provided for @liveSensorsCaption.
+  ///
+  /// In es, this message translates to:
+  /// **'Esto es lo que el móvil está midiendo ahora.'**
+  String get liveSensorsCaption;
+
+  /// No description provided for @sensorsPausedMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'La monitorización está detenida. Inicia el monitoreo para ver las señales en vivo.'**
+  String get sensorsPausedMessage;
+
+  /// No description provided for @viewLiveSensorsLink.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver sensores en vivo'**
+  String get viewLiveSensorsLink;
+
   /// No description provided for @consentTitle.
   ///
   /// In es, this message translates to:
@@ -920,6 +962,36 @@ abstract class AppLocalizations {
   /// **'No se pudieron iniciar el acelerómetro y el giroscopio.'**
   String get sensorStartError;
 
+  /// No description provided for @sensorUnavailableTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Sensores no disponibles'**
+  String get sensorUnavailableTitle;
+
+  /// No description provided for @sensorUnavailableBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Este dispositivo no tiene los sensores inerciales necesarios para monitorizar caídas. Usa un móvil con acelerómetro y giroscopio.'**
+  String get sensorUnavailableBody;
+
+  /// No description provided for @sensorUnavailableRetry.
+  ///
+  /// In es, this message translates to:
+  /// **'Comprobar de nuevo'**
+  String get sensorUnavailableRetry;
+
+  /// No description provided for @sensorAvailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Disponible'**
+  String get sensorAvailable;
+
+  /// No description provided for @sensorMissing.
+  ///
+  /// In es, this message translates to:
+  /// **'No disponible'**
+  String get sensorMissing;
+
   /// No description provided for @updateNoRemoteVersion.
   ///
   /// In es, this message translates to:
@@ -991,6 +1063,228 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'La firma del APK no coincide con la versión instalada.\nDesinstala la app manualmente e instala la nueva versión.'**
   String get updateSignatureMismatchDetail;
+
+  /// No description provided for @mlops.
+  ///
+  /// In es, this message translates to:
+  /// **'MLOps'**
+  String get mlops;
+
+  /// No description provided for @mlopsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reentrenamiento del modelo'**
+  String get mlopsTitle;
+
+  /// No description provided for @mlopsDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Lanza un job de reentrenamiento con feedback de producción. El pipeline evalúa drift, entrena y decide si promover el nuevo modelo.'**
+  String get mlopsDescription;
+
+  /// No description provided for @mlopsStartRetrain.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar reentrenamiento'**
+  String get mlopsStartRetrain;
+
+  /// No description provided for @mlopsRetrainRunning.
+  ///
+  /// In es, this message translates to:
+  /// **'Reentrenamiento en curso…'**
+  String get mlopsRetrainRunning;
+
+  /// No description provided for @mlopsPhase.
+  ///
+  /// In es, this message translates to:
+  /// **'Fase'**
+  String get mlopsPhase;
+
+  /// No description provided for @mlopsDecision.
+  ///
+  /// In es, this message translates to:
+  /// **'Decisión'**
+  String get mlopsDecision;
+
+  /// No description provided for @mlopsRecall.
+  ///
+  /// In es, this message translates to:
+  /// **'Recall (test)'**
+  String get mlopsRecall;
+
+  /// No description provided for @mlopsCurrentRecall.
+  ///
+  /// In es, this message translates to:
+  /// **'Recall actual'**
+  String get mlopsCurrentRecall;
+
+  /// No description provided for @mlopsOverfitting.
+  ///
+  /// In es, this message translates to:
+  /// **'Overfitting'**
+  String get mlopsOverfitting;
+
+  /// No description provided for @mlopsModelVersion.
+  ///
+  /// In es, this message translates to:
+  /// **'Versión candidata'**
+  String get mlopsModelVersion;
+
+  /// No description provided for @mlopsRetrainStarted.
+  ///
+  /// In es, this message translates to:
+  /// **'Job de reentrenamiento iniciado.'**
+  String get mlopsRetrainStarted;
+
+  /// No description provided for @mlopsRetrainError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo iniciar el reentrenamiento.'**
+  String get mlopsRetrainError;
+
+  /// No description provided for @mlopsDecisionPromoted.
+  ///
+  /// In es, this message translates to:
+  /// **'Promovido a ACTIVE'**
+  String get mlopsDecisionPromoted;
+
+  /// No description provided for @mlopsDecisionCandidate.
+  ///
+  /// In es, this message translates to:
+  /// **'Candidato (sin promover)'**
+  String get mlopsDecisionCandidate;
+
+  /// No description provided for @mlopsDecisionDiscarded.
+  ///
+  /// In es, this message translates to:
+  /// **'Descartado'**
+  String get mlopsDecisionDiscarded;
+
+  /// No description provided for @mlopsDecisionPending.
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente'**
+  String get mlopsDecisionPending;
+
+  /// No description provided for @mlopsFeedbackRecords.
+  ///
+  /// In es, this message translates to:
+  /// **'Registros de feedback'**
+  String get mlopsFeedbackRecords;
+
+  /// No description provided for @mlopsAugmentedWindows.
+  ///
+  /// In es, this message translates to:
+  /// **'Ventanas augmentadas'**
+  String get mlopsAugmentedWindows;
+
+  /// No description provided for @mlopsPrerequisitesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos etiquetados disponibles'**
+  String get mlopsPrerequisitesTitle;
+
+  /// No description provided for @mlopsFeedbackProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'{current} de {minimum} registros mínimos'**
+  String mlopsFeedbackProgress(int current, int minimum);
+
+  /// No description provided for @mlopsFeedbackRecommended.
+  ///
+  /// In es, this message translates to:
+  /// **'Recomendado: al menos {count} registros para un reentreno fiable.'**
+  String mlopsFeedbackRecommended(int count);
+
+  /// No description provided for @mlopsInsufficientFeedbackTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay suficiente feedback'**
+  String get mlopsInsufficientFeedbackTitle;
+
+  /// No description provided for @mlopsInsufficientFeedbackBody.
+  ///
+  /// In es, this message translates to:
+  /// **'El reentrenamiento mezcla el dataset SisFall con ventanas IMU que los cuidadores han confirmado o descartado. Con muy pocos ejemplos nuevos el modelo no mejora y se desperdician recursos de cómputo.\n\nPide a los cuidadores que revisen las alertas (confirmar caída real o marcar falsa alarma) hasta alcanzar el mínimo. Cada registro debe incluir la ventana de sensores completa (125 muestras).'**
+  String get mlopsInsufficientFeedbackBody;
+
+  /// No description provided for @mlopsConfirmTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Iniciar reentrenamiento?'**
+  String get mlopsConfirmTitle;
+
+  /// No description provided for @mlopsConfirmBody.
+  ///
+  /// In es, this message translates to:
+  /// **'El pipeline ejecutará estas fases:\n1. Drift — compara la telemetría reciente con SisFall.\n2. Entrenamiento — mezcla SisFall + feedback etiquetado de la base de datos.\n3. Evaluación — mide recall, precision y overfitting.\n4. Decisión — solo promueve el modelo si el recall de caídas mejora y el overfitting es ≤ 5 %.\n\nSi no mejora, el modelo actual se mantiene (decisión discarded/candidate).'**
+  String get mlopsConfirmBody;
+
+  /// No description provided for @mlopsCriteriaTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Criterios y explicabilidad MLOps'**
+  String get mlopsCriteriaTitle;
+
+  /// No description provided for @mlopsCriteriaBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Umbral mínimo: registros etiquetados válidos en Postgres (ventana IMU + etiqueta TRUE_FALL o FALSE_ALARM).\n\nRecomendado: acumular más feedback diverso (caídas confirmadas y falsas alarmas) antes de reentrenar.\n\nPromoción automática solo si:\n• Recall de caídas del candidato > recall del modelo ACTIVE.\n• Overfitting (train − test) ≤ 5 %.\n\nEl contador «Ventanas augmentadas» del último job indica cuántas muestras reales de producción entraron al entrenamiento.'**
+  String get mlopsCriteriaBody;
+
+  /// No description provided for @mlopsWhyDisabled.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Por qué está deshabilitado?'**
+  String get mlopsWhyDisabled;
+
+  /// No description provided for @helpButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Ayuda'**
+  String get helpButton;
+
+  /// No description provided for @helpClose.
+  ///
+  /// In es, this message translates to:
+  /// **'Entendido'**
+  String get helpClose;
+
+  /// No description provided for @helpMonitoredTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guía — Persona monitorizada'**
+  String get helpMonitoredTitle;
+
+  /// No description provided for @helpMonitoredBody.
+  ///
+  /// In es, this message translates to:
+  /// **'1. Comprueba que tu móvil tiene acelerómetro y giroscopio.\n2. Vincula el dispositivo con el código que te da tu cuidador.\n3. Acepta el consentimiento informado (puedes revocarlo cuando quieras).\n4. Inicia la monitorización: la app captura sensores en segundo plano con una notificación permanente.\n5. Pestaña Estado: última evaluación del modelo (caída sí/no, confianza).\n6. Pestaña Sensores: gráficos en vivo de lo que mide el móvil ahora.\n\nTus datos solo se envían con consentimiento activo y se usan para mejorar el modelo (modal de transparencia).'**
+  String get helpMonitoredBody;
+
+  /// No description provided for @helpCaregiverTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guía — Cuidador/a'**
+  String get helpCaregiverTitle;
+
+  /// No description provided for @helpCaregiverBody.
+  ///
+  /// In es, this message translates to:
+  /// **'1. Registra a la persona con el email de su cuenta MONITORED (debe existir y estar activa).\n2. Comparte el código de vinculación para que empareje su móvil.\n3. Recibirás notificaciones push cuando haya una alerta de posible caída.\n4. Revisa cada alerta: confirma si fue una caída real o descártala como falsa alarma.\n\nTu feedback etiqueta las ventanas IMU y alimenta el reentrenamiento del modelo. Cuanto más feedback de calidad aportes, mejor será el siguiente modelo.'**
+  String get helpCaregiverBody;
+
+  /// No description provided for @helpItAdminTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guía — Administración IT'**
+  String get helpItAdminTitle;
+
+  /// No description provided for @helpItAdminBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial: alertas globales del sistema.\n\nExportar: descarga CSV autenticado con ventanas etiquetadas (feedback de cuidadores).\n\nUsuarios: activar o desactivar cuentas.\n\nMLOps — Reentrenamiento:\n• Lee el feedback de Postgres automáticamente (sin CSV manual).\n• Requiere un mínimo de registros etiquetados antes de lanzar el job.\n• Muestra fases, métricas y decisión (promoted / candidate / discarded).\n• Solo promueve si mejora el recall de caídas sin sobreajuste.\n\nGrafana (QA): http://100.52.221.179:3006 — dashboards de latencia, colas y drift.'**
+  String get helpItAdminBody;
 }
 
 class _AppLocalizationsDelegate

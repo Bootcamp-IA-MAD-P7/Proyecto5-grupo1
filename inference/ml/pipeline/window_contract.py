@@ -13,9 +13,18 @@ from functools import lru_cache
 from pathlib import Path
 
 
-CONTRACT_PATH = (
-    Path(__file__).resolve().parents[3] / "contracts" / "window_contract.json"
-)
+def _resolve_contract_path() -> Path:
+    candidates = [
+        Path(__file__).resolve().parents[3] / "contracts" / "window_contract.json",
+        Path("/contracts/window_contract.json"),
+    ]
+    for path in candidates:
+        if path.is_file():
+            return path
+    return candidates[0]
+
+
+CONTRACT_PATH = _resolve_contract_path()
 
 
 @dataclass(frozen=True)

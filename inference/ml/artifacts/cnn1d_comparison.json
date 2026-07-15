@@ -1,0 +1,120 @@
+{
+  "task": "T4.2 / ML-15",
+  "model_type": "CNN1D",
+  "model_path": "ml/models/cnn1d-v1.0.0.keras",
+  "raw_window_shape": [
+    125,
+    6
+  ],
+  "split": "GroupShuffleSplit 70/15/15 + LOSO",
+  "n_windows": 56313,
+  "n_subjects": 38,
+  "cnn1d": {
+    "threshold": 0.85,
+    "pr_auc": 0.8618,
+    "precision_fall": 0.791,
+    "recall_fall": 0.76,
+    "f1_fall": 0.7752,
+    "confusion_matrix": [
+      [
+        5321,
+        497
+      ],
+      [
+        594,
+        1881
+      ]
+    ],
+    "classification_report": {
+      "No caída": {
+        "precision": 0.8995773457311919,
+        "recall": 0.9145754554829838,
+        "f1-score": 0.9070144038182902,
+        "support": 5818.0
+      },
+      "Caída": {
+        "precision": 0.7910008410428931,
+        "recall": 0.76,
+        "f1-score": 0.7751906037502576,
+        "support": 2475.0
+      },
+      "accuracy": 0.8684432654045581,
+      "macro avg": {
+        "precision": 0.8452890933870425,
+        "recall": 0.8372877277414918,
+        "f1-score": 0.8411025037842739,
+        "support": 8293.0
+      },
+      "weighted avg": {
+        "precision": 0.8671732882003177,
+        "recall": 0.8684432654045581,
+        "f1-score": 0.8676723195100325,
+        "support": 8293.0
+      }
+    },
+    "cv_pr_auc_mean": 0.8754,
+    "overfitting_gap_pp": 1.36,
+    "overfitting_ok": true,
+    "pr_auc_loso": 0.8007,
+    "f1_fall_loso": 0.6289,
+    "confusion_matrix_loso": [
+      [
+        35394,
+        1740
+      ],
+      [
+        9584,
+        9595
+      ]
+    ]
+  },
+  "xgboost_same_split": {
+    "threshold": 0.55,
+    "pr_auc": 0.8905,
+    "precision_fall": 0.7842,
+    "recall_fall": 0.8133,
+    "f1_fall": 0.7985,
+    "confusion_matrix": [
+      [
+        5264,
+        554
+      ],
+      [
+        462,
+        2013
+      ]
+    ],
+    "classification_report": {
+      "No caída": {
+        "precision": 0.9193154034229829,
+        "recall": 0.9047782743210725,
+        "f1-score": 0.911988911988912,
+        "support": 5818.0
+      },
+      "Caída": {
+        "precision": 0.7841838722243865,
+        "recall": 0.8133333333333334,
+        "f1-score": 0.7984926616422054,
+        "support": 2475.0
+      },
+      "accuracy": 0.87748703726034,
+      "macro avg": {
+        "precision": 0.8517496378236846,
+        "recall": 0.8590558038272029,
+        "f1-score": 0.8552407868155587,
+        "support": 8293.0
+      },
+      "weighted avg": {
+        "precision": 0.8789861450464573,
+        "recall": 0.87748703726034,
+        "f1-score": 0.878116583566375,
+        "support": 8293.0
+      }
+    },
+    "cv_pr_auc_mean": 0.9203,
+    "overfitting_gap_pp": 2.98,
+    "overfitting_ok": true
+  },
+  "ensemble_baseline_loso": 0.9254,
+  "winner_loso": "XGBoost"
+}

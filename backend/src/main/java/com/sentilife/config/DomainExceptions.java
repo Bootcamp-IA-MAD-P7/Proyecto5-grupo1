@@ -55,4 +55,12 @@ public class DomainExceptions {
         private BadRequestException(String message) { super(message); }
         public static BadRequestException of(String message) { return new BadRequestException(message); }
     }
+
+    /** External dependency unavailable — maps to HTTP 503. */
+    public static class ServiceUnavailableException extends SentiLifeException {
+        private ServiceUnavailableException(String message) { super(message); }
+        public static ServiceUnavailableException of(String message) {
+            return new ServiceUnavailableException(message);
+        }
+    }
 }

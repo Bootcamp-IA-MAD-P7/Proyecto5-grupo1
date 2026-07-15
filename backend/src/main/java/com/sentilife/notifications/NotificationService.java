@@ -1,5 +1,6 @@
 package com.sentilife.notifications;
 
+import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -19,13 +20,7 @@ import java.util.UUID;
 /**
  * Sends push notifications via Firebase Cloud Messaging.
  *
- * Called when an alert is created (fall detected).
- * Looks up the caregiver's registered FCM tokens and sends
- * a notification to all their devices.
- *
- * Gracefully degrades: if Firebase is not initialized (no service
- * account configured), notifications are silently skipped and
- * the alert remains available via GET /alerts (polling fallback).
+ * Fall alerts use high priority; monitoring/consent status uses normal priority (RF-30).
  */
 @Service
 public class NotificationService {
@@ -44,43 +39,20 @@ public class NotificationService {
         this.monitoredPersonRepository = monitoredPersonRepository;
     }
 
-    /**
-     * Sends a fall alert push notification to the caregiver.
-     *
-     * @param monitoredPersonId the person who fell
-     * @param alertId           the alert UUID (for navigation on tap)
-     * @param confidence        prediction confidence (0-1)
-     */
     public void sendFallAlert(UUID monitoredPersonId, UUID alertId, double confidence) {
         if (!firebaseConfig.isInitialized()) {
             log.debug("[FCM] Firebase not initialized — skipping push for alert={}", alertId);
             return;
         }
 
-        // Find the caregiver for this monitored person
-        MonitoredPerson person = monitoredPersonRepository.findById(monitoredPersonId)
-                .orElse(null);
-        if (person == null) {
-            log.warn("[FCM] Monitored person not found: {}", monitoredPersonId);
-            return;
-        }
-
-        UUID caregiverId = person.getCaregiverId();
-        String personName = person.getFullName();
-
-        // Get all push tokens for this caregiver
-        List<PushToken> tokens = pushTokenRepository.findByUserId(caregiverId);
-        if (tokens.isEmpty()) {
-            log.debug("[FCM] No push tokens for caregiver={} — alert={} available via polling",
-                    caregiverId, alertId);
-            return;
-        }
+        CaregiverContext ctx = resolveCaregiverContext(monitoredPersonId);
+        if (ctx == null) return;
 
         int confidencePercent = (int) Math.round(confidence * 100);
 
-        for (PushToken token : tokens) {
+        for (PushToken token : ctx.tokens()) {
             FallAlertPushMessages.Content notification =
-                    FallAlertPushMessages.forLocale(token.getLocale(), personName, confidencePercent);
+                    FallAlertPushMessages.forLocale(token.getLocale(), ctx.personName(), confidencePercent);
 
             try {
                 Message message = Message.builder()
@@ -89,32 +61,95 @@ public class NotificationService {
                                 .setTitle(notification.title())
                                 .setBody(notification.body())
                                 .build())
-                        // Data payload for app navigation
-                        .putData("type", "FALL_ALERT")
+                        .setAndroidConfig(AndroidConfig.builder()
+                                .setPriority(AndroidConfig.Priority.HIGH)
+                                .build())
+                        .putData("type", CaregiverNotificationEvent.TYPE_FALL_ALERT)
                         .putData("alertId", alertId.toString())
                         .putData("monitoredPersonId", monitoredPersonId.toString())
-                        .putData("personName", personName)
+                        .putData("personName", ctx.personName())
                         .putData("confidence", String.valueOf(confidence))
-                        .putData("recipientUserId", caregiverId.toString())
+                        .putData("recipientUserId", ctx.caregiverId().toString())
                         .build();
 
                 String messageId = FirebaseMessaging.getInstance().send(message);
-                log.info("[FCM] Push sent to caregiver={} device={} messageId={}",
-                        caregiverId, token.getDeviceId(), messageId);
+                log.info("[FCM] Fall alert push sent caregiver={} device={} messageId={}",
+                        ctx.caregiverId(), token.getDeviceId(), messageId);
 
             } catch (FirebaseMessagingException e) {
                 handleFcmError(token, e);
             } catch (Exception e) {
-                log.error("[FCM] Unexpected error sending push to device={}: {}",
+                log.error("[FCM] Unexpected error sending fall push to device={}: {}",
                         token.getDeviceId(), e.getMessage());
             }
         }
     }
 
     /**
-     * Handles FCM errors. If the token is invalid/unregistered,
-     * removes it from the database to avoid future failures.
+     * Low-priority status notification for monitoring/consent changes (RF-30).
      */
+    public void sendStatusNotification(String type, UUID monitoredPersonId) {
+        if (!firebaseConfig.isInitialized()) {
+            log.debug("[FCM] Firebase not initialized — skipping status {} person={}",
+                    type, monitoredPersonId);
+            return;
+        }
+
+        CaregiverContext ctx = resolveCaregiverContext(monitoredPersonId);
+        if (ctx == null) return;
+
+        for (PushToken token : ctx.tokens()) {
+            StatusPushMessages.Content notification =
+                    StatusPushMessages.forType(type, token.getLocale(), ctx.personName());
+
+            try {
+                Message message = Message.builder()
+                        .setToken(token.getFcmToken())
+                        .setNotification(Notification.builder()
+                                .setTitle(notification.title())
+                                .setBody(notification.body())
+                                .build())
+                        .setAndroidConfig(AndroidConfig.builder()
+                                .setPriority(AndroidConfig.Priority.NORMAL)
+                                .build())
+                        .putData("type", type)
+                        .putData("monitoredPersonId", monitoredPersonId.toString())
+                        .putData("personName", ctx.personName())
+                        .putData("recipientUserId", ctx.caregiverId().toString())
+                        .build();
+
+                String messageId = FirebaseMessaging.getInstance().send(message);
+                log.info("[FCM] Status push {} sent caregiver={} device={} messageId={}",
+                        type, ctx.caregiverId(), token.getDeviceId(), messageId);
+
+            } catch (FirebaseMessagingException e) {
+                handleFcmError(token, e);
+            } catch (Exception e) {
+                log.error("[FCM] Unexpected error sending status push to device={}: {}",
+                        token.getDeviceId(), e.getMessage());
+            }
+        }
+    }
+
+    private CaregiverContext resolveCaregiverContext(UUID monitoredPersonId) {
+        MonitoredPerson person = monitoredPersonRepository.findById(monitoredPersonId)
+                .orElse(null);
+        if (person == null) {
+            log.warn("[FCM] Monitored person not found: {}", monitoredPersonId);
+            return null;
+        }
+
+        UUID caregiverId = person.getCaregiverId();
+        List<PushToken> tokens = pushTokenRepository.findByUserId(caregiverId);
+        if (tokens.isEmpty()) {
+            log.debug("[FCM] No push tokens for caregiver={} — person={} available via polling",
+                    caregiverId, monitoredPersonId);
+            return null;
+        }
+
+        return new CaregiverContext(caregiverId, person.getFullName(), tokens);
+    }
+
     private void handleFcmError(PushToken token, FirebaseMessagingException e) {
         MessagingErrorCode code = e.getMessagingErrorCode();
 
@@ -127,4 +162,6 @@ public class NotificationService {
                     token.getDeviceId(), code, e.getMessage());
         }
     }
+
+    private record CaregiverContext(UUID caregiverId, String personName, List<PushToken> tokens) {}
 }

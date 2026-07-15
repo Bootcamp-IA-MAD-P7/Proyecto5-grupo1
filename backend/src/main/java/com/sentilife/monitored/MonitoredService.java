@@ -9,6 +9,7 @@ import com.sentilife.consent.ConsentRepository;
 import com.sentilife.devices.PairedDeviceRepository;
 import com.sentilife.telemetry.TelemetryWindow;
 import com.sentilife.telemetry.TelemetryWindowRepository;
+import com.sentilife.notifications.CaregiverEventPublisher;
 import com.sentilife.users.User;
 import com.sentilife.users.UserRepository;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class MonitoredService {
     private final TelemetryWindowRepository telemetryRepository;
     private final PairedDeviceRepository pairedDeviceRepository;
     private final UserRepository userRepository;
+    private final CaregiverEventPublisher caregiverEventPublisher;
 
     public MonitoredService(MonitoredPersonRepository repository,
                             ConsentRepository consentRepository,
@@ -45,7 +47,8 @@ public class MonitoredService {
                             FeedbackLabelRepository feedbackRepository,
                             TelemetryWindowRepository telemetryRepository,
                             PairedDeviceRepository pairedDeviceRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            CaregiverEventPublisher caregiverEventPublisher) {
         this.repository            = repository;
         this.consentRepository     = consentRepository;
         this.alertRepository       = alertRepository;
@@ -53,6 +56,7 @@ public class MonitoredService {
         this.telemetryRepository   = telemetryRepository;
         this.pairedDeviceRepository = pairedDeviceRepository;
         this.userRepository        = userRepository;
+        this.caregiverEventPublisher = caregiverEventPublisher;
     }
 
     @Transactional
@@ -195,7 +199,29 @@ public class MonitoredService {
 
         consent.setStatus(DomainConstants.CONSENT_REVOKED);
         consent.setRevokedAt(Instant.now());
-        return toConsentResponse(consentRepository.save(consent));
+        Consent saved = consentRepository.save(consent);
+        caregiverEventPublisher.publishConsentRevoked(personId);
+        return toConsentResponse(saved);
+    }
+
+    /**
+     * Notifies the caregiver when the MONITORED starts or stops local monitoring (RF-30).
+     */
+    public void publishMonitoringEvent(UUID monitoredUserId, UUID personId, String event) {
+        MonitoredPerson person = repository.findByUserId(monitoredUserId)
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of("Monitored profile not linked"));
+        if (!person.getId().equals(personId)) {
+            throw DomainExceptions.ForbiddenException.of("Access denied to this person");
+        }
+
+        if (DomainConstants.MONITORING_EVENT_STARTED.equals(event)) {
+            caregiverEventPublisher.publishMonitoringStarted(personId);
+        } else if (DomainConstants.MONITORING_EVENT_STOPPED.equals(event)) {
+            caregiverEventPublisher.publishMonitoringStopped(personId);
+        } else {
+            throw DomainExceptions.BadRequestException.of(
+                    "event must be STARTED or STOPPED");
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sentilife/config/window_contract.dart';
 import 'package:sentilife/models/alert.dart';
+import 'package:sentilife/models/retrain_status.dart';
 import 'package:sentilife/models/user.dart';
 import 'package:sentilife/services/admin_service.dart';
 import 'package:sentilife/services/alerts_service.dart';
@@ -12,6 +13,8 @@ import 'package:sentilife/services/auth_service.dart';
 import 'package:sentilife/services/devices_service.dart';
 import 'package:sentilife/services/exceptions.dart';
 import 'package:sentilife/services/monitored_service.dart';
+import 'package:sentilife/services/secure_token_storage.dart';
+import 'package:sentilife/services/session_repository.dart';
 import 'package:sentilife/services/telemetry_service.dart';
 
 /// Contratos FE↔BE verificados contra JSON real del backend Java usando
@@ -656,24 +659,75 @@ void main() {
       );
     });
 
-    test('getRetrainStatus parsea el job completado', () async {
+    test('getRetrainStatus parsea RetrainDtos del backend', () async {
       final service = AdminService(
         client: MockClient((req) async => _json({
-              'status': 'completed',
-              'decision': 'promoted',
-              'details': {
-                'currentRecall': 0.91,
-                'newRecall': 0.94,
-                'overfittingGap': 0.03,
-                'driftDetected': false,
-                'modelReloaded': true,
+              'phase': 'COMPLETED',
+              'decision': 'PROMOTED',
+              'message': 'Model promoted — recall=0.930 (was 0.890)',
+              'modelVersion': 'xgboost-retrain-test',
+              'metrics': {
+                'recall': 0.93,
+                'current_recall': 0.89,
+                'overfitting': 0.02,
               },
+              'startedAt': '2026-07-14T12:00:00Z',
+              'completedAt': '2026-07-14T12:05:00Z',
             })),
       );
 
       final status = await service.getRetrainStatus();
+      expect(status.status, RetrainStatus.completed);
+      expect(status.phase, 'completed');
       expect(status.decision, 'promoted');
-      expect(status.details!.newRecall, greaterThan(status.details!.currentRecall));
+      expect(status.modelVersion, 'xgboost-retrain-test');
+      expect(status.details!.newRecall, closeTo(0.93, 0.001));
+      expect(status.details!.currentRecall, closeTo(0.89, 0.001));
+      expect(status.details!.overfittingGap, closeTo(0.02, 0.001));
+    });
+
+    test('downloadExport descarga CSV con Bearer y parsea filename (T5.2)', () async {
+      SessionRepository.resetForTests();
+      final session = SessionRepository(storage: InMemorySecureTokenStorage());
+      SessionRepository.useForTests(session);
+      session.setSession(
+        const AuthTokens(
+          accessToken: 'admin-token',
+          refreshToken: 'refresh',
+          expiresIn: 900,
+          user: User(
+            id: 'admin-1',
+            email: 'admin@test.com',
+            fullName: 'IT',
+            role: UserRole.itAdmin,
+          ),
+        ),
+      );
+
+      const csvBody = 'window_id,label\nuuid-1,TRUE_FALL\n';
+      late String? authHeader;
+      final service = AdminService(
+        client: MockClient((req) async {
+          expect(req.method, 'GET');
+          expect(req.url.path, endsWith('/export'));
+          authHeader = req.headers['Authorization'];
+          return http.Response(
+            csvBody,
+            200,
+            headers: {
+              'content-type': 'text/csv',
+              'content-disposition':
+                  'attachment; filename="sentilife-feedback-all-all.csv"',
+            },
+          );
+        }),
+      );
+
+      final download = await service.downloadExport();
+      expect(authHeader, isNotNull);
+      expect(String.fromCharCodes(download.bytes), csvBody);
+      expect(download.filename, 'sentilife-feedback-all-all.csv');
+      SessionRepository.resetForTests();
     });
   });
 }

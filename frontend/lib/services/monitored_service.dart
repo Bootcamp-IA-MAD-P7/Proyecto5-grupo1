@@ -113,6 +113,16 @@ class MonitoredService {
     _checkStatus(res);
   }
 
+  /// POST /{id}/monitoring-events — notificar inicio/parada local (RF-30)
+  Future<void> notifyMonitoringEvent(String id, {required bool started}) async {
+    final res = await _client.post(
+      Uri.parse('$_base/$id/monitoring-events'),
+      headers: _headers(),
+      body: jsonEncode({'event': started ? 'STARTED' : 'STOPPED'}),
+    );
+    _checkStatus(res);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Map<String, String> _headers() => apiJsonHeaders();

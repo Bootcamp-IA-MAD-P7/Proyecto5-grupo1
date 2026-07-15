@@ -61,7 +61,7 @@ El diseño completo y sus decisiones están en
 | `make verify` | Fail-fast: health checks de todos los contenedores + Java + inference |
 | `make logs` | Logs de `backend`, `api` y `db` |
 | `make down` | Para contenedores |
-| `make reset-db` | Borra volumen Postgres (`down -v`) — Flyway reaplica V1–V4 en el próximo `make up` |
+| `make reset-db` | Borra volumen Postgres (`down -v`) — Flyway reaplica V1–V6 en el próximo `make up` |
 | `make test` | Corre los 3 suites (Java + Python + Flutter), igual que CI |
 | `make test-java` / `test-python` / `test-flutter` | Suite individual |
 | `make flutter-local` | Flutter → Java API local (`:8080`) |
@@ -69,6 +69,8 @@ El diseño completo y sus decisiones están en
 | `make flutter-qa` | Flutter → Java API en EC2 (`:8005`) |
 | `make smoke-telemetry` | **T1.INT / SL-25** — smoke E2E telemetría real (requiere `make up`) |
 | `make smoke-mvp` | **T2.INT / SL-43** — MVP E2E: caída → alerta → push → confirmar → export IT |
+| `make smoke-expert` | **T4.INT** — demo experto MLOps: retrain IT → decisión → drift → A/B |
+| `make smoke-qa-ec2` | **T3.INT** — smoke QA contra EC2 `:8005` |
 | Clone limpio | **T0.INT / SL-15** — ver [§Clone limpio](#0-clone-limpio-t0int--sl-15) |
 
 ### Variables en `.env`
@@ -113,7 +115,7 @@ make smoke-telemetry
 | E2E `POST /telemetry/windows` (ventana ADL) | **197 ms** |
 | E2E `POST /telemetry/windows` (caída simulada) | **61 ms** |
 | FastAPI `/predict` (inferencia ML) | **16 ms** |
-| Modelo servido | `baseline-v1` (XGBoost) |
+| Modelo servido | `xgboost-v1.1.0-mobile-aligned` (threshold 0.35) |
 
 En móvil físico: `make flutter-phone` → login MONITORED → pairing `SL-XXXXXX` → consentimiento → iniciar monitorización; la pantalla MONITORED muestra `fallDetected`, `confidence` y `modelVersion` de la última evaluación.
 
@@ -394,27 +396,29 @@ Credenciales Postgres: mismas que `.env.example` (no commitear `.env` ni `.env.q
 
 ## Estado Factoría F5
 
-Fuente de verdad: [`.specify/specs/factoria/4_task.md`](.specify/specs/factoria/4_task.md) (estado actual + cola + CA). Presentación: **jueves 16**.
+Fuente de verdad: [`.specify/specs/factoria/4_task.md`](.specify/specs/factoria/4_task.md). Presentación: **jueves 16**.
 
-| Nivel | Estado | Pendiente clave |
+| Nivel | Estado | Evidencia |
 |---|---|---|
-| Esencial | ✅ Cerrado | T0.INT + T1.INT verificados |
-| Medio | ✅ Cerrado | T2.INT (`make smoke-mvp`) |
-| Avanzado | ~44% | Tests MockMvc, GDPR+test, i18n, OTA, T3.INT (CI/CD deploy ✅) |
-| Experto | ~25% | CNN/LSTM, retrain real, drift real, MLOps UI, presentaciones |
+| 🟢 Esencial | ✅ Cerrado | `make smoke-telemetry` |
+| 🟡 Medio | ✅ Cerrado | `make smoke-mvp` |
+| 🟠 Avanzado | ✅ Cerrado (9/9) | `make smoke-qa-ec2` · OTA físico Xiaomi |
+| 🔴 Experto | ✅ Cerrado | `make smoke-expert` · retrain con feedback real (`augmented_windows ≥ 1`) |
+| 🟣 Post-demo | ✅ Cerrado | T5.1–T5.6 (push, export, Grafana, sensores, ayuda, umbral retrain) |
 
-> El SDD formal ya está definido y enlazado en la sección
-> [Documentación](#documentación).
+**Tests (15/07):** Java ✅ · pytest **54** passed · flutter **114** passed · `flutter analyze` limpio.
 
 ---
 
 ## Deuda técnica
 
-- ~~Mocks Flutter~~ — **eliminados por completo**: servicios solo contra backend Java real (`http.Client` inyectable); los tests usan `MockClient` de `package:http/testing` ✅
-- **No regenerar** `processed/` hasta SDD
-- ~~MobiAct~~ — fuera de alcance Factoría (CEMP)
-- Retrain (`T4.4`): API stub — falta entrenamiento real
-- Endpoint OTA `/app/register-version` pendiente verificación en dispositivo (CI android.yml ya registra)
+- ~~Mocks Flutter~~ — eliminados ✅
+- ~~MobiAct~~ — fuera de alcance Factoría (CEMP) ✂
+- ~~Retrain stub~~ — pipeline real con feedback Postgres (T4d) ✅
+- ~~OTA en dispositivo~~ — verificado Xiaomi API 35 (T3.8) ✅
+- **No regenerar** `processed/` salvo nueva iteración ML acordada en equipo
+- **Limitación conocida:** dataset SisFall — sesgo edad (adultos jóvenes simulan caídas); documentado en informes
+- **iOS background:** foreground service es requisito Android; en iOS/web la captura puede detenerse al minimizar (ADR-12)
 
 ---
 
@@ -555,6 +559,21 @@ if [ "$MOBI" -eq 0 ]; then echo "MobiAct: pendiente (email bmi@hmu.gr)"; else ec
 | **FARSEEING** | Proyecto EU AAL | Caídas reales mayores — acceso bajo solicitud, muestras públicas limitadas |
 
 Detalle académico completo: [inference/data/README.md](inference/data/README.md)
+
+---
+
+## Entregables Factoría (T4.8)
+
+| Documento | Ruta |
+|---|---|
+| Informe técnico final | [inference/docs/informe_tecnico_final.md](inference/docs/informe_tecnico_final.md) |
+| Informes anteriores | `informe_tecnico_v1.md` · `v2.md` · `v3.md` |
+| Presentación negocio | [docs/presentaciones/presentacion_negocio.md](docs/presentaciones/presentacion_negocio.md) |
+| Presentación técnica | [docs/presentaciones/presentacion_tecnica.md](docs/presentaciones/presentacion_tecnica.md) |
+| Acta demo experto | [docs/daily/t4int-expert-demo-20260714.md](docs/daily/t4int-expert-demo-20260714.md) |
+| Artefactos ML | `inference/ml/artifacts/*.json` |
+
+Presentaciones en formato Marp (exportar a PDF/PPTX con [Marp CLI](https://github.com/marp-team/marp-cli) o VS Code Marp extension).
 
 ---
 

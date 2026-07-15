@@ -7,6 +7,7 @@ import com.sentilife.config.DomainExceptions;
 import com.sentilife.consent.Consent;
 import com.sentilife.consent.ConsentRepository;
 import com.sentilife.devices.PairedDeviceRepository;
+import com.sentilife.notifications.CaregiverEventPublisher;
 import com.sentilife.telemetry.TelemetryWindow;
 import com.sentilife.telemetry.TelemetryWindowRepository;
 import com.sentilife.users.User;
@@ -41,6 +42,7 @@ class MonitoredServiceTest {
     @Mock TelemetryWindowRepository telemetryRepository;
     @Mock PairedDeviceRepository pairedDeviceRepository;
     @Mock UserRepository userRepository;
+    @Mock CaregiverEventPublisher caregiverEventPublisher;
 
     @InjectMocks MonitoredService service;
 
@@ -302,6 +304,45 @@ class MonitoredServiceTest {
 
         assertThat(existing.getStatus()).isEqualTo(DomainConstants.CONSENT_REVOKED);
         assertThat(result.status()).isEqualTo(DomainConstants.CONSENT_REVOKED);
+        verify(caregiverEventPublisher).publishConsentRevoked(personId);
+    }
+
+    @Test
+    void publishMonitoringEvent_started_publishesEvent() {
+        UUID monitoredUserId = UUID.randomUUID();
+        MonitoredPerson linked = org.mockito.Mockito.mock(MonitoredPerson.class);
+        when(linked.getId()).thenReturn(personId);
+        when(repository.findByUserId(monitoredUserId)).thenReturn(Optional.of(linked));
+
+        service.publishMonitoringEvent(
+                monitoredUserId, personId, DomainConstants.MONITORING_EVENT_STARTED);
+
+        verify(caregiverEventPublisher).publishMonitoringStarted(personId);
+    }
+
+    @Test
+    void publishMonitoringEvent_wrongPerson_throwsForbidden() {
+        UUID monitoredUserId = UUID.randomUUID();
+        MonitoredPerson linked = org.mockito.Mockito.mock(MonitoredPerson.class);
+        when(linked.getId()).thenReturn(personId);
+        when(repository.findByUserId(monitoredUserId)).thenReturn(Optional.of(linked));
+
+        UUID otherPerson = UUID.randomUUID();
+        assertThatThrownBy(() -> service.publishMonitoringEvent(
+                monitoredUserId, otherPerson, DomainConstants.MONITORING_EVENT_STOPPED))
+                .isInstanceOf(DomainExceptions.ForbiddenException.class);
+    }
+
+    @Test
+    void publishMonitoringEvent_invalidEvent_throwsBadRequest() {
+        UUID monitoredUserId = UUID.randomUUID();
+        MonitoredPerson linked = org.mockito.Mockito.mock(MonitoredPerson.class);
+        when(linked.getId()).thenReturn(personId);
+        when(repository.findByUserId(monitoredUserId)).thenReturn(Optional.of(linked));
+
+        assertThatThrownBy(() -> service.publishMonitoringEvent(
+                monitoredUserId, personId, "PAUSE"))
+                .isInstanceOf(DomainExceptions.BadRequestException.class);
     }
 
     // ── response enrichment (T2.27) ─────────────────────────────────────────────

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../models/prediction_result.dart';
 import 'exceptions.dart';
 import 'monitoring_foreground_bridge.dart';
 import 'telemetry_pipeline_service.dart';
@@ -33,6 +34,7 @@ class MonitoringCoordinator extends ChangeNotifier {
   bool get isMonitoring => _pipeline.isRunning;
   WindowPrediction? get lastPrediction => _lastPrediction;
   DateTime? get lastWindowAt => _lastWindowAt;
+  Stream<SensorSnapshot> get sensorSnapshots => _pipeline.sensorSnapshots;
 
   Future<void> start({
     required String monitoredPersonId,

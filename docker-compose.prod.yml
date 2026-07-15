@@ -67,6 +67,7 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       JWT_SECRET: ${JWT_SECRET}
       INFERENCE_URL: http://api:8000
+      INFERENCE_FAIL_FAST: "true"
       FIREBASE_SERVICE_ACCOUNT: /app/config/firebase-service-account.json
     volumes:
       - ./backend/config:/app/config:ro
@@ -90,6 +91,8 @@ services:
     environment:
       MODEL_PATH: ${MODEL_PATH:-ml/models/model.pkl}
       MODEL_VERSION: ${MODEL_VERSION:-baseline-v1}
+    volumes:
+      - ./contracts:/contracts:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
       interval: 10s

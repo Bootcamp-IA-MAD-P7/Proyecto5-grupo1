@@ -7,6 +7,7 @@ import '../models/user.dart';
 import '../services/auth_session.dart';
 import '../services/logout_service.dart';
 import '../services/session_manager.dart';
+import '../widgets/role_help_dialog.dart';
 import 'caregiver_home_screen.dart';
 import 'it_admin_screen.dart';
 import 'monitored_screen.dart';
@@ -36,15 +37,17 @@ class AppShell extends StatelessWidget {
   }
 }
 
-/// Barra de acciones común: idioma + logout.
+/// Barra de acciones común: ayuda + idioma + logout.
 class AppTopActions extends StatelessWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
+  final UserRole role;
 
   const AppTopActions({
     super.key,
     required this.session,
     required this.onLocaleChanged,
+    required this.role,
   });
 
   @override
@@ -53,6 +56,11 @@ class AppTopActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        IconButton(
+          icon: const Icon(Icons.help_outline),
+          tooltip: l10n.helpButton,
+          onPressed: () => showRoleHelpDialog(context, role),
+        ),
         PopupMenuButton<Locale>(
           icon: const Icon(Icons.language),
           onSelected: onLocaleChanged,

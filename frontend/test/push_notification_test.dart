@@ -51,12 +51,32 @@ void main() {
       expect(payload.recipientUserId, 'uuid-caregiver-001');
     });
 
-    test('ignores unknown types', () {
+    test('parses status event without alertId', () {
       final payload = PushAlertPayload.fromData({
         'type': 'MONITORING_STARTED',
-        'alertId': 'uuid-alert-001',
+        'monitoredPersonId': 'uuid-person-001',
+        'personName': 'Manuel Pérez',
+        'recipientUserId': 'uuid-caregiver-001',
       });
 
+      expect(payload.isFallAlert, isFalse);
+      expect(payload.isStatusEvent, isTrue);
+      expect(payload.alertId, isEmpty);
+    });
+  });
+
+  group('PushNotificationService shouldAcceptPayload', () {
+    tearDown(PushNotificationService.resetForTests);
+
+    test('accepts MONITORING_STARTED for caregiver session', () {
+      // SessionManager may be empty in unit tests — status events need caregiver
+      final payload = PushAlertPayload.fromData({
+        'type': 'MONITORING_STARTED',
+        'monitoredPersonId': 'uuid-person-001',
+        'recipientUserId': 'uuid-caregiver-001',
+      });
+
+      expect(payload.isStatusEvent, isTrue);
       expect(payload.isFallAlert, isFalse);
     });
   });

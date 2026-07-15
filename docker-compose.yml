@@ -82,8 +82,8 @@ services:
   # ── FastAPI Inference Service (ML only — no DB) ─────────────────
   api:
     build:
-      context: ./inference
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: inference/Dockerfile
     container_name: sentilife-inference
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
@@ -93,6 +93,7 @@ services:
       MODEL_VERSION: ${MODEL_VERSION:-baseline-v1}
     volumes:
       - ./inference:/app
+      - ./contracts:/contracts:ro
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
       interval: 10s

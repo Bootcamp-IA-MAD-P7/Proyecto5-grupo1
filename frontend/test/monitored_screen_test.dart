@@ -10,6 +10,7 @@ import 'package:sentilife/screens/monitored_screen.dart';
 import 'package:sentilife/services/auth_session.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
 import 'package:sentilife/services/monitored_service.dart';
+import 'package:sentilife/services/sensor_capability_service.dart';
 import 'package:sentilife/services/secure_token_storage.dart';
 import 'package:sentilife/services/session_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,6 +45,7 @@ SessionRepository _monitoredSession() {
 Widget _buildMonitored({
   required MonitoredService monitoredService,
   MonitoredContextStore? contextStore,
+  SensorCapabilityService? sensorCapabilityService,
 }) {
   return MaterialApp(
     locale: const Locale('es'),
@@ -54,8 +56,46 @@ Widget _buildMonitored({
       onLocaleChanged: (_) {},
       monitoredService: monitoredService,
       contextStore: contextStore ?? MonitoredContextStore(),
+      sensorCapabilityService: sensorCapabilityService ??
+          _availableImuSensorService(),
     ),
   );
+}
+
+SensorCapabilityService _availableImuSensorService() {
+  return _FakeSensorCapabilityService(
+    const ImuCapabilityResult(
+      accelerometerAvailable: true,
+      gyroscopeAvailable: true,
+    ),
+  );
+}
+
+SensorCapabilityService _unavailableImuSensorService() {
+  return _FakeSensorCapabilityService(
+    const ImuCapabilityResult(
+      accelerometerAvailable: false,
+      gyroscopeAvailable: false,
+    ),
+  );
+}
+
+class _FakeSensorCapabilityService extends SensorCapabilityService {
+  _FakeSensorCapabilityService(this.result);
+
+  final ImuCapabilityResult result;
+
+  @override
+  Future<ImuCapabilityResult> checkImuAvailability() async => result;
+}
+
+Future<void> _pumpMonitoredScreen(WidgetTester tester, Widget widget) async {
+  await tester.pumpWidget(widget);
+  await tester.pump();
+  await tester.runAsync(() async {
+    await Future<void>.delayed(Duration.zero);
+  });
+  await tester.pump();
 }
 
 void main() {
@@ -88,8 +128,7 @@ void main() {
       }),
     );
 
-    await tester.pumpWidget(_buildMonitored(monitoredService: monitoredService));
-    await tester.pumpAndSettle();
+    await _pumpMonitoredScreen(tester, _buildMonitored(monitoredService: monitoredService));
 
     expect(find.textContaining('PENDING_LINK'), findsOneWidget);
     expect(find.text('Vinculación pendiente'), findsOneWidget);
@@ -111,8 +150,7 @@ void main() {
       }),
     );
 
-    await tester.pumpWidget(_buildMonitored(monitoredService: monitoredService));
-    await tester.pumpAndSettle();
+    await _pumpMonitoredScreen(tester, _buildMonitored(monitoredService: monitoredService));
 
     expect(find.text('Código del cuidador'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Iniciar monitoreo'), findsOneWidget);
@@ -120,5 +158,55 @@ void main() {
       find.widgetWithText(FilledButton, 'Iniciar monitoreo'),
     );
     expect(startButton.onPressed, isNull);
+  });
+
+  testWidgets('IMU faltante muestra pantalla bloqueante', (tester) async {
+    final monitoredService = MonitoredService(
+      client: MockClient((req) async {
+        if (req.url.path.endsWith('/me')) {
+          return _json({'id': 'person-1', 'fullName': 'Manuel'});
+        }
+        throw UnsupportedError('Unexpected request: ${req.url}');
+      }),
+    );
+
+    await _pumpMonitoredScreen(
+      tester,
+      _buildMonitored(
+        monitoredService: monitoredService,
+        sensorCapabilityService: _unavailableImuSensorService(),
+      ),
+    );
+
+    expect(find.text('Sensores no disponibles'), findsOneWidget);
+    expect(find.text('Iniciar monitoreo'), findsNothing);
+  });
+
+  testWidgets('TabBar Estado|Sensores y pestaña sensores pausada (T5.4)', (
+    tester,
+  ) async {
+    final monitoredService = MonitoredService(
+      client: MockClient((req) async {
+        if (req.url.path.endsWith('/me')) {
+          return _json({'id': 'person-1', 'fullName': 'Manuel'});
+        }
+        throw UnsupportedError('Unexpected request: ${req.url}');
+      }),
+    );
+
+    await _pumpMonitoredScreen(tester, _buildMonitored(monitoredService: monitoredService));
+
+    expect(find.text('Estado'), findsOneWidget);
+    expect(find.text('Sensores'), findsOneWidget);
+
+    await tester.tap(find.text('Sensores'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'La monitorización está detenida. Inicia el monitoreo para ver las señales en vivo.',
+      ),
+      findsOneWidget,
+    );
   });
 }

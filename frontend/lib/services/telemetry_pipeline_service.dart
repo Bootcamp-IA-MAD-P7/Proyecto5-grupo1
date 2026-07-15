@@ -41,6 +41,8 @@ class TelemetryPipelineService {
 
   Stream<WindowPrediction> get predictions => _predictionsController.stream;
 
+  Stream<SensorSnapshot> get sensorSnapshots => _sensorCaptureService.snapshots;
+
   bool get isRunning => _isRunning;
 
   Future<void> startMonitoring({

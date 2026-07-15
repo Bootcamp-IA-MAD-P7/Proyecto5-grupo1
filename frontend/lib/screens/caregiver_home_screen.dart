@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
+import '../models/user.dart';
 import '../services/auth_session.dart';
 import '../services/exceptions.dart';
 import '../services/monitored_service.dart';
@@ -85,6 +86,7 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
           AppTopActions(
             session: widget.session,
             onLocaleChanged: widget.onLocaleChanged,
+            role: UserRole.caregiver,
           ),
         ],
       ),
