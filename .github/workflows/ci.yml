@@ -266,8 +266,13 @@ jobs:
               fi
             done
 
-            # Stack SentiLife anterior (mismo compose)
+            # Stack SentiLife anterior (mismo compose) — forzar parada completa
             docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+            # Huérfanos fuera del compose project (p. ej. db borrada a mano)
+            for c in sentilife-db sentilife-backend sentilife-inference sentilife-rabbitmq \
+                     sentilife-prometheus sentilife-grafana; do
+              docker rm -f "$c" 2>/dev/null || true
+            done
 
             POSTGRES_USER="${{ secrets.POSTGRES_USER }}"
             POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
@@ -315,19 +320,30 @@ jobs:
 
             reset_pgdata_if_corrupt
 
+            wait_for_db() {
+              echo "→ Esperando PostgreSQL (hasta ~2 min)..."
+              for i in $(seq 1 24); do
+                if docker ps --filter name=sentilife-db --filter status=running --format '{{.Names}}' | grep -qx sentilife-db \
+                  && docker exec sentilife-db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+                  echo "→ PostgreSQL OK tras ${i}0s"
+                  return 0
+                fi
+                sleep 5
+              done
+              echo "→ PostgreSQL no arrancó. Estado:"
+              docker ps -a --filter name=sentilife-db
+              docker logs sentilife-db --tail 40 2>/dev/null || true
+              return 1
+            }
+
             deploy_stack() {
               DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
               POSTGRES_USER="$POSTGRES_USER" \
               POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
               POSTGRES_DB="$POSTGRES_DB" \
               JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-                docker compose -f docker-compose.prod.yml up -d --remove-orphans --no-wait 2>/dev/null \
-                || DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
-                   POSTGRES_USER="$POSTGRES_USER" \
-                   POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-                   POSTGRES_DB="$POSTGRES_DB" \
-                   JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-                     docker compose -f docker-compose.prod.yml up -d --remove-orphans
+                docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate --pull always \
+                db rabbitmq api backend
             }
 
             deploy_observability() {
@@ -382,6 +398,11 @@ jobs:
 
             deploy_stack
 
+            if ! wait_for_db; then
+              echo "::error::sentilife-db no está running/healthy tras deploy_stack"
+              exit 1
+            fi
+
             if ! wait_for_backend; then
               if docker logs sentilife-backend 2>&1 | tail -120 | grep -q 'relation "users" does not exist'; then
                 echo "→ Flyway roto detectado en logs. Reseteando pgdata y reintentando..."
@@ -405,6 +426,12 @@ jobs:
 
             echo "→ Contenedores SentiLife:"
             docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+            for required in sentilife-db sentilife-backend sentilife-inference sentilife-rabbitmq; do
+              if ! docker ps --filter name="$required" --filter status=running --format '{{.Names}}' | grep -qx "$required"; then
+                echo "::error::Contenedor obligatorio ausente: ${required}"
+                exit 1
+              fi
+            done
 
             echo "→ Checking Java backend liveness (host :8005)..."
             curl --fail --silent http://localhost:8005/actuator/health/liveness | grep '"status":"UP"'
