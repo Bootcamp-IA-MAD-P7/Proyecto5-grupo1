@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
@@ -14,11 +18,13 @@ import 'app_shell.dart';
 class ItAdminScreen extends StatefulWidget {
   final AuthSession session;
   final ValueChanged<Locale> onLocaleChanged;
+  final AdminService? adminService;
 
   const ItAdminScreen({
     super.key,
     required this.session,
     required this.onLocaleChanged,
+    this.adminService,
   });
 
   @override
@@ -26,9 +32,14 @@ class ItAdminScreen extends StatefulWidget {
 }
 
 class _ItAdminScreenState extends State<ItAdminScreen> {
-  final _admin = AdminService();
+  late final AdminService _admin;
+
+  @override
+  void initState() {
+    super.initState();
+    _admin = widget.adminService ?? AdminService();
+  }
   int _tab = 0;
-  String? _exportUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +69,7 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
         index: _tab,
         children: [
           _HistoryTab(admin: _admin),
-          _ExportTab(
-            admin: _admin,
-            exportUrl: _exportUrl,
-            onExport: (url) => setState(() => _exportUrl = url),
-          ),
+          _ExportTab(admin: _admin),
           _UsersTab(admin: _admin),
           _MlopsTab(admin: _admin),
         ],
@@ -101,12 +108,42 @@ class _HistoryTab extends StatelessWidget {
   }
 }
 
-class _ExportTab extends StatelessWidget {
+class _ExportTab extends StatefulWidget {
   final AdminService admin;
-  final String? exportUrl;
-  final ValueChanged<String> onExport;
+  const _ExportTab({required this.admin});
 
-  const _ExportTab({required this.admin, required this.exportUrl, required this.onExport});
+  @override
+  State<_ExportTab> createState() => _ExportTabState();
+}
+
+class _ExportTabState extends State<_ExportTab> {
+  bool _downloading = false;
+
+  Future<void> _downloadExport() async {
+    if (_downloading) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    setState(() => _downloading = true);
+    try {
+      final download = await widget.admin.downloadExport();
+      if (!mounted) return;
+
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/${download.filename}');
+        await file.writeAsBytes(download.bytes);
+        await OpenFilex.open(file.path);
+      }
+
+      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDownloadSuccess)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDownloadError)));
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,17 +157,16 @@ class _ExportTab extends StatelessWidget {
             Text(l10n.exportDescription, textAlign: TextAlign.center),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () async {
-                final url = await admin.getExportUrl();
-                onExport(url);
-              },
-              icon: const Icon(Icons.file_download),
+              onPressed: _downloading ? null : _downloadExport,
+              icon: _downloading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.file_download),
               label: Text(l10n.exportDataset),
             ),
-            if (exportUrl != null) ...[
-              const SizedBox(height: 16),
-              SelectableText('${l10n.exportReady}: $exportUrl'),
-            ],
           ],
         ),
       ),

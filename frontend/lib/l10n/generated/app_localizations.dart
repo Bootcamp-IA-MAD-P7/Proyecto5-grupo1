@@ -734,6 +734,48 @@ abstract class AppLocalizations {
   /// **'Export listo'**
   String get exportReady;
 
+  /// No description provided for @exportDownloadSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Dataset descargado correctamente.'**
+  String get exportDownloadSuccess;
+
+  /// No description provided for @exportDownloadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo descargar el dataset. Inténtalo de nuevo.'**
+  String get exportDownloadError;
+
+  /// No description provided for @monitoredTabStatus.
+  ///
+  /// In es, this message translates to:
+  /// **'Estado'**
+  String get monitoredTabStatus;
+
+  /// No description provided for @monitoredTabSensors.
+  ///
+  /// In es, this message translates to:
+  /// **'Sensores'**
+  String get monitoredTabSensors;
+
+  /// No description provided for @liveSensorsCaption.
+  ///
+  /// In es, this message translates to:
+  /// **'Esto es lo que el móvil está midiendo ahora.'**
+  String get liveSensorsCaption;
+
+  /// No description provided for @sensorsPausedMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'La monitorización está detenida. Inicia el monitoreo para ver las señales en vivo.'**
+  String get sensorsPausedMessage;
+
+  /// No description provided for @viewLiveSensorsLink.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver sensores en vivo'**
+  String get viewLiveSensorsLink;
+
   /// No description provided for @consentTitle.
   ///
   /// In es, this message translates to:

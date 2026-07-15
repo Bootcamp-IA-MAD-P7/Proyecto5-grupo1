@@ -59,12 +59,19 @@ public class AdminController {
 
         List<AdminDtos.ExportRow> rows = service.exportLabelledDataset(from, to);
         String csv = toCsv(rows);
+        String filename = buildExportFilename(from, to);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"sentilife_dataset.csv\"")
+                        "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(csv);
+    }
+
+    private String buildExportFilename(Instant from, Instant to) {
+        String fromPart = from != null ? from.toString().substring(0, 10) : "all";
+        String toPart = to != null ? to.toString().substring(0, 10) : "all";
+        return "sentilife-feedback-" + fromPart + "-" + toPart + ".csv";
     }
 
     @GetMapping("/users")

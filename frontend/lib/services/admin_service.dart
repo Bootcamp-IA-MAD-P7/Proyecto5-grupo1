@@ -7,6 +7,15 @@ import '../models/retrain_status.dart';
 import '../models/user.dart';
 import 'api_headers.dart';
 import 'exceptions.dart';
+import 'session_manager.dart';
+
+/// Resultado de descarga autenticada del export CSV (RF-42).
+class ExportDownload {
+  final List<int> bytes;
+  final String filename;
+
+  const ExportDownload({required this.bytes, required this.filename});
+}
 
 /// Entrada del historial global IT (spec §6.6)
 class HistoryEntry {
@@ -88,16 +97,21 @@ class AdminService {
     );
   }
 
-  /// GET /export — dataset etiquetado para reentrenamiento (RF-19).
-  /// Devuelve la URL de descarga del CSV.
-  Future<String> getExportUrl({DateTime? from, DateTime? to}) async {
+  /// GET /export — dataset etiquetado para reentrenamiento (RF-19, RF-42).
+  /// Descarga el CSV autenticado con Bearer (sin URL pública).
+  Future<ExportDownload> downloadExport({DateTime? from, DateTime? to}) async {
     final params = <String, String>{
       'format': 'csv',
       if (from != null) 'from': from.toUtc().toIso8601String(),
       if (to != null) 'to': to.toUtc().toIso8601String(),
     };
     final uri = Uri.parse('$_base/export').replace(queryParameters: params);
-    return uri.toString();
+    final res = await _client.get(uri, headers: _authHeaders());
+    _checkStatus(res);
+    return ExportDownload(
+      bytes: res.bodyBytes,
+      filename: _parseExportFilename(res.headers['content-disposition']),
+    );
   }
 
   /// GET /users — listado de usuarios (RF-04)
@@ -154,6 +168,23 @@ class AdminService {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Map<String, String> _headers() => apiJsonHeaders();
+
+  Map<String, String> _authHeaders() {
+    final headers = <String, String>{};
+    final token = SessionManager().accessToken;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  String _parseExportFilename(String? contentDisposition) {
+    if (contentDisposition == null) {
+      return 'sentilife-feedback.csv';
+    }
+    final match = RegExp(r'filename="([^"]+)"').firstMatch(contentDisposition);
+    return match?.group(1) ?? 'sentilife-feedback.csv';
+  }
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

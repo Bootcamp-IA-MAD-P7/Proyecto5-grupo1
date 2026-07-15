@@ -13,6 +13,8 @@ import 'package:sentilife/services/auth_service.dart';
 import 'package:sentilife/services/devices_service.dart';
 import 'package:sentilife/services/exceptions.dart';
 import 'package:sentilife/services/monitored_service.dart';
+import 'package:sentilife/services/secure_token_storage.dart';
+import 'package:sentilife/services/session_repository.dart';
 import 'package:sentilife/services/telemetry_service.dart';
 
 /// Contratos FE↔BE verificados contra JSON real del backend Java usando
@@ -682,6 +684,50 @@ void main() {
       expect(status.details!.newRecall, closeTo(0.93, 0.001));
       expect(status.details!.currentRecall, closeTo(0.89, 0.001));
       expect(status.details!.overfittingGap, closeTo(0.02, 0.001));
+    });
+
+    test('downloadExport descarga CSV con Bearer y parsea filename (T5.2)', () async {
+      SessionRepository.resetForTests();
+      final session = SessionRepository(storage: InMemorySecureTokenStorage());
+      SessionRepository.useForTests(session);
+      session.setSession(
+        const AuthTokens(
+          accessToken: 'admin-token',
+          refreshToken: 'refresh',
+          expiresIn: 900,
+          user: User(
+            id: 'admin-1',
+            email: 'admin@test.com',
+            fullName: 'IT',
+            role: UserRole.itAdmin,
+          ),
+        ),
+      );
+
+      const csvBody = 'window_id,label\nuuid-1,TRUE_FALL\n';
+      late String? authHeader;
+      final service = AdminService(
+        client: MockClient((req) async {
+          expect(req.method, 'GET');
+          expect(req.url.path, endsWith('/export'));
+          authHeader = req.headers['Authorization'];
+          return http.Response(
+            csvBody,
+            200,
+            headers: {
+              'content-type': 'text/csv',
+              'content-disposition':
+                  'attachment; filename="sentilife-feedback-all-all.csv"',
+            },
+          );
+        }),
+      );
+
+      final download = await service.downloadExport();
+      expect(authHeader, isNotNull);
+      expect(String.fromCharCodes(download.bytes), csvBody);
+      expect(download.filename, 'sentilife-feedback-all-all.csv');
+      SessionRepository.resetForTests();
     });
   });
 }

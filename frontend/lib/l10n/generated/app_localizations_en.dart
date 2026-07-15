@@ -341,6 +341,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportReady => 'Export ready';
 
   @override
+  String get exportDownloadSuccess => 'Dataset downloaded successfully.';
+
+  @override
+  String get exportDownloadError =>
+      'Could not download the dataset. Please try again.';
+
+  @override
+  String get monitoredTabStatus => 'Status';
+
+  @override
+  String get monitoredTabSensors => 'Sensors';
+
+  @override
+  String get liveSensorsCaption =>
+      'This is what the phone is measuring right now.';
+
+  @override
+  String get sensorsPausedMessage =>
+      'Monitoring is stopped. Start monitoring to see live signals.';
+
+  @override
+  String get viewLiveSensorsLink => 'View live sensors';
+
+  @override
   String get consentTitle => 'Monitoring consent';
 
   @override

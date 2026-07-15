@@ -342,6 +342,30 @@ class AppLocalizationsEs extends AppLocalizations {
   String get exportReady => 'Export listo';
 
   @override
+  String get exportDownloadSuccess => 'Dataset descargado correctamente.';
+
+  @override
+  String get exportDownloadError =>
+      'No se pudo descargar el dataset. Inténtalo de nuevo.';
+
+  @override
+  String get monitoredTabStatus => 'Estado';
+
+  @override
+  String get monitoredTabSensors => 'Sensores';
+
+  @override
+  String get liveSensorsCaption =>
+      'Esto es lo que el móvil está midiendo ahora.';
+
+  @override
+  String get sensorsPausedMessage =>
+      'La monitorización está detenida. Inicia el monitoreo para ver las señales en vivo.';
+
+  @override
+  String get viewLiveSensorsLink => 'Ver sensores en vivo';
+
+  @override
   String get consentTitle => 'Consentimiento de monitorización';
 
   @override
