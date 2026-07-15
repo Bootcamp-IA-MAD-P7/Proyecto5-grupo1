@@ -560,6 +560,21 @@ Detalle académico completo: [inference/data/README.md](inference/data/README.md
 
 ---
 
+## Entregables Factoría (T4.8)
+
+| Documento | Ruta |
+|---|---|
+| Informe técnico final | [inference/docs/informe_tecnico_final.md](inference/docs/informe_tecnico_final.md) |
+| Informes anteriores | `informe_tecnico_v1.md` · `v2.md` · `v3.md` |
+| Presentación negocio | [docs/presentaciones/presentacion_negocio.md](docs/presentaciones/presentacion_negocio.md) |
+| Presentación técnica | [docs/presentaciones/presentacion_tecnica.md](docs/presentaciones/presentacion_tecnica.md) |
+| Acta demo experto | [docs/daily/t4int-expert-demo-20260714.md](docs/daily/t4int-expert-demo-20260714.md) |
+| Artefactos ML | `inference/ml/artifacts/*.json` |
+
+Presentaciones en formato Marp (exportar a PDF/PPTX con [Marp CLI](https://github.com/marp-team/marp-cli) o VS Code Marp extension).
+
+---
+
 ## Equipo
 
 Grupo 1 — Gabriela, Jose, Josue, Arnaldo (Factoría F5 Madrid)
