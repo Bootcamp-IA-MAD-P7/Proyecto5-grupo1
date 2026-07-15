@@ -9,7 +9,7 @@ import '../screens/alert_detail_loader_screen.dart';
 import 'push_notification_handler.dart';
 import 'session_manager.dart';
 
-/// Recepción FCM y navegación a detalle de alerta (T2.16 / SL-39).
+/// Recepción FCM y navegación a detalle de alerta (T2.16 / RF-30).
 class PushNotificationService {
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
@@ -84,36 +84,45 @@ class PushNotificationService {
 
     final context = navigatorKey.currentContext;
     if (context == null) {
-      pendingAlertId = payload.alertId;
+      if (payload.isFallAlert) pendingAlertId = payload.alertId;
       return;
     }
 
-    final body = message.notification?.body ??
-        (payload.personName != null
-            ? 'Posible caída — ${payload.personName}'
-            : 'Nueva alerta de caída');
+    final body = message.notification?.body ?? _fallbackBody(payload);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(body),
-        action: SnackBarAction(
-          label: 'Ver',
-          onPressed: () => unawaited(navigateToAlert(payload.alertId)),
+    if (payload.isFallAlert) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(body),
+          action: SnackBarAction(
+            label: 'Ver',
+            onPressed: () => unawaited(navigateToAlert(payload.alertId)),
+          ),
+          duration: const Duration(seconds: 8),
         ),
-        duration: const Duration(seconds: 8),
-      ),
-    );
+      );
+      return;
+    }
+
+    if (payload.isStatusEvent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(body),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   static void _onNotificationTap(RemoteMessage message) {
     final payload = _parsePayload(message);
-    if (payload == null) return;
+    if (payload == null || !payload.isFallAlert) return;
     unawaited(navigateToAlert(payload.alertId));
   }
 
   static void _storePendingAlert(RemoteMessage message) {
     final payload = _parsePayload(message);
-    if (payload == null) return;
+    if (payload == null || !payload.isFallAlert) return;
     pendingAlertId = payload.alertId;
   }
 
@@ -126,11 +135,18 @@ class PushNotificationService {
     return payload;
   }
 
-  /// Returns true when the push targets the active CAREGIVER session (T2c.10).
+  static String _fallbackBody(PushAlertPayload payload) {
+    if (payload.isFallAlert) {
+      return payload.personName != null
+          ? 'Posible caída — ${payload.personName}'
+          : 'Nueva alerta de caída';
+    }
+    return payload.personName ?? 'Actualización de monitorización';
+  }
+
+  /// Returns true when the push targets the active CAREGIVER session (T2c.10 / RF-30).
   @visibleForTesting
   static bool shouldAcceptPayload(PushAlertPayload payload) {
-    if (!payload.isFallAlert || payload.alertId.isEmpty) return false;
-
     final user = SessionManager().currentUser;
     if (user == null || user.role != UserRole.caregiver) return false;
 
@@ -140,7 +156,10 @@ class PushNotificationService {
         recipientId != user.id) {
       return false;
     }
-    return true;
+
+    if (payload.isFallAlert) return payload.alertId.isNotEmpty;
+    if (payload.isStatusEvent) return true;
+    return false;
   }
 
   @visibleForTesting

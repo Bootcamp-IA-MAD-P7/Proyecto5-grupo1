@@ -320,6 +320,10 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
 
   Future<void> _stopMonitoring() async {
     await _coordinator.stop();
+    final personId = _contextStore.monitoredPersonId;
+    if (personId != null) {
+      unawaited(_monitoredService.notifyMonitoringEvent(personId, started: false));
+    }
     if (mounted) setState(() => _monitoring = false);
   }
 
@@ -362,6 +366,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
           deviceId: deviceId,
           deviceToken: deviceToken,
         );
+        unawaited(_monitoredService.notifyMonitoringEvent(personId, started: true));
         if (!mounted) return;
         setState(() => _monitoring = _coordinator.isMonitoring);
       } catch (_) {

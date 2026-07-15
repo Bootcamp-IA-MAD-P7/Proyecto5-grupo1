@@ -8,17 +8,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * RabbitMQ configuration for the alert notification pipeline.
+ * RabbitMQ configuration for the caregiver notification pipeline (RF-30).
  *
  * Exchange: sentilife.alerts (topic)
  * Queue:    sentilife.alerts.push
- * Routing:  alert.created → push queue
- *
- * Per ADR-02: RabbitMQ is used only for alert.created → push notifier.
- * The prediction critical path remains synchronous HTTP.
- *
- * This config is disabled when spring.rabbitmq.listener.simple.auto-startup=false
- * (test profile), avoiding connection attempts to a non-existent broker.
+ * Routing:  alert.created | monitoring.started | monitoring.stopped | consent.revoked
  */
 @Configuration
 @ConditionalOnProperty(name = "spring.rabbitmq.listener.simple.auto-startup", havingValue = "true", matchIfMissing = true)
@@ -26,7 +20,14 @@ public class RabbitConfig {
 
     public static final String ALERTS_EXCHANGE = "sentilife.alerts";
     public static final String PUSH_QUEUE = "sentilife.alerts.push";
-    public static final String ROUTING_KEY = "alert.created";
+    public static final String ROUTING_KEY_ALERT_CREATED = "alert.created";
+    public static final String ROUTING_KEY_MONITORING_STARTED = "monitoring.started";
+    public static final String ROUTING_KEY_MONITORING_STOPPED = "monitoring.stopped";
+    public static final String ROUTING_KEY_CONSENT_REVOKED = "consent.revoked";
+
+    /** @deprecated use {@link #ROUTING_KEY_ALERT_CREATED} */
+    @Deprecated
+    public static final String ROUTING_KEY = ROUTING_KEY_ALERT_CREATED;
 
     @Bean
     public TopicExchange alertsExchange() {
@@ -39,8 +40,23 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding pushBinding(Queue pushQueue, TopicExchange alertsExchange) {
-        return BindingBuilder.bind(pushQueue).to(alertsExchange).with(ROUTING_KEY);
+    public Binding alertCreatedBinding(Queue pushQueue, TopicExchange alertsExchange) {
+        return BindingBuilder.bind(pushQueue).to(alertsExchange).with(ROUTING_KEY_ALERT_CREATED);
+    }
+
+    @Bean
+    public Binding monitoringStartedBinding(Queue pushQueue, TopicExchange alertsExchange) {
+        return BindingBuilder.bind(pushQueue).to(alertsExchange).with(ROUTING_KEY_MONITORING_STARTED);
+    }
+
+    @Bean
+    public Binding monitoringStoppedBinding(Queue pushQueue, TopicExchange alertsExchange) {
+        return BindingBuilder.bind(pushQueue).to(alertsExchange).with(ROUTING_KEY_MONITORING_STOPPED);
+    }
+
+    @Bean
+    public Binding consentRevokedBinding(Queue pushQueue, TopicExchange alertsExchange) {
+        return BindingBuilder.bind(pushQueue).to(alertsExchange).with(ROUTING_KEY_CONSENT_REVOKED);
     }
 
     @Bean

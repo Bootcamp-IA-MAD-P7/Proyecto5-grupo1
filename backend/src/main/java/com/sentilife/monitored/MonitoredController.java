@@ -114,4 +114,14 @@ public class MonitoredController {
         }
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/monitoring-events")
+    @PreAuthorize("hasRole('MONITORED')")
+    public ResponseEntity<Void> publishMonitoringEvent(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id,
+            @Valid @RequestBody MonitoredDtos.MonitoringEventRequest request) {
+        service.publishMonitoringEvent(user.getId(), id, request.event());
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -58,9 +58,9 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 
 | ID | Requisito | Nivel |
 |---|---|---|
-| RF-20 | Perfil `MONITORED`: pantalla simple con estado de monitorización (activa/inactiva), consentimiento y última evaluación. | Esencial |
+| RF-20 | Perfil `MONITORED`: pantalla con estado de monitorización (activa/inactiva), consentimiento y última evaluación. Incluye pestaña **Sensores en vivo** con gráficos locales de acelerómetro y giroscopio mientras la monitorización está activa (RF-41). | Esencial |
 | RF-21 | Perfil `CAREGIVER`: lista de personas monitorizadas, estado en tiempo casi real, alertas e historial, formulario de registro de persona. | Medio |
-| RF-22 | Perfil `IT_ADMIN`: acceso al historial global y estado del sistema (enlace a Grafana en MVP; vista embebida como evolución). | Medio |
+| RF-22 | Perfil `IT_ADMIN`: acceso al historial global, export con **descarga autenticada** del CSV (RF-42), usuarios y enlace/dashboard Grafana (RF-43). | Medio |
 | RF-23 | La app soporta actualización **OTA** (chequeo de versión al arrancar, descarga de APK). | Avanzado |
 
 ### 2.6 Observabilidad y operación
@@ -78,7 +78,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-27 | La app del cuidador registra su **token de dispositivo** (FCM) en el backend al iniciar sesión; el token se asocia al usuario y se renueva cuando FCM lo rota. | Medio |
 | RF-28 | Ante un evento `alert.created`, el backend envía una **notificación push** (Firebase Cloud Messaging) a todos los dispositivos del cuidador responsable, incluso con la app cerrada o en segundo plano. El polling in-app (RF-15) queda como mecanismo de respaldo. | Medio |
 | RF-29 | La notificación push incluye: persona afectada, tipo de evento (caída), confianza y timestamp; al tocarla, la app abre el detalle de la alerta. | Medio |
-| RF-30 | Cambios de **estado del monitoreado** relevantes para el cuidador (monitorización iniciada/detenida, consentimiento revocado) también generan push de baja prioridad. | Medio |
+| RF-30 | Cambios de **estado del monitoreado** relevantes para el cuidador (monitorización iniciada/detenida, consentimiento revocado) también generan push de baja prioridad (`MONITORING_STARTED`, `MONITORING_STOPPED`, `CONSENT_REVOKED`). | Medio |
 
 ### 2.8 Internacionalización y transparencia
 
@@ -89,6 +89,9 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-33 | El `IT_ADMIN` puede lanzar un **reentrenamiento** con los datos reales recogidos y consultar su estado (`idle / running / completed / failed`, fase actual y decisión final) mediante polling, sin reiniciar contenedores (hot-reload del modelo). | Experto |
 | RF-34 | Si una cuenta `MONITORED` inicia sesión antes de estar vinculada a una ficha, la app muestra el estado `PENDING_LINK` y no permite iniciar pairing, consentimiento ni telemetría. | Avanzado |
 | RF-40 | Antes de pairing, consentimiento o monitorización, la app **verifica** que el dispositivo expone acelerómetro y giroscopio funcionales. Si falta alguno obligatorio, muestra una pantalla bloqueante explicativa y **no** inicia `MonitoringCoordinator` ni envía ventanas al backend. | Avanzado |
+| RF-41 | Perfil `MONITORED`: pestaña **Sensores en vivo** con gráficos en tiempo real (últimos ~30 s) de `accX/Y/Z` (m/s²) y `gyroX/Y/Z` (°/s) mientras la monitorización está activa. Los datos se leen del `SensorCaptureService` local (sin round-trip al backend). Texto de transparencia: “esto es lo que el móvil está midiendo ahora”. Enlace desde modal de transparencia (RF-32). i18n es/en. | Medio |
+| RF-42 | Perfil `IT_ADMIN`: el botón Export descarga el CSV etiquetado con autenticación JWT (`Authorization: Bearer`), sin exponer URL copiable sin sesión. Respuesta `Content-Disposition: attachment`. | Medio |
+| RF-43 | Grafana QA accesible desde red de demo: puerto host `3006` abierto en Security Group EC2 **o** túnel SSH documentado; enlace en pestaña IT con credenciales de solo lectura. | Avanzado |
 
 ---
 
@@ -298,7 +301,17 @@ El backend normaliza y resuelve `monitoredUserEmail`; el cliente nunca envía `u
 { "id": "uuid", "monitoredPersonId": "uuid", "policyVersion": "1.0-es", "status": "ACTIVE", "acceptedAt": "2026-07-08T10:15:00Z" }
 ```
 
-**DELETE `/{id}/consent`** → `200` `{ "status": "REVOKED", "revokedAt": "..." }`.
+**DELETE `/{id}/consent`** → `200` `{ "status": "REVOKED", "revokedAt": "..." }`. Publica push `CONSENT_REVOKED` al cuidador (RF-30).
+
+**POST `/{id}/monitoring-events`** — rol `MONITORED` (RF-30):
+
+```json
+// request
+{ "event": "STARTED" }   // STARTED | STOPPED
+// 204 — publica push MONITORING_STARTED | MONITORING_STOPPED al cuidador vinculado
+```
+
+La app MONITORED invoca este endpoint al iniciar/detener `MonitoringCoordinator` localmente.
 
 ### 6.3 Telemetría (`/api/v1/telemetry`) — rol MONITORED (dispositivo vinculado)
 
@@ -371,7 +384,7 @@ Reglas fijas SL-14/T1.2: `sampleRateHz = 50`; `windowEnd = windowStart + 2500 ms
 }
 ```
 
-Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaurada o si `recipientUserId` no coincide con el usuario activo. Al tocar una notificación válida, navega a `AlertDetailScreen(alertId)`.
+Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaurada o si `recipientUserId` no coincide con el usuario activo. Al tocar una notificación `FALL_ALERT`, navega a `AlertDetailScreen(alertId)`. Los tipos de estado (`MONITORING_*`, `CONSENT_REVOKED`) muestran snackbar informativo sin navegación.
 
 ### 6.5 Alertas (`/api/v1/alerts`) — rol CAREGIVER
 
@@ -396,7 +409,7 @@ Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaura
 ### 6.6 Administración (`/api/v1/admin`) — rol IT_ADMIN
 
 - **GET `/history`** — historial global paginado (predicciones + alertas + feedback), filtros por fecha/persona/resultado.
-- **GET `/export?from=...&to=...&format=csv`** — dataset etiquetado (features de ventana + label de feedback) para reentrenamiento (RF-19).
+- **GET `/export?from=...&to=...&format=csv`** — dataset etiquetado (features de ventana + label de feedback) para reentrenamiento (RF-19, RF-42). Respuesta `text/csv` con header `Content-Disposition: attachment; filename="sentilife-feedback-{from}-{to}.csv"`. Requiere `IT_ADMIN` autenticado; el cliente Flutter descarga el body con el Bearer token (no URL pública).
 - **GET `/users`** / **PATCH `/users/{id}`** — gestión de usuarios (RF-04).
 - **POST `/retrain`** → `202` `{ "status": "running" }` (RF-33). Rechaza con `409` si ya hay un job en curso.
 - **GET `/retrain/status`** (patrón proyecto 4):
@@ -484,6 +497,9 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 17. **Autorización de dispositivo:** reutilizar un device token con otro `monitoredPersonId` o `deviceId` devuelve `403` y no persiste telemetría.
 18. **Retrain con feedback real (RF-33, Fase 4d):** tras confirmar una alerta en app, un job `POST /admin/retrain` incluye esa ventana (`telemetry_windows.samples_json`) en el entrenamiento (`metrics.feedback.augmented_windows >= 1`); no requiere export CSV manual.
 19. **Gate sensores (RF-40, Fase 4e):** en un dispositivo sin acelerómetro o giroscopio, la app MONITORED muestra pantalla bloqueante y no envía ninguna ventana al backend; en dispositivo con IMU, el flujo pairing → consent → monitorizar funciona con normalidad.
+20. **Transparencia sensores (RF-41, Fase 5):** con monitorización activa, la pestaña Sensores en vivo muestra señales IMU actualizándose; al detener monitorización, los gráficos se congelan o vacían con mensaje explicativo.
+21. **Export IT autenticado (RF-42):** `IT_ADMIN` descarga CSV sin pegar URL en navegador anónimo; archivo contiene al menos una fila `TRUE_FALL` tras smoke MVP.
+22. **Grafana demo (RF-43):** dashboard pipeline visible en `http://<EC2>:3006` o vía túnel documentado en README.
 
 ---
 
@@ -492,8 +508,8 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 | Nivel | Requisitos que lo cubren |
 |---|---|
 | 🟢 Esencial | ML-01…ML-05 · ML-20 · RF-10…RF-13 · RF-20 · RF-26 |
-| 🟡 Medio | ML-06…ML-10 · RF-14…RF-19 · RF-21 · RF-22 · RF-27…RF-30 · RF-32 |
-| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RF-34…RF-40 · RNF-01…RNF-07 |
+| 🟡 Medio | ML-06…ML-10 · RF-14…RF-19 · RF-21 · RF-22 · RF-27…RF-30 · RF-32 · **RF-41** · **RF-42** |
+| 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RF-34…RF-40 · **RF-43** · RNF-01…RNF-07 |
 | 🔴 Experto | ML-15…ML-19 · RF-33 |
 
 ---
@@ -502,6 +518,6 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.8 — ADR-03 Postgres telemetría + T4e.3 fail-fast |
+| Estado | Draft v0.9 — RF-41 sensores en vivo · RF-42 export auth · RF-43 Grafana · Fase 5 post-demo |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 15/07/2026 |

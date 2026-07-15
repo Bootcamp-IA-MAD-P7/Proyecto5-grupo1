@@ -47,9 +47,10 @@
 
 | ID | Hueco | Estado |
 |---|---|---|
-| RF-30 | Push solo `FALL_ALERT` — no push consent/monitor | Documentado post-demo |
-| UX IT | Export muestra URL; no descarga autenticada | Post-demo |
-| Grafana EC2 | `:3000` interno en SG — no accesible desde red pública | T3.INT verificado vía smoke API |
+| RF-30 | Push solo `FALL_ALERT` — faltan `MONITORING_*` / `CONSENT_REVOKED` | **✅ T5.1** |
+| UX IT | Export muestra URL; no descarga autenticada | **Fase 5 → T5.2** (RF-42) |
+| Grafana EC2 | `:3006` en compose pero SG sin puerto público | **Fase 5 → T5.3** (RF-43) |
+| Sensores en vivo MONITORED | Sin gráficos locales de transparencia | **Fase 5 → T5.4** (RF-41) |
 | **RF-33 / ML-19** | Retrain no consume feedback de Postgres automáticamente | **✅ Fase 4d cerrada 15/07** |
 | **RF-40** | Sin gate de hardware: dispositivos sin IMU pueden intentar monitorizar | **✅ T4e.1** |
 | Prod contracts | `docker-compose.prod.yml` / imagen inference sin `contracts/` | **✅ T4e.2** |
@@ -353,6 +354,19 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra 
 
 ---
 
+## Fase 5 — Post-demo UX y transparencia (15/07) 🟣
+
+> No bloquea presentación Factoría jue 16. Contratos en `2_spec.md` v0.9 (RF-41…RF-43).
+
+- [x] **T5.1** `BE-B`+`FE-B` — **RF-30 completo.** Publicar eventos RabbitMQ + FCM al iniciar/detener monitorización y revocar consentimiento (`MONITORING_STARTED`, `MONITORING_STOPPED`, `CONSENT_REVOKED`). Prioridad baja en FCM. Flutter: parsear tipos en `PushNotificationService` (sin navegar a alerta). *(RF-30)*
+- [ ] **T5.2** `FE-B`+`BE-B` — **Export CSV autenticado (RF-42).** `AdminController` añade `Content-Disposition`; Flutter descarga con `http` + Bearer y guarda/comparte archivo. Eliminar `SelectableText` URL. Test widget + MockMvc header. *(RF-19, RF-42)*
+- [ ] **T5.3** `BE-B`+`ALL` — **Grafana EC2 accesible (RF-43).** Abrir puerto `3006` en Security Group **o** documentar `ssh -L 3006:localhost:3006` en README; enlace en `ItAdminScreen` con host QA. *(RF-22, RF-25)*
+- [ ] **T5.4** `FE-A` — **Pestaña Sensores en vivo (RF-41).** `MonitoredScreen` con `TabBar`: Estado | Sensores. Suscribirse al stream de `SensorCaptureService` / `MonitoringCoordinator`; gráficos rolling ~30 s (`accX/Y/Z`, `gyroX/Y/Z`) con `fl_chart` o similar. Visible solo si monitorización activa; i18n es/en; widget test. Sin cambio de contrato API (datos locales). *(RF-32, RF-41)*
+
+**Esfuerzo estimado:** T5.4 ~4 h · T5.2 ~2 h · T5.1 ~3 h · T5.3 ~30 min infra.
+
+---
+
 ## Cola activa (histórico Fase 4 — infra MLOps, cerrada 14/07)
 
 ---
@@ -374,7 +388,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra 
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.16 — Fase 4e cerrada · T4e.3 fail-fast · T4e.4 ADR-03 · T2c.11 acta |
+| Estado | v2.18 — T5.1 RF-30 push completo · Fase 5 1/4 |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 — mvn 72/72 · pytest 54/54 · flutter 110/110 · Experto 5/5 T4e |
+| Última actualización | 15/07/2026 — T5.1 mvn + flutter + spec §6.2 monitoring-events |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |
