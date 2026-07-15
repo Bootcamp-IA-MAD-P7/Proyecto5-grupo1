@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../models/user.dart';
 import '../services/auth_session.dart';
 import '../services/device_id_service.dart';
 import '../services/devices_service.dart';
@@ -14,6 +15,7 @@ import '../services/monitored_service.dart';
 import '../services/sensor_capability_service.dart';
 import '../services/telemetry_service.dart';
 import '../widgets/consent_dialog.dart';
+import '../widgets/live_sensor_charts.dart';
 import '../widgets/transparency_dialog.dart';
 import 'app_shell.dart';
 import 'sensor_unavailable_screen.dart';
@@ -51,7 +53,8 @@ class MonitoredScreen extends StatefulWidget {
   State<MonitoredScreen> createState() => _MonitoredScreenState();
 }
 
-class _MonitoredScreenState extends State<MonitoredScreen> {
+class _MonitoredScreenState extends State<MonitoredScreen>
+    with SingleTickerProviderStateMixin {
   late final MonitoredContextStore _contextStore;
   late final TelemetryService _telemetryService;
   late final MonitoredService _monitoredService;
@@ -69,6 +72,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
   MonitoredLinkStatus _linkStatus = MonitoredLinkStatus.loading;
   ImuGateStatus _imuGateStatus = ImuGateStatus.checking;
   ImuCapabilityResult? _imuCapabilityResult;
+  late TabController _tabController;
 
   void _onCoordinatorChanged() {
     if (!mounted) return;
@@ -94,6 +98,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
         );
     _sensorCapabilityService =
         widget.sensorCapabilityService ?? SensorCapabilityService();
+    _tabController = TabController(length: 2, vsync: this);
     MonitoringCoordinatorRegistry.instance.register(_coordinator);
     _coordinator.addListener(_onCoordinatorChanged);
     unawaited(_checkImuGate());
@@ -377,6 +382,7 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _pairingCodeController.dispose();
     _coordinator.removeListener(_onCoordinatorChanged);
     MonitoringCoordinatorRegistry.instance.unregister(_coordinator);
@@ -436,11 +442,24 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
         title: Text(l10n.monitoredTitle),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: [
+            Tab(text: l10n.monitoredTabStatus),
+            Tab(text: l10n.monitoredTabSensors),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: l10n.dataTransparency,
-            onPressed: () => TransparencyDialog.show(context),
+            onPressed: () => TransparencyDialog.show(
+              context,
+              onViewLiveSensors: () => _tabController.animateTo(1),
+            ),
           ),
           AppTopActions(
             session: widget.session,
@@ -448,26 +467,54 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Card(
-            child: ListTile(
-              leading: CircleAvatar(child: Text(user.fullName[0])),
-              title: Text(user.fullName),
-              subtitle: Text(l10n.roleMonitored),
-            ),
+          _buildStatusTab(
+            l10n,
+            theme,
+            user,
+            isPendingLink,
+            isPaired,
+            canPressMonitoring,
           ),
-          const SizedBox(height: 16),
-          if (isPendingLink)
-            _buildPendingLinkCard(l10n, theme)
-          else if (!isPaired)
-            _buildPairingForm(l10n, theme)
-          else
-            _buildLinkedCard(l10n, theme),
-          const SizedBox(height: 16),
-          if (!isPendingLink)
-            Card(
+          LiveSensorCharts(
+            sensorStream: _coordinator.sensorSnapshots,
+            isMonitoring: _monitoring,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusTab(
+    AppLocalizations l10n,
+    ThemeData theme,
+    User user,
+    bool isPendingLink,
+    bool isPaired,
+    bool canPressMonitoring,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: ListTile(
+            leading: CircleAvatar(child: Text(user.fullName[0])),
+            title: Text(user.fullName),
+            subtitle: Text(l10n.roleMonitored),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (isPendingLink)
+          _buildPendingLinkCard(l10n, theme)
+        else if (!isPaired)
+          _buildPairingForm(l10n, theme)
+        else
+          _buildLinkedCard(l10n, theme),
+        const SizedBox(height: 16),
+        if (!isPendingLink)
+          Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -491,30 +538,30 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
               ),
             ),
           ),
-          if (isPendingLink) ...[
-            const SizedBox(height: 12),
-            Text(
-              l10n.pendingLinkBody,
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-          ] else if (!isPaired) ...[
-            const SizedBox(height: 12),
-            Text(
-              l10n.pairingRequired,
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-          ] else if (!_consentAccepted) ...[
-            const SizedBox(height: 12),
-            Text(
-              l10n.consentRequired,
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-          ],
-          const SizedBox(height: 16),
-          if (!isPendingLink) ...[
-            Text(l10n.lastEvaluation, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            if (_lastPrediction != null) ...[
+        if (isPendingLink) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.pendingLinkBody,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ] else if (!isPaired) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.pairingRequired,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ] else if (!_consentAccepted) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.consentRequired,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ],
+        const SizedBox(height: 16),
+        if (!isPendingLink) ...[
+          Text(l10n.lastEvaluation, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          if (_lastPrediction != null) ...[
             Card(
               color: _lastPrediction!.fallDetected
                   ? Colors.red[50]
@@ -552,28 +599,27 @@ class _MonitoredScreenState extends State<MonitoredScreen> {
               l10n.noEvaluationYet,
               style: TextStyle(color: Colors.grey[600]),
             ),
-          ],
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 52,
-            child: FilledButton.icon(
-              onPressed: canPressMonitoring ? _toggleMonitoring : null,
-              icon: Icon(_monitoring ? Icons.stop : Icons.sensors),
-              label: Text(
-                _monitoring ? l10n.stopMonitoring : l10n.startMonitoring,
-              ),
+        ],
+        const SizedBox(height: 24),
+        SizedBox(
+          height: 52,
+          child: FilledButton.icon(
+            onPressed: canPressMonitoring ? _toggleMonitoring : null,
+            icon: Icon(_monitoring ? Icons.stop : Icons.sensors),
+            label: Text(
+              _monitoring ? l10n.stopMonitoring : l10n.startMonitoring,
             ),
           ),
-          if (!isPendingLink && isPaired && _consentAccepted) ...[
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: _consentInFlight ? null : _revokeConsent,
-              icon: const Icon(Icons.privacy_tip_outlined),
-              label: Text(l10n.revokeConsent),
-            ),
-          ],
+        ),
+        if (!isPendingLink && isPaired && _consentAccepted) ...[
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: _consentInFlight ? null : _revokeConsent,
+            icon: const Icon(Icons.privacy_tip_outlined),
+            label: Text(l10n.revokeConsent),
+          ),
         ],
-      ),
+      ],
     );
   }
 

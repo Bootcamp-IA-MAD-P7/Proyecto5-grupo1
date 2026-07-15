@@ -181,4 +181,32 @@ void main() {
     expect(find.text('Sensores no disponibles'), findsOneWidget);
     expect(find.text('Iniciar monitoreo'), findsNothing);
   });
+
+  testWidgets('TabBar Estado|Sensores y pestaña sensores pausada (T5.4)', (
+    tester,
+  ) async {
+    final monitoredService = MonitoredService(
+      client: MockClient((req) async {
+        if (req.url.path.endsWith('/me')) {
+          return _json({'id': 'person-1', 'fullName': 'Manuel'});
+        }
+        throw UnsupportedError('Unexpected request: ${req.url}');
+      }),
+    );
+
+    await _pumpMonitoredScreen(tester, _buildMonitored(monitoredService: monitoredService));
+
+    expect(find.text('Estado'), findsOneWidget);
+    expect(find.text('Sensores'), findsOneWidget);
+
+    await tester.tap(find.text('Sensores'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'La monitorización está detenida. Inicia el monitoreo para ver las señales en vivo.',
+      ),
+      findsOneWidget,
+    );
+  });
 }

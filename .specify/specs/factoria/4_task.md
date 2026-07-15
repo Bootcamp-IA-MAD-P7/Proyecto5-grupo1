@@ -50,7 +50,7 @@
 | RF-30 | Push solo `FALL_ALERT` — faltan `MONITORING_*` / `CONSENT_REVOKED` | **✅ T5.1** |
 | UX IT | Export muestra URL; no descarga autenticada | **✅ T5.2** |
 | Grafana EC2 | `:3006` en compose pero SG sin puerto público | **✅ T5.3** — Grafana accesible EC2 `:3006` |
-| Sensores en vivo MONITORED | Sin gráficos locales de transparencia | **Fase 5 → T5.4** (RF-41) |
+| Sensores en vivo MONITORED | Sin gráficos locales de transparencia | **✅ T5.4** |
 | **RF-33 / ML-19** | Retrain no consume feedback de Postgres automáticamente | **✅ Fase 4d cerrada 15/07** |
 | **RF-40** | Sin gate de hardware: dispositivos sin IMU pueden intentar monitorizar | **✅ T4e.1** |
 | Prod contracts | `docker-compose.prod.yml` / imagen inference sin `contracts/` | **✅ T4e.2** |
@@ -81,7 +81,7 @@ T4e.2 (contracts prod) — antes de push/redeploy EC2
 |---|---|---|---|
 | `MONITORED` | `monitored@sentilife.com` / `Admin1234!` | `MonitoredScreen` | pair → consent → sensores → `POST /telemetry/windows` |
 | `CAREGIVER` | `caregiver@sentilife.com` / `Admin1234!` | `CaregiverHomeScreen` | personas CRUD · tab alertas · PATCH feedback · push-token |
-| `IT_ADMIN` | `admin@sentilife.com` / `Admin1234!` | `ItAdminScreen` | historial · export URL · users on/off |
+| `IT_ADMIN` | `admin@sentilife.com` / `Admin1234!` | `ItAdminScreen` | historial · export CSV autenticado · users on/off |
 
 Navegación: `AppShell` switch por `user.role` tras login real. **0 mocks** en `frontend/lib/`.
 APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`. CORS abierto temporal (`CorsConfig`) — requiere redeploy backend en EC2.
@@ -361,7 +361,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra 
 - [x] **T5.1** `BE-B`+`FE-B` — **RF-30 completo.** Publicar eventos RabbitMQ + FCM al iniciar/detener monitorización y revocar consentimiento (`MONITORING_STARTED`, `MONITORING_STOPPED`, `CONSENT_REVOKED`). Prioridad baja en FCM. Flutter: parsear tipos en `PushNotificationService` (sin navegar a alerta). *(RF-30)*
 - [x] **T5.2** `FE-B`+`BE-B` — **Export CSV autenticado (RF-42).** `AdminController` añade `Content-Disposition`; Flutter descarga con `http` + Bearer y guarda/comparte archivo. Eliminar `SelectableText` URL. Test widget + MockMvc header. *(RF-19, RF-42)*
 - [x] **T5.3** `BE-B`+`ALL` — **Grafana EC2 accesible (RF-43).** Puerto `3006` expuesto en servidor QA (`100.52.221.179:3006`). *(RF-22, RF-25)*
-- [ ] **T5.4** `FE-A` — **Pestaña Sensores en vivo (RF-41).** `MonitoredScreen` con `TabBar`: Estado | Sensores. Suscribirse al stream de `SensorCaptureService` / `MonitoringCoordinator`; gráficos rolling ~30 s (`accX/Y/Z`, `gyroX/Y/Z`) con `fl_chart` o similar. Visible solo si monitorización activa; i18n es/en; widget test. Sin cambio de contrato API (datos locales). *(RF-32, RF-41)*
+- [x] **T5.4** `FE-A` — **Pestaña Sensores en vivo (RF-41).** `MonitoredScreen` con `TabBar`: Estado | Sensores. Suscribirse al stream de `SensorCaptureService` / `MonitoringCoordinator`; gráficos rolling ~30 s (`accX/Y/Z`, `gyroX/Y/Z`) con `fl_chart` o similar. Visible solo si monitorización activa; i18n es/en; widget test. Sin cambio de contrato API (datos locales). *(RF-32, RF-41)*
 
 **Esfuerzo estimado:** T5.4 ~4 h · T5.2 ~2 h · T5.1 ~3 h · T5.3 ~30 min infra.
 
@@ -388,7 +388,7 @@ Hecho (no reabrir): Fases 0–2c · **Fase 3 Avanzado (9/9)** · **Fase 4 infra 
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.19 — Fase 5: T5.1+T5.3 ✅ · pendiente T5.2 T5.4 |
+| Estado | v2.19 — **Fase 5 CERRADA** (T5.1–T5.4 ✅) |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 — Grafana EC2 :3006 verificado en servidor |
+| Última actualización | 15/07/2026 — T5.2 export auth · T5.4 sensores en vivo |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |
