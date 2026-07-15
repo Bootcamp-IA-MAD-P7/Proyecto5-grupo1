@@ -110,6 +110,7 @@ El repo actual tiene FastAPI como API única (`Backend/api/main.py` con `classif
   4. **Hot-reload del modelo:** la promoción no requiere reiniciar contenedores — FastAPI expone `POST /model/reload` interno y recarga el artefacto `ACTIVE` del registry.
   5. El candidato no promovido queda en **A/B** con ~20% del tráfico (ML-17).
 - **Diferencia clave con el proyecto 4:** la métrica de decisión aquí es **recall de caídas** (no R²), con guardas de overfitting < 5% y validación por sujeto.
+- **⚠ Hueco T4d (14/07):** el job `POST /admin/retrain` llama a `POST /train` sin pasar el export de Postgres. El feedback confirmado en app queda en DB y en `GET /admin/export`, pero no entra al entrenamiento hasta Fase 4d (`RetrainService` → body `feedback_rows`).
 
 ### ADR-10 — Identidad obligatoria de la persona monitorizada
 
@@ -294,9 +295,14 @@ Corregir el registro que fija siempre `CAREGIVER`, exigir vínculo por email a u
 Stack completo dockerizado y desplegado en EC2, InfluxDB en producción, tests unitarios Java + Python, Prometheus + Grafana con dashboard del pipeline, supresión GDPR end-to-end, i18n completo es/en.
 **Demo (T3.INT):** despliegue automático desde `main`; demo de caída sobre QA con dashboard en vivo y app en ambos idiomas.
 
-### Fase 4 — Nivel Experto (MLOps)
-CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos reales y estado consultable (ADR-09), hot-reload, A/B testing, drift, auto-reemplazo condicionado.
-**Demo (T4.INT):** IT lanza reentrenamiento desde la app con feedback real → decisión `promoted/candidate` visible → dos modelos en producción comparados en Grafana.
+### Fase 4 — Nivel Experto (MLOps) — infra ✅ · RF-33 real pendiente
+CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con estado consultable (ADR-09), hot-reload, A/B testing, drift, auto-reemplazo condicionado.
+**Demo (T4.INT ✅):** IT lanza reentrenamiento → decisión visible → drift/A/B en Grafana.
+**Pendiente (Fase 4d):** cablear feedback Postgres → `POST /train` (`augmented_windows >= 1`).
+
+### Fase 4d — Feedback producción → retrain — 🔴 PRIORIDAD
+Cerrar RF-33/ML-19: el retrain debe mezclar SisFall con ventanas etiquetadas que el cuidador confirmó/descartó en la app (sin CSV manual).
+**Demo (T4d.INT):** `smoke-mvp` (feedback en DB) → `smoke-expert` → métricas con `augmented_windows >= 1`.
 
 ---
 
@@ -321,14 +327,14 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos r
 
 ---
 
-## 9. Estado de ejecución (sincronizado con `4_task.md` — mar 14/07)
+## 9. Estado de ejecución (sincronizado con `4_task.md` — 14/07)
 
 | Nivel bootcamp | Fases | Estado | Evidencia clave |
 |---|---|---|---|
 | 🟢 Esencial | 0–1 | ✅ **CERRADO** | T0.INT + T1.INT · `make up` + `make smoke-telemetry` |
-| 🟡 Medio | 2 + 2b + 2c | ⚠ **REABIERTO por QA** | Fase 2c: roles, vínculo obligatorio, paridad ML y anti-spam |
-| 🟠 Avanzado | 3 | ⏳ ~44% | T3.1/T3.2/T3.3/T3.5 ✅ · T3.4 tests · T3.6 GDPR · T3.INT 🔲 |
-| 🔴 Experto | 4 | ⏳ ~25% | T4.3/T4.6 ✅ · T4.4 stub≠hecho · T4.1 ✂ CEMP · T4.2 CNN · T4.5 UI · T4.7 drift · T4.INT 🔲 |
+| 🟡 Medio | 2 + 2b + 2c | ✅ **CERRADO** | T2.INT + T2c.INT · `make smoke-mvp` |
+| 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | T3.INT · `make smoke-qa-ec2` |
+| 🔴 Experto | 4 + **4d** | ⏳ **infra 8/8 · RF-33 0/4** | T4.INT ✅ · **T4d feedback→retrain pendiente** |
 
 **Mocks Flutter:** eliminados; servicios solo contra Java real. **MobiAct:** fuera de alcance Factoría (CEMP).
 
@@ -338,6 +344,6 @@ CNN 1D/LSTM vs. mejor ensemble, registro de modelos, reentrenamiento con datos r
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.5 — añade ADR-12 sesión, background y cambio de cuenta seguro |
+| Estado | v0.6 — Fase 4d: feedback Postgres → retrain (RF-33 real) |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 14/07/2026 |

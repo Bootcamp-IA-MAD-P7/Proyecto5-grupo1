@@ -432,6 +432,34 @@ Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaura
 
 - **GET `/health`** · **GET `/metrics`** (Prometheus) · **GET `/model/info`** → `{ "version": "xgb-1.2.0", "algorithm": "XGBoost", "trainedAt": "...", "metrics": { "recall": 0.94, "f1": 0.91 } }`
 - **POST `/model/reload`** — interno: recarga el modelo `ACTIVE` del registry sin reiniciar el contenedor (usado por el flujo de reentrenamiento, RF-33).
+- **POST `/train`** — interno: reentrena con SisFall + feedback de producción (ML-19, RF-33). Llamado por Java `RetrainService` tras fase DRIFT.
+
+```json
+// request (opcional — filas etiquetadas desde AdminService.exportLabelledDataset)
+{
+  "feedback_rows": [
+    {
+      "monitored_person_id": "uuid",
+      "samples": { "accX": [125 floats], "accY": [...], "accZ": [...], "gyroX": [...], "gyroY": [...], "gyroZ": [...] },
+      "label": "TRUE_FALL"
+    }
+  ],
+  "skip_feature_build": false
+}
+// 200 response
+{
+  "version": "xgboost-retrain-20260715-001137",
+  "algorithm": "XGBoost",
+  "recall": 0.89,
+  "precision": 0.74,
+  "f1": 0.81,
+  "overfitting": 0.099,
+  "artifact_uri": "ml/models/retrain-....pkl",
+  "metrics": { "feedback": { "augmented_windows": 1, "true_fall": 1, "false_alarm": 0 } }
+}
+```
+
+> **Estado 14/07:** `POST /train` existe pero Java envía body vacío; feedback solo se lee de CSV en `data/feedback/` (Fase 4d cableará `feedback_rows` desde Postgres).
 
 El backend Java es el **único** cliente de este servicio (más el worker de cola).
 
@@ -456,6 +484,7 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 15. **Logout aislado:** al cerrar `MONITORED`, el sistema espera la parada total. Tras entrar como `CAREGIVER` en el mismo dispositivo no se envían más ventanas del usuario anterior ni se generan alertas por ellas.
 16. **Aislamiento local y push:** dos cuentas alternadas en un dispositivo conservan contextos separados; un push cuyo `recipientUserId` no coincide no se muestra ni navega.
 17. **Autorización de dispositivo:** reutilizar un device token con otro `monitoredPersonId` o `deviceId` devuelve `403` y no persiste telemetría.
+18. **Retrain con feedback real (RF-33, Fase 4d):** tras confirmar una alerta en app, un job `POST /admin/retrain` incluye esa ventana en el entrenamiento (`metrics.feedback.augmented_windows >= 1`); no requiere export CSV manual.
 
 ---
 
@@ -474,6 +503,6 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.5 — añade sesión persistente, background e aislamiento entre cuentas |
+| Estado | Draft v0.6 — POST /train feedback_rows + CA-18 retrain con datos de producción |
 | Autores | Equipo Grupo 1 |
 | Última actualización | 14/07/2026 |
