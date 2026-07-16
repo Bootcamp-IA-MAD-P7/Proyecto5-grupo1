@@ -69,6 +69,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
   bool _consentAccepted = false;
   bool _consentInFlight = false;
   bool _pairingInFlight = false;
+  bool _pairingRecoveryInFlight = false;
   MonitoredLinkStatus _linkStatus = MonitoredLinkStatus.loading;
   ImuGateStatus _imuGateStatus = ImuGateStatus.checking;
   ImuCapabilityResult? _imuCapabilityResult;
@@ -127,8 +128,10 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     // If local pairing was cleared (e.g. after logout) but the backend still
     // has an active device linked, recover the credentials automatically.
     if (!_contextStore.isPaired && _linkStatus == MonitoredLinkStatus.linked) {
+      setState(() => _pairingRecoveryInFlight = true);
       await _tryRecoverPairing();
       if (!mounted) return;
+      setState(() => _pairingRecoveryInFlight = false);
     }
 
     if (_contextStore.isPaired) {
@@ -147,11 +150,14 @@ class _MonitoredScreenState extends State<MonitoredScreen>
       if (e.status == 404) {
         setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
       } else {
-        setState(() => _linkStatus = MonitoredLinkStatus.linked);
+        setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _linkStatus = MonitoredLinkStatus.linked);
+      setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
     }
   }
 
@@ -168,6 +174,11 @@ class _MonitoredScreenState extends State<MonitoredScreen>
       );
       if (!mounted) return;
       setState(() => _consentAccepted = _contextStore.consentActive);
+    } on DeviceException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (_) {
       // Best-effort: if recovery fails, user can still re-pair manually.
     }
@@ -535,6 +546,8 @@ class _MonitoredScreenState extends State<MonitoredScreen>
         const SizedBox(height: 16),
         if (isPendingLink)
           _buildPendingLinkCard(l10n, theme)
+        else if (_pairingRecoveryInFlight)
+          _buildRecoveringPairingCard(l10n, theme)
         else if (!isPaired)
           _buildPairingForm(l10n, theme)
         else
@@ -660,6 +673,23 @@ class _MonitoredScreenState extends State<MonitoredScreen>
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('${l10n.pendingLinkStatus}\n${l10n.pendingLinkBody}'),
+      ),
+    );
+  }
+
+  Widget _buildRecoveringPairingCard(AppLocalizations l10n, ThemeData theme) {
+    return Card(
+      child: ListTile(
+        leading: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.primary),
+        ),
+        title: Text(
+          l10n.pairingRecoveringTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(l10n.pairingRecoveringBody),
       ),
     );
   }

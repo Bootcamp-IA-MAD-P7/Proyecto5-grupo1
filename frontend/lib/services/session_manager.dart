@@ -17,4 +17,6 @@ class SessionManager {
   Future<void> login(AuthTokens tokens) => _repo.login(tokens);
 
   Future<void> logout() => _repo.logout();
+
+  Future<String?> ensureValidAccessToken() => _repo.ensureValidAccessToken();
 }

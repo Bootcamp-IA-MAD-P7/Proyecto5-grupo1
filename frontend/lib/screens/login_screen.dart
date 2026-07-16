@@ -4,19 +4,20 @@ import '../l10n/l10n.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/exceptions.dart';
-import '../services/session_manager.dart';
+import '../services/session_repository.dart';
 
 /// Login/Register screen — spec §6.1, T2.11 (SL-30).
 ///
 /// Authenticates against the Java backend POST /api/v1/auth/login.
-/// On success, stores JWT tokens in SessionManager and calls [onLoginSuccess].
-/// main.dart bridges SessionManager → AuthSession for role-based navigation.
+/// On success, stores JWT tokens in [session] (single source of truth).
 class LoginScreen extends StatefulWidget {
+  final SessionRepository session;
   final VoidCallback onLoginSuccess;
   final AuthService? authService;
 
   const LoginScreen({
     super.key,
+    required this.session,
     required this.onLoginSuccess,
     this.authService,
   });
@@ -73,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
-      await SessionManager().login(tokens);
+      await widget.session.login(tokens);
       if (mounted) widget.onLoginSuccess();
     } on AuthException catch (e) {
       setState(() => _error = e.message);

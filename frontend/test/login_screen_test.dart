@@ -20,6 +20,7 @@ Widget _buildLogin({
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: LoginScreen(
+      session: SessionRepository.instance,
       authService: authService,
       onLoginSuccess: onLoginSuccess ?? () {},
     ),
@@ -119,6 +120,7 @@ void main() {
 
     expect(registeredRole, 'MONITORED');
     expect(loginSucceeded, isTrue);
+    expect(SessionRepository.instance.accessToken, 'access-token');
   });
 
   testWidgets('locale en muestra textos en inglés sin español residual', (

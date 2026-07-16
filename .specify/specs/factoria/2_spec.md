@@ -94,6 +94,8 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RF-43 | Grafana QA accesible desde red de demo: puerto host `3006` abierto en Security Group EC2 **o** túnel SSH documentado; enlace en pestaña IT con credenciales de solo lectura. | Avanzado |
 | RF-44 | Cada perfil dispone de un botón **Ayuda** (icono `?`) en la barra superior con guía contextual en lenguaje claro (es/en): flujos MONITORED, CAREGIVER e IT_ADMIN. | Post-demo |
 | RF-45 | El reentrenamiento MLOps exige un **mínimo de registros etiquetados** válidos en Postgres antes de arrancar (`GET /admin/retrain/prerequisites`). Si no se alcanza, `POST /admin/retrain` responde `400 INSUFFICIENT_FEEDBACK` y la UI muestra modal explicativo + panel de criterios (mínimo, recomendado, reglas de promoción). | Post-demo |
+| RF-46 | La app incluye un **asistente IA** accesible desde un **botón flotante (FAB)** en todas las pantallas autenticadas. El usuario puede escribir preguntas en lenguaje natural; el backend responde usando **RAG** sobre documentación del proyecto (`docs/`, `contracts/`, specs) y **tools** que consultan APIs internas autorizadas según rol (p. ej. prerequisites de retrain, drift, registry para `IT_ADMIN`; alertas recientes para `CAREGIVER`). El LLM **no diagnostica caídas** ni sustituye el modelo ML: explica, orienta y resume datos del sistema. | Post-Factoría |
+| RF-47 | El asistente admite **entrada por voz**: el usuario graba audio en Flutter, el backend transcribe con **Whisper** (Groq u otro proveedor configurado) y envía el texto al mismo flujo de chat. La clave de API del proveedor LLM/STT **nunca** se expone al cliente móvil. | Post-Factoría |
 
 ---
 
@@ -158,6 +160,7 @@ Cubre el MVP de SentiLife definido en `1_intent.md` §10, mapeado a los cuatro n
 | RNF-06 | Todo el stack se levanta en local con `docker compose up` | Un comando |
 | RNF-07 | CI/CD: tests en cada PR; despliegue automático a QA en merge a `main` | GitHub Actions |
 | RNF-08 | Idioma de la documentación y la UI: español | — |
+| RNF-09 | Asistente IA: `GROQ_API_KEY` (y credenciales Whisper si aplica) solo en backend/servicio agente; rate limit básico por usuario; respuestas acotadas a tools permitidas por rol JWT | Post-Factoría |
 
 ---
 
@@ -488,6 +491,49 @@ Flutter descarta silenciosamente el mensaje si no hay sesión CAREGIVER restaura
 
 El backend Java es el **único** cliente de este servicio (más el worker de cola).
 
+### 6.9 Asistente IA (`/api/v1/assistant`) — autenticado, todos los roles (RF-46, RF-47)
+
+Proxy Java → servicio agente (FastAPI módulo `assistant/` o contenedor aparte). El móvil **nunca** llama a Groq directamente.
+
+**POST `/chat`**
+
+```json
+// request
+{
+  "message": "¿Puedo lanzar un reentrenamiento ahora?",
+  "conversationId": "uuid-opcional",
+  "locale": "es"
+}
+// 200 response
+{
+  "reply": "Hay 7 registros etiquetados; el mínimo es 5. Puedes iniciar retrain desde MLOps.",
+  "sources": ["docs/presentaciones/presentacion_tecnica.md"],
+  "toolsUsed": ["get_retrain_prerequisites"]
+}
+```
+
+**POST `/transcribe`** (RF-47) — `multipart/form-data` con campo `audio` (m4a/wav, ≤ 30 s).
+
+```json
+// 200 response
+{ "text": "¿Cuántos feedback hay para reentrenar?", "language": "es" }
+```
+
+**Tools permitidas por rol (MVP viernes 18/07):**
+
+| Tool | IT_ADMIN | CAREGIVER | MONITORED |
+|---|---|---|---|
+| `search_docs` (RAG) | ✅ | ✅ | ✅ |
+| `get_retrain_prerequisites` | ✅ | ❌ | ❌ |
+| `get_retrain_status` | ✅ | ❌ | ❌ |
+| `get_drift_snapshot` | ✅ | ❌ | ❌ |
+| `get_model_registry` | ✅ | ❌ | ❌ |
+| `get_recent_alerts` | ✅ | ✅ (solo sus personas) | ❌ |
+
+**Corpus RAG inicial:** `docs/`, `contracts/window_contract.md`, `.specify/specs/factoria/2_spec.md` (extractos RF/RNF), README. Extensible a Obsidian/S3 post-Factoría (CEMP).
+
+**Restricción explícita:** el system prompt debe indicar que el asistente **no emite diagnósticos médicos** ni sustituye las alertas del modelo ML.
+
 ---
 
 ## 7. Criterios de aceptación del MVP
@@ -514,6 +560,9 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 20. **Transparencia sensores (RF-41, Fase 5):** con monitorización activa, la pestaña Sensores en vivo muestra señales IMU actualizándose; al detener monitorización, los gráficos se congelan o vacían con mensaje explicativo.
 21. **Export IT autenticado (RF-42):** `IT_ADMIN` descarga CSV sin pegar URL en navegador anónimo; archivo contiene al menos una fila `TRUE_FALL` tras smoke MVP.
 22. **Grafana demo (RF-43):** dashboard pipeline visible en `http://<EC2>:3006` o vía túnel documentado en README.
+23. **Asistente FAB (RF-46):** usuario autenticado abre chat desde botón flotante; pregunta sobre SL-14 responde citando docs; `IT_ADMIN` pregunta por retrain y recibe datos reales de `GET /retrain/prerequisites`.
+24. **Voz (RF-47):** grabación ≤ 30 s se transcribe y alimenta el mismo hilo de chat; sin `GROQ_API_KEY` el endpoint responde `503` con mensaje claro.
+25. **Seguridad agente (RNF-09):** `CAREGIVER` no puede invocar tools admin vía manipulación del payload; Java valida rol antes de delegar.
 
 ---
 
@@ -525,6 +574,7 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 | 🟡 Medio | ML-06…ML-10 · RF-14…RF-19 · RF-21 · RF-22 · RF-27…RF-30 · RF-32 · **RF-41** · **RF-42** |
 | 🟠 Avanzado | ML-11…ML-14 · RF-01…RF-09 · RF-23…RF-25 · RF-31 · RF-34…RF-40 · **RF-43** · RNF-01…RNF-07 |
 | 🔴 Experto | ML-15…ML-19 · RF-33 |
+| 🟣 Post-Factoría | **RF-46** · **RF-47** · RNF-09 |
 
 ---
 
@@ -532,6 +582,6 @@ El backend Java es el **único** cliente de este servicio (más el worker de col
 
 | Campo | Valor |
 |---|---|
-| Estado | Draft v0.9 — RF-41 sensores en vivo · RF-42 export auth · RF-43 Grafana · Fase 5 post-demo |
+| Estado | Draft v0.10 — RF-46/47 asistente IA + voz · Fase 6 post-Factoría |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 |
+| Última actualización | 15/07/2026 — agente Groq/RAG target vie 18/07 |

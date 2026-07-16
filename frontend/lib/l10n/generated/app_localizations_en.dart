@@ -653,4 +653,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpItAdminBody =>
       'History: global system alerts.\n\nExport: authenticated CSV download with labelled windows (caregiver feedback).\n\nUsers: enable or disable accounts.\n\nMLOps — Retraining:\n• Reads Postgres feedback automatically (no manual CSV).\n• Requires a minimum of labelled records before starting the job.\n• Shows phases, metrics and decision (promoted / candidate / discarded).\n• Promotes only if fall recall improves without overfitting.\n\nGrafana (QA): http://100.52.221.179:3006 — latency, queue and drift dashboards.';
+
+  @override
+  String get historyLoadError => 'Could not load history.';
+
+  @override
+  String get noHistory => 'No alert history.';
+
+  @override
+  String historyPageIndicator(int current, int total, int count) =>
+      'Page $current of $total · $count alerts total';
+
+  @override
+  String historyPageShort(int current, int total) => '$current / $total';
+
+  @override
+  String get historyPreviousPage => 'Previous page';
+
+  @override
+  String get historyNextPage => 'Next page';
+
+  @override
+  String get pairingRecoveringTitle => 'Restoring link';
+
+  @override
+  String get pairingRecoveringBody =>
+      'Recovering your device link after sign-in…';
 }

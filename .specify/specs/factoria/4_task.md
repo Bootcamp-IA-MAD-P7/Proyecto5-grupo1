@@ -2,7 +2,7 @@
 
 > **Único archivo de verdad del backlog.** Derivado de `3_plan.md` / `2_spec.md`. Marcar `[x]` al completar; si cambia el alcance, actualizar primero spec/plan.
 >
-> Presentación Factoría: **jueves 16**. Contratos API: la corrección Fase 2c modifica `2_spec.md` §6 antes de tocar código.
+> **Calendario cierre Factoría:** demo funcional **jue 16** · exposición final **vie 17** · agente IA (Fase 6) target **vie 17** · CEMP desde **lun 20**. Contratos API: la corrección Fase 2c modifica `2_spec.md` §6 antes de tocar código.
 >
 > **⛔ GATE DE PR:** ningún merge a `dev`/`main` sin: (1) tarea `[x]` aquí, (2) `make test` / pytest / flutter test verde, (3) si cambia contrato §6 → OK de 1 dev por lado. Commits: `T3.4: …` o `SL-46: …`.
 
@@ -24,6 +24,7 @@
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | T3.INT · `make smoke-qa-ec2` · acta `docs/daily/t3.8-t3int-20260714.md` |
 | 🔴 Experto | 4 + 4d + 4e | ✅ **CERRADO** | T4.INT + T4d.INT + T4e · `make smoke-expert` · acta `docs/daily/t4dint-feedback-retrain-20260715.md` |
 | 🟣 Post-demo | 5 | ✅ **CERRADO** | T5.1–T5.6 (push, export, Grafana, sensores, ayuda, umbral retrain) |
+| 🤖 Post-Factoría | 6 | 🟡 **EN COLA** | Target **vie 17/07** (expo) · demo parcial posible jue 16 |
 
 **Veredicto auditoría 15/07:** backlog Factoría **cerrado en código y smoke**. Único QA de campo pendiente (no bloquea merge): **10 min pantalla bloqueada en Xiaomi** — protocolo listo, ejecución programada jue 16 (`docs/daily/t2c11-android-background-qa-20260715.md`).
 
@@ -272,11 +273,31 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`.
 
 ---
 
+## Fase 6 — Asistente IA (agente + RAG + voz) 🤖
+
+> **Target: viernes 17/07/2026 (exposición final).** Diseño arranca tras demo jue 16. CEMP (corpus clínico ampliado) desde lun 20.
+>
+> **Stack:** Groq API (LLM + Whisper) · RAG `docs/` + `contracts/` · FAB Flutter · proxy Java.
+
+- [ ] **T6.1** `ML` — Servicio agente FastAPI: Groq client, system prompt por rol, endpoint `POST /assistant/chat`. *(RF-46, RNF-09)*
+- [ ] **T6.2** `ML` — RAG: ingest markdown del repo + `search_docs` tool (BM25 o embeddings Chroma). *(RF-46)*
+- [ ] **T6.3** `ML`+`BE-B` — Tools agente: `get_retrain_prerequisites`, `get_retrain_status`, `get_drift_snapshot`, `get_model_registry`, `get_recent_alerts` (delegación HTTP a Java/inference). *(RF-46)*
+- [ ] **T6.4** `BE-B` — `AssistantController` Java: `POST /api/v1/assistant/chat`, RBAC, proxy al servicio agente. *(RF-46, §6.9)*
+- [ ] **T6.5** `BE-B`+`ML` — `POST /api/v1/assistant/transcribe` + Groq Whisper en servicio agente. *(RF-47)*
+- [ ] **T6.6** `FE-A`+`FE-B` — FAB global + pantalla chat (texto + micrófono + historial sesión). *(RF-46, RF-47)*
+- [ ] **T6.7** `ALL` — `GROQ_API_KEY` en compose/CI secrets; fail-fast `503` si falta clave.
+- [ ] **T6.8** `ALL` — Smoke `scripts/smoke-assistant.sh`: pregunta RAG + tool retrain como IT_ADMIN.
+- [ ] **T6.INT** `ALL` — Demo asistente: IT_ADMIN pregunta por retrain; CAREGIVER pregunta por alertas; voz opcional.
+
+**Post-MVP (CEMP, fin de semana):** ampliar corpus RAG (Obsidian/S3), prompts GDPR clínicos, sin bloquear T6.INT.
+
+---
+
 ## Estado del documento
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.21 — **T5.5/T5.6 UX explicativa** |
+| Estado | v2.22 — **Fase 6 asistente IA en cola (vie 18/07)** |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 — RF-44 ayuda · RF-45 umbral retrain |
+| Última actualización | 15/07/2026 — RF-46/47 · T6.1–T6.INT |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

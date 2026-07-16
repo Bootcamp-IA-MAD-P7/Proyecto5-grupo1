@@ -312,6 +312,32 @@ RF-40 gate IMU, contracts en prod, InferenceClient fail-fast, spec alineada ADR-
 Push completo (RF-30), export CSV autenticado (RF-42), Grafana EC2 (RF-43), sensores en vivo (RF-41).
 Guías de ayuda por perfil (RF-44) y umbral mínimo feedback + UX MLOps (RF-45).
 
+### Fase 6 — Asistente IA (agente + RAG + voz) — 🟡 PLANIFICADA (target **vie 18/07**)
+
+**Objetivo:** FAB en Flutter → Java `/api/v1/assistant/*` → servicio agente FastAPI con **Groq** (LLM) + **Whisper** (STT) + RAG sobre docs del repo + tools acotadas por rol JWT.
+
+**Arquitectura (ADR-13):**
+
+```
+Flutter FAB (chat + mic)
+    → Spring Boot AssistantController (auth + RBAC)
+        → FastAPI /assistant/chat | /assistant/transcribe
+            → Groq chat completions (llama-3.x)
+            → Groq Whisper (audio → texto)
+            → RAG: índice local docs/ + contracts/ + spec (Chroma o BM25 MVP)
+            → Tools: HTTP interno a Java admin/caregiver endpoints
+```
+
+**Decisiones:**
+
+- **No** exponer `GROQ_API_KEY` en Flutter; secret en `.env` / GitHub Secrets / EC2 env.
+- **MVP viernes:** RAG por chunks markdown + búsqueda simple; embeddings/Chroma si hay tiempo.
+- **Agente = RAG + tools**, no solo chat: el LLM elige cuándo llamar `get_retrain_prerequisites`, etc.
+- Complementa RF-44 (ayuda estática); no lo reemplaza.
+- Narrativa CEMP (fin de semana): asistente explica GDPR/consentimiento — fuera del MVP viernes.
+
+**Entregables:** RF-46, RF-47, RNF-09 · smoke `scripts/smoke-assistant.sh` · demo en IT_ADMIN + CAREGIVER.
+
 ---
 
 ## 8. Riesgos del plan y contingencias
@@ -344,6 +370,7 @@ Guías de ayuda por perfil (RF-44) y umbral mínimo feedback + UX MLOps (RF-45).
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | T3.INT · `make smoke-qa-ec2` |
 | 🔴 Experto | 4 + 4d + 4e | ✅ **CERRADO** | T4.INT + T4d.INT · `make smoke-expert` |
 | 🟣 Post-demo | 5 | ✅ **CERRADO** | T5.1–T5.4 |
+| 🤖 Post-Factoría | 6 | 🟡 **PLANIFICADA** | Target vie 18/07 · RF-46/47 |
 
 **Mocks Flutter:** eliminados. **MobiAct:** ✂ CEMP. **Telemetría:** Postgres (ADR-03 fallback activo, no InfluxDB).
 
@@ -353,6 +380,6 @@ Guías de ayuda por perfil (RF-44) y umbral mínimo feedback + UX MLOps (RF-45).
 
 | Campo | Valor |
 |---|---|
-| Estado | v0.8 — **Backlog Factoría CERRADO** |
+| Estado | v0.9 — **Fase 6 asistente IA planificada** |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 — auditoría final |
+| Última actualización | 15/07/2026 — ADR-13 agente Groq/RAG |

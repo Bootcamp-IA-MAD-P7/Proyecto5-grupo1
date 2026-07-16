@@ -1285,6 +1285,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Historial: alertas globales del sistema.\n\nExportar: descarga CSV autenticado con ventanas etiquetadas (feedback de cuidadores).\n\nUsuarios: activar o desactivar cuentas.\n\nMLOps — Reentrenamiento:\n• Lee el feedback de Postgres automáticamente (sin CSV manual).\n• Requiere un mínimo de registros etiquetados antes de lanzar el job.\n• Muestra fases, métricas y decisión (promoted / candidate / discarded).\n• Solo promueve si mejora el recall de caídas sin sobreajuste.\n\nGrafana (QA): http://100.52.221.179:3006 — dashboards de latencia, colas y drift.'**
   String get helpItAdminBody;
+
+  /// No description provided for @historyLoadError.
+  String get historyLoadError;
+
+  /// No description provided for @noHistory.
+  String get noHistory;
+
+  /// No description provided for @historyPageIndicator.
+  String historyPageIndicator(int current, int total, int count);
+
+  /// No description provided for @historyPageShort.
+  String historyPageShort(int current, int total);
+
+  /// No description provided for @historyPreviousPage.
+  String get historyPreviousPage;
+
+  /// No description provided for @historyNextPage.
+  String get historyNextPage;
+
+  /// No description provided for @pairingRecoveringTitle.
+  String get pairingRecoveringTitle;
+
+  /// No description provided for @pairingRecoveringBody.
+  String get pairingRecoveringBody;
 }
 
 class _AppLocalizationsDelegate

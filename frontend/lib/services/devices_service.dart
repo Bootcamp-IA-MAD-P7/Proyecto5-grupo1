@@ -76,7 +76,7 @@ class DevicesService {
   Future<RecoveredPairing?> recoverPairing() async {
     final res = await _client.get(
       Uri.parse('$_base/my-pairing'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     if (res.statusCode == 404) return null;
     _checkStatus(res);
@@ -94,7 +94,7 @@ class DevicesService {
   }) async {
     final res = await _client.post(
       Uri.parse('$_base/push-token'),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode({
         'fcmToken': fcmToken,
         'deviceId': deviceId,
@@ -109,12 +109,12 @@ class DevicesService {
   Future<void> unregisterPushToken({required String deviceId}) async {
     final res = await _client.delete(
       Uri.parse('$_base/push-token/$deviceId'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
   }
 
-  Map<String, String> _headers() => apiJsonHeaders();
+  Future<Map<String, String>> _headers() => apiJsonHeadersAsync();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {
