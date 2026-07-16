@@ -370,7 +370,7 @@ Flutter FAB (chat + mic)
 | 🟠 Avanzado | 3 | ✅ **CERRADO (9/9)** | T3.INT · `make smoke-qa-ec2` |
 | 🔴 Experto | 4 + 4d + 4e | ✅ **CERRADO** | T4.INT + T4d.INT · `make smoke-expert` |
 | 🟣 Post-demo | 5 | ✅ **CERRADO** | T5.1–T5.4 |
-| 🤖 Post-Factoría | 6 | 🟡 **PLANIFICADA** | Target vie 18/07 · RF-46/47 |
+| 🤖 Post-Factoría | 6 | 🟢 **IMPLEMENTADA** | T6.1–T6.7 · smoke T6.8 pendiente · RF-46/47 |
 
 **Mocks Flutter:** eliminados. **MobiAct:** ✂ CEMP. **Telemetría:** Postgres (ADR-03 fallback activo, no InfluxDB).
 

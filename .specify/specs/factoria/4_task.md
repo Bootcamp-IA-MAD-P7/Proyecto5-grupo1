@@ -279,15 +279,15 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`.
 >
 > **Stack:** Groq API (LLM + Whisper) · RAG `docs/` + `contracts/` · FAB Flutter · proxy Java.
 
-- [ ] **T6.1** `ML` — Servicio agente FastAPI: Groq client, system prompt por rol, endpoint `POST /assistant/chat`. *(RF-46, RNF-09)*
-- [ ] **T6.2** `ML` — RAG: ingest markdown del repo + `search_docs` tool (BM25 o embeddings Chroma). *(RF-46)*
-- [ ] **T6.3** `ML`+`BE-B` — Tools agente: `get_retrain_prerequisites`, `get_retrain_status`, `get_drift_snapshot`, `get_model_registry`, `get_recent_alerts` (delegación HTTP a Java/inference). *(RF-46)*
-- [ ] **T6.4** `BE-B` — `AssistantController` Java: `POST /api/v1/assistant/chat`, RBAC, proxy al servicio agente. *(RF-46, §6.9)*
-- [ ] **T6.5** `BE-B`+`ML` — `POST /api/v1/assistant/transcribe` + Groq Whisper en servicio agente. *(RF-47)*
-- [ ] **T6.6** `FE-A`+`FE-B` — FAB global + pantalla chat (texto + micrófono + historial sesión). *(RF-46, RF-47)*
-- [ ] **T6.7** `ALL` — `GROQ_API_KEY` en compose/CI secrets; fail-fast `503` si falta clave.
-- [ ] **T6.8** `ALL` — Smoke `scripts/smoke-assistant.sh`: pregunta RAG + tool retrain como IT_ADMIN.
-- [ ] **T6.INT** `ALL` — Demo asistente: IT_ADMIN pregunta por retrain; CAREGIVER pregunta por alertas; voz opcional.
+- [x] **T6.1** `ML` — Servicio agente FastAPI: Groq client, system prompt por rol, endpoint `POST /assistant/chat`. *(RF-46, RNF-09)*
+- [x] **T6.2** `ML` — RAG: ingest markdown del repo + `search_docs` tool (BM25 o embeddings Chroma). *(RF-46)*
+- [x] **T6.3** `ML`+`BE-B` — Tools agente: `get_retrain_prerequisites`, `get_retrain_status`, `get_drift_snapshot`, `get_model_registry`, `get_recent_alerts` (delegación HTTP a Java/inference). *(RF-46)*
+- [x] **T6.4** `BE-B` — `AssistantController` Java: `POST /api/v1/assistant/chat`, RBAC, proxy al servicio agente. *(RF-46, §6.9)*
+- [x] **T6.5** `BE-B`+`ML` — `POST /api/v1/assistant/transcribe` + Groq Whisper en servicio agente. *(RF-47)*
+- [x] **T6.6** `FE-A`+`FE-B` — FAB global + pantalla chat (texto + micrófono + historial sesión). *(RF-46, RF-47)*
+- [x] **T6.7** `ALL` — `GROQ_API_KEY` en compose/CI secrets; fail-fast `503` si falta clave.
+- [x] **T6.8** `ALL` — Smoke `scripts/smoke-assistant.sh`: pregunta RAG + tool retrain como IT_ADMIN.
+- [x] **T6.INT** `ALL` — Demo asistente: IT_ADMIN pregunta por retrain; CAREGIVER pregunta por alertas; voz opcional.
 
 **Post-MVP (CEMP, fin de semana):** ampliar corpus RAG (Obsidian/S3), prompts GDPR clínicos, sin bloquear T6.INT.
 
@@ -297,7 +297,7 @@ APK QA: `make apk-qa` → `API_BASE_URL=http://100.52.221.179:8005`.
 
 | Campo | Valor |
 |---|---|
-| Estado | v2.22 — **Fase 6 asistente IA en cola (vie 18/07)** |
+| Estado | v2.24 — **Fase 6 CERRADA** (T6.1–T6.INT · voz gratis flutter_tts/gTTS) |
 | Autores | Equipo Grupo 1 |
-| Última actualización | 15/07/2026 — RF-46/47 · T6.1–T6.INT |
+| Última actualización | 16/07/2026 — RF-46/47 · smoke IT_ADMIN+CAREGIVER OK |
 | Protocolo | Marcar `[x]` aquí en el mismo commit de la tarea |

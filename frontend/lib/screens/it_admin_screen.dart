@@ -14,6 +14,7 @@ import '../models/user.dart';
 import '../services/admin_service.dart';
 import '../services/auth_session.dart';
 import '../services/exceptions.dart';
+import '../widgets/assistant_fab.dart';
 import 'app_shell.dart';
 
 /// SL-40 / T2.17 + T4.5 — Perfil IT_ADMIN: historial, export, usuarios, MLOps.
@@ -47,6 +48,8 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.itAdminTitle),
@@ -58,6 +61,7 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
           ),
         ],
       ),
+      floatingActionButton: AssistantFab(locale: locale),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),

@@ -268,5 +268,13 @@
   "historyFilterRejected": "Rejected",
   "noFeedbackHistory": "No alerts with feedback yet.",
   "pairingRecoveringTitle": "Restoring link",
-  "pairingRecoveringBody": "Recovering your device link after sign-in…"
+  "pairingRecoveringBody": "Recovering your device link after sign-in…",
+  "assistantTitle": "SentiLife Assistant",
+  "assistantWelcome": "Ask about retrain, alerts, sensors, or project docs. You can also use the microphone.",
+  "assistantHint": "Type your question…",
+  "assistantSend": "Send",
+  "assistantStartRecording": "Record voice",
+  "assistantStopRecording": "Stop recording",
+  "assistantMicDenied": "Microphone permission denied",
+  "assistantEmptyTranscript": "Could not understand the audio. Try again."
 }

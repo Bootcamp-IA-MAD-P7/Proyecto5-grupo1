@@ -726,4 +726,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pairingRecoveringBody =>
       'Recovering your device link after sign-in…';
+
+  @override
+  String get assistantTitle => 'SentiLife Assistant';
+
+  @override
+  String get assistantWelcome =>
+      'Ask about retrain, alerts, sensors, or project docs. You can also use the microphone.';
+
+  @override
+  String get assistantHint => 'Type your question…';
+
+  @override
+  String get assistantSend => 'Send';
+
+  @override
+  String get assistantStartRecording => 'Record voice';
+
+  @override
+  String get assistantStopRecording => 'Stop recording';
+
+  @override
+  String get assistantMicDenied => 'Microphone permission denied';
+
+  @override
+  String get assistantEmptyTranscript =>
+      'Could not understand the audio. Try again.';
 }
