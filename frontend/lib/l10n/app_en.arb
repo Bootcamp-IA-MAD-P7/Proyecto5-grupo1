@@ -233,5 +233,7 @@
   "helpCaregiverTitle": "Guide — Caregiver",
   "helpCaregiverBody": "1. Register the person with their MONITORED account email (must exist and be active).\n2. Share the pairing code so they can link their phone.\n3. You will receive push notifications on possible fall alerts.\n4. Review each alert: confirm a real fall or dismiss as false alarm.\n\nYour feedback labels IMU windows and feeds model retraining. Higher-quality feedback improves the next model.",
   "helpItAdminTitle": "Guide — IT administration",
-  "helpItAdminBody": "History: global system alerts.\n\nExport: authenticated CSV download with labelled windows (caregiver feedback).\n\nUsers: enable or disable accounts.\n\nMLOps — Retraining:\n• Reads Postgres feedback automatically (no manual CSV).\n• Requires a minimum of labelled records before starting the job.\n• Shows phases, metrics and decision (promoted / candidate / discarded).\n• Promotes only if fall recall improves without overfitting.\n\nGrafana (QA): http://100.52.221.179:3006 — latency, queue and drift dashboards."
+  "helpItAdminBody": "History: global system alerts.\n\nExport: authenticated CSV download with labelled windows (caregiver feedback).\n\nUsers: enable or disable accounts.\n\nMLOps — Retraining:\n• Reads Postgres feedback automatically (no manual CSV).\n• Requires a minimum of labelled records before starting the job.\n• Shows phases, metrics and decision (promoted / candidate / discarded).\n• Promotes only if fall recall improves without overfitting.\n\nGrafana (QA): http://100.52.221.179:3006 — latency, queue and drift dashboards.",
+  "historyLoadError": "Could not load history.",
+  "noHistory": "No alert history."
 }
