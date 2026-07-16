@@ -123,6 +123,14 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     await _contextStore.load();
     if (!mounted) return;
     setState(() => _consentAccepted = _contextStore.consentActive);
+
+    // If local pairing was cleared (e.g. after logout) but the backend still
+    // has an active device linked, recover the credentials automatically.
+    if (!_contextStore.isPaired && _linkStatus == MonitoredLinkStatus.linked) {
+      await _tryRecoverPairing();
+      if (!mounted) return;
+    }
+
     if (_contextStore.isPaired) {
       await _loadLastEvaluation();
     }
@@ -144,6 +152,24 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() => _linkStatus = MonitoredLinkStatus.linked);
+    }
+  }
+
+  /// Attempts to recover pairing credentials from the backend when the local
+  /// store is empty (e.g. after logout) but a device is still linked server-side.
+  Future<void> _tryRecoverPairing() async {
+    try {
+      final recovered = await _devicesService.recoverPairing();
+      if (recovered == null || !mounted) return;
+      await _contextStore.setPairing(
+        personId: recovered.monitoredPersonId,
+        deviceId: recovered.deviceId,
+        deviceToken: recovered.deviceToken,
+      );
+      if (!mounted) return;
+      setState(() => _consentAccepted = _contextStore.consentActive);
+    } catch (_) {
+      // Best-effort: if recovery fails, user can still re-pair manually.
     }
   }
 

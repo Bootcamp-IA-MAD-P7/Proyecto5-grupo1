@@ -81,30 +81,54 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
   }
 }
 
-class _HistoryTab extends StatelessWidget {
+class _HistoryTab extends StatefulWidget {
   final AdminService admin;
   const _HistoryTab({required this.admin});
 
   @override
+  State<_HistoryTab> createState() => _HistoryTabState();
+}
+
+class _HistoryTabState extends State<_HistoryTab> {
+  late Future<PagedResponse<HistoryEntry>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.admin.getHistory();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return FutureBuilder(
-      future: admin.getHistory(),
+    return FutureBuilder<PagedResponse<HistoryEntry>>(
+      future: _future,
       builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(child: Text(l10n.historyLoadError));
+        }
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final items = snap.data!.content;
-        return ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (_, i) {
-            final h = items[i];
-            return ListTile(
-              title: Text(h.monitoredPersonName),
-              subtitle: Text(
-                '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
-              ),
-              trailing: Text(h.alertStatus.name),
-            );
+        if (items.isEmpty) {
+          return Center(child: Text(l10n.noHistory));
+        }
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() => _future = widget.admin.getHistory());
           },
+          child: ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final h = items[i];
+              return ListTile(
+                title: Text(h.monitoredPersonName),
+                subtitle: Text(
+                  '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
+                ),
+                trailing: Text(h.alertStatus.name),
+              );
+            },
+          ),
         );
       },
     );

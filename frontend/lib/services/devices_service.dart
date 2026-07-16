@@ -22,6 +22,27 @@ class PairResult {
   }
 }
 
+/// Resultado de la recuperación de pairing (GET /devices/my-pairing)
+class RecoveredPairing {
+  final String monitoredPersonId;
+  final String deviceId;
+  final String deviceToken;
+
+  const RecoveredPairing({
+    required this.monitoredPersonId,
+    required this.deviceId,
+    required this.deviceToken,
+  });
+
+  factory RecoveredPairing.fromJson(Map<String, dynamic> json) {
+    return RecoveredPairing(
+      monitoredPersonId: json['monitoredPersonId'] as String,
+      deviceId: json['deviceId'] as String,
+      deviceToken: json['deviceToken'] as String,
+    );
+  }
+}
+
 /// Servicio de gestión de dispositivos — spec §6.4 (backend Java real).
 ///
 /// [client] es inyectable para tests (`MockClient` de `package:http/testing`).
@@ -48,6 +69,20 @@ class DevicesService {
     );
     _checkStatus(res);
     return PairResult.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// GET /my-pairing — recovers the active pairing for the authenticated
+  /// MONITORED user. Returns null if no active pairing exists (404).
+  Future<RecoveredPairing?> recoverPairing() async {
+    final res = await _client.get(
+      Uri.parse('$_base/my-pairing'),
+      headers: _headers(),
+    );
+    if (res.statusCode == 404) return null;
+    _checkStatus(res);
+    return RecoveredPairing.fromJson(
+      jsonDecode(res.body) as Map<String, dynamic>,
+    );
   }
 
   /// POST /push-token — registra token FCM del cuidador (RF-27), idempotente
