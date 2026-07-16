@@ -705,6 +705,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get historyNextPage => 'Página siguiente';
 
   @override
+  String get historyWithFeedback => 'Con feedback';
+
+  @override
+  String get historyFilterPerson => 'Persona';
+
+  @override
+  String get historyFilterAllPersons => 'Todas las personas';
+
+  @override
+  String get historyFilterFeedbackAll => 'Todos';
+
+  @override
+  String get historyFilterAccepted => 'Aceptados';
+
+  @override
+  String get historyFilterRejected => 'Rechazados';
+
+  @override
+  String get noFeedbackHistory => 'No hay alertas con feedback.';
+
+  @override
   String get pairingRecoveringTitle => 'Restaurando vínculo';
 
   @override

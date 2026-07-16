@@ -1364,6 +1364,48 @@ abstract class AppLocalizations {
   /// **'Página siguiente'**
   String get historyNextPage;
 
+  /// No description provided for @historyWithFeedback.
+  ///
+  /// In es, this message translates to:
+  /// **'Con feedback'**
+  String get historyWithFeedback;
+
+  /// No description provided for @historyFilterPerson.
+  ///
+  /// In es, this message translates to:
+  /// **'Persona'**
+  String get historyFilterPerson;
+
+  /// No description provided for @historyFilterAllPersons.
+  ///
+  /// In es, this message translates to:
+  /// **'Todas las personas'**
+  String get historyFilterAllPersons;
+
+  /// No description provided for @historyFilterFeedbackAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos'**
+  String get historyFilterFeedbackAll;
+
+  /// No description provided for @historyFilterAccepted.
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptados'**
+  String get historyFilterAccepted;
+
+  /// No description provided for @historyFilterRejected.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazados'**
+  String get historyFilterRejected;
+
+  /// No description provided for @noFeedbackHistory.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay alertas con feedback.'**
+  String get noFeedbackHistory;
+
   /// No description provided for @pairingRecoveringTitle.
   ///
   /// In es, this message translates to:

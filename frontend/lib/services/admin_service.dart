@@ -18,6 +18,21 @@ class ExportDownload {
   const ExportDownload({required this.bytes, required this.filename});
 }
 
+/// Opción compacta para el filtro de persona en historial IT.
+class AdminPersonOption {
+  final String id;
+  final String fullName;
+
+  const AdminPersonOption({required this.id, required this.fullName});
+
+  factory AdminPersonOption.fromJson(Map<String, dynamic> json) {
+    return AdminPersonOption(
+      id: json['id'] as String,
+      fullName: json['fullName'] as String,
+    );
+  }
+}
+
 /// Entrada del historial global IT (spec §6.6)
 class HistoryEntry {
   final String id;
@@ -73,12 +88,20 @@ class AdminService {
   Future<PagedResponse<HistoryEntry>> getHistory({
     int page = 0,
     int size = 20,
+    String? monitoredPersonId,
+    bool requireFeedback = false,
+    String? feedbackLabel,
     DateTime? from,
     DateTime? to,
   }) async {
     final params = <String, String>{
       'page': '$page',
       'size': '$size',
+      if (monitoredPersonId != null && monitoredPersonId.isNotEmpty)
+        'monitoredPersonId': monitoredPersonId,
+      if (requireFeedback) 'requireFeedback': 'true',
+      if (feedbackLabel != null && feedbackLabel.isNotEmpty)
+        'feedbackLabel': feedbackLabel,
       if (from != null) 'from': from.toUtc().toIso8601String(),
       if (to != null) 'to': to.toUtc().toIso8601String(),
     };
@@ -96,6 +119,19 @@ class AdminService {
       totalElements: json['totalElements'] as int,
       totalPages: json['totalPages'] as int,
     );
+  }
+
+  /// GET /monitored-persons — opciones para filtro de historial IT
+  Future<List<AdminPersonOption>> listMonitoredPersons() async {
+    final res = await _client.get(
+      Uri.parse('$_base/monitored-persons'),
+      headers: await _headers(),
+    );
+    _checkStatus(res);
+    final json = jsonDecode(res.body) as List;
+    return json
+        .map((e) => AdminPersonOption.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// GET /export — dataset etiquetado para reentrenamiento (RF-19, RF-42).

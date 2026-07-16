@@ -37,6 +37,118 @@ void main() {
     SessionRepository.resetForTests();
   });
 
+  testWidgets('historial tiene sub-tabs y filtro de feedback', (tester) async {
+    final urls = <Uri>[];
+    final admin = AdminService(
+      client: MockClient((req) async {
+        urls.add(req.url);
+        if (req.url.path.endsWith('/monitored-persons')) {
+          return http.Response(
+            jsonEncode([
+              {'id': 'person-1', 'fullName': 'Manuel Pérez'},
+            ]),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (req.url.path.endsWith('/history')) {
+          return http.Response(
+            jsonEncode({
+              'content': [
+                {
+                  'alertId': 'a1',
+                  'monitoredPersonId': 'person-1',
+                  'monitoredPersonName': 'Manuel Pérez',
+                  'detectedAt': '2026-07-13T10:00:00Z',
+                  'confidence': 0.9,
+                  'modelVersion': 'v1',
+                  'alertStatus': 'CONFIRMED',
+                  'feedbackLabel': 'TRUE_FALL',
+                },
+              ],
+              'number': 0,
+              'size': 20,
+              'totalElements': 1,
+              'totalPages': 1,
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (req.url.path.endsWith('/users')) {
+          return http.Response(
+            jsonEncode({
+              'content': [],
+              'number': 0,
+              'size': 20,
+              'totalElements': 0,
+              'totalPages': 0,
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (req.url.path.endsWith('/retrain/status')) {
+          return http.Response(
+            jsonEncode({'phase': 'IDLE'}),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        if (req.url.path.endsWith('/retrain/prerequisites')) {
+          return http.Response(
+            jsonEncode({
+              'feedbackRecords': 5,
+              'minFeedbackRecords': 5,
+              'recommendedFeedbackRecords': 10,
+              'eligible': true,
+              'message': 'ok',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        throw UnsupportedError('Unexpected: ${req.url}');
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('es'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ItAdminScreen(
+          session: _adminSession(),
+          onLocaleChanged: (_) {},
+          adminService: admin,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Con feedback'), findsOneWidget);
+    expect(find.text('Todas las personas'), findsWidgets);
+
+    await tester.tap(find.text('Con feedback'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(FilterChip, 'Aceptados'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, 'Rechazados'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Aceptados'));
+    await tester.pumpAndSettle();
+
+    final feedbackCalls = urls.where((u) => u.path.endsWith('/history')).toList();
+    expect(
+      feedbackCalls.any((u) => u.queryParameters['requireFeedback'] == 'true'),
+      isTrue,
+    );
+    expect(
+      feedbackCalls.any((u) => u.queryParameters['feedbackLabel'] == 'TRUE_FALL'),
+      isTrue,
+    );
+  });
+
   testWidgets('export tab descarga CSV sin mostrar URL (T5.2)', (tester) async {
     var exportCalls = 0;
     final admin = AdminService(
@@ -54,20 +166,16 @@ void main() {
             },
           );
         }
-        if (req.url.path.endsWith('/history')) {
-          return http.Response(
-            jsonEncode({
-              'content': [],
-              'number': 0,
-              'size': 20,
-              'totalElements': 0,
-              'totalPages': 0,
-            }),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        if (req.url.path.endsWith('/users')) {
+        if (req.url.path.endsWith('/history') ||
+            req.url.path.endsWith('/users') ||
+            req.url.path.endsWith('/monitored-persons')) {
+          if (req.url.path.endsWith('/monitored-persons')) {
+            return http.Response(
+              jsonEncode([]),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
           return http.Response(
             jsonEncode({
               'content': [],
@@ -135,6 +243,13 @@ void main() {
   testWidgets('MLOps deshabilita retrain con feedback insuficiente (T5.5)', (tester) async {
     final admin = AdminService(
       client: MockClient((req) async {
+        if (req.url.path.endsWith('/monitored-persons')) {
+          return http.Response(
+            jsonEncode([]),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
         if (req.url.path.endsWith('/history') ||
             req.url.path.endsWith('/users')) {
           return http.Response(

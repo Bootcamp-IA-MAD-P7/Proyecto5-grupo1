@@ -609,6 +609,42 @@ void main() {
       expect(result.content.first.feedbackLabel, 'TRUE_FALL');
     });
 
+    test('getHistory envía filtros de persona y feedback', () async {
+      Uri? seen;
+      final service = AdminService(
+        client: MockClient((req) async {
+          seen = req.url;
+          return _json(_paged([]));
+        }),
+      );
+
+      await service.getHistory(
+        monitoredPersonId: 'person-1',
+        requireFeedback: true,
+        feedbackLabel: 'FALSE_ALARM',
+      );
+
+      expect(seen!.queryParameters['monitoredPersonId'], 'person-1');
+      expect(seen!.queryParameters['requireFeedback'], 'true');
+      expect(seen!.queryParameters['feedbackLabel'], 'FALSE_ALARM');
+    });
+
+    test('listMonitoredPersons parsea opciones', () async {
+      final service = AdminService(
+        client: MockClient((req) async {
+          expect(req.url.path, endsWith('/monitored-persons'));
+          return _json([
+            {'id': 'p1', 'fullName': 'Ana'},
+            {'id': 'p2', 'fullName': 'Bruno'},
+          ]);
+        }),
+      );
+
+      final options = await service.listMonitoredPersons();
+      expect(options, hasLength(2));
+      expect(options.first.fullName, 'Ana');
+    });
+
     test('getUsers parsea los 3 roles', () async {
       final service = AdminService(
         client: MockClient((req) async => _json(_paged([

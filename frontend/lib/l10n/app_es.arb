@@ -274,6 +274,13 @@
   },
   "historyPreviousPage": "Página anterior",
   "historyNextPage": "Página siguiente",
+  "historyWithFeedback": "Con feedback",
+  "historyFilterPerson": "Persona",
+  "historyFilterAllPersons": "Todas las personas",
+  "historyFilterFeedbackAll": "Todos",
+  "historyFilterAccepted": "Aceptados",
+  "historyFilterRejected": "Rechazados",
+  "noFeedbackHistory": "No hay alertas con feedback.",
   "pairingRecoveringTitle": "Restaurando vínculo",
   "pairingRecoveringBody": "Recuperando la vinculación de tu dispositivo tras iniciar sesión…"
 }
