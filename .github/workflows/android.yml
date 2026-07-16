@@ -49,7 +49,8 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-  build-and-release:
+  # Solo build + artifact. NUNCA llama a GitHub Releases (Unicorn tumba el job).
+  build-apk:
     runs-on: ubuntu-latest
     needs: validate
     defaults:
@@ -57,7 +58,6 @@ jobs:
         working-directory: frontend
     env:
       APK_PATH: build/app/outputs/flutter-apk/app-release.apk
-      # URL embebida en el APK (compile-time). EC2_HOST = solo IP/hostname, sin http:// ni :puerto.
       API_BASE_URL: http://${{ secrets.EC2_HOST }}:8005
 
     steps:
@@ -81,7 +81,6 @@ jobs:
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.jks
 
       - name: Write key.properties
-        # Sin indentación en el heredoc: Properties no tolera espacios en las keys.
         run: |
           {
             echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}"
@@ -121,51 +120,10 @@ jobs:
           path: frontend/${{ env.APK_PATH }}
           retention-days: 7
 
-      # GitHub Releases a veces responde Unicorn/503 (API caída). El APK ya está
-      # en Artifacts; no tumbar el job ni Firebase Distribution por eso.
-      - name: Create GitHub Release
-        id: gh_release
-        continue-on-error: true
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: "Release v1.0.${{ github.run_number }}"
-          body: |
-            Build automático desde commit `${{ github.event.workflow_run.head_sha || github.sha }}`
-            API: `http://${{ secrets.EC2_HOST }}:8005`
-          files: frontend/${{ env.APK_PATH }}
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GH_PAT }}
-
-      - name: Release status
-        if: steps.gh_release.outcome == 'failure'
-        run: |
-          echo "::warning::GitHub Releases API falló (Unicorn/503). El APK está en Artifacts → app-release-apk"
-
-  notify-backend:
-    runs-on: ubuntu-latest
-    needs: build-and-release
-    steps:
-      - name: Register APK version in Postgres (OTA)
-        continue-on-error: true
-        run: |
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
-          curl --fail --silent --show-error --retry 3 --retry-delay 5 \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"version_code\": ${{ github.run_number }},
-              \"version_name\": \"1.0.${{ github.run_number }}\",
-              \"apk_url\": \"${APK_URL}\",
-              \"release_notes\": \"Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}\"
-            }" \
-            "http://${{ secrets.EC2_HOST }}:8005/app/register-version"
-          echo "✓ Versión registrada en Postgres (OTA)"
-
+  # Firebase y OTA dependen SOLO del APK — no de GitHub Releases.
   firebase-distribute:
     runs-on: ubuntu-latest
-    needs: build-and-release
+    needs: build-apk
     steps:
       - name: Download APK artifact
         uses: actions/download-artifact@v4
@@ -181,3 +139,48 @@ jobs:
           groups: testers
           file: apk/app-release.apk
           releaseNotes: "Build automático · API http://${{ secrets.EC2_HOST }}:8005 · commit ${{ github.event.workflow_run.head_sha || github.sha }}"
+
+  notify-backend:
+    runs-on: ubuntu-latest
+    needs: build-apk
+    continue-on-error: true
+    steps:
+      - name: Register APK version in Postgres (OTA)
+        run: |
+          APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version_code\": ${{ github.run_number }},
+              \"version_name\": \"1.0.${{ github.run_number }}\",
+              \"apk_url\": \"${APK_URL}\",
+              \"release_notes\": \"Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}\"
+            }" \
+            "http://${{ secrets.EC2_HOST }}:8005/app/register-version"
+          echo "✓ Versión registrada en Postgres (OTA)"
+
+  # Job aislado: si Unicorn tumba Releases, Firebase ya corrió igual.
+  create-github-release:
+    runs-on: ubuntu-latest
+    needs: build-apk
+    continue-on-error: true
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-apk
+          path: apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Release v1.0.${{ github.run_number }}"
+          body: |
+            Build automático desde commit `${{ github.event.workflow_run.head_sha || github.sha }}`
+            API: `http://${{ secrets.EC2_HOST }}:8005`
+          files: apk/app-release.apk
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GH_PAT }}
