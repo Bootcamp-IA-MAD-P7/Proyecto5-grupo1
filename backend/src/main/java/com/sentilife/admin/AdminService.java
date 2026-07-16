@@ -56,6 +56,14 @@ public class AdminService {
     // ── History ───────────────────────────────────────────────────────────────
 
     public Page<AdminDtos.HistoryEntry> getHistory(Pageable pageable) {
+        // Default sort by detectedAt DESC if no sort is specified by the client
+        if (pageable.getSort().isUnsorted()) {
+            pageable = org.springframework.data.domain.PageRequest.of(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    org.springframework.data.domain.Sort.by(
+                            org.springframework.data.domain.Sort.Direction.DESC, "detectedAt"));
+        }
         return alertRepository.findAll(pageable).map(this::toHistoryEntry);
     }
 

@@ -90,47 +90,105 @@ class _HistoryTab extends StatefulWidget {
 }
 
 class _HistoryTabState extends State<_HistoryTab> {
-  late Future<PagedResponse<HistoryEntry>> _future;
+  final List<HistoryEntry> _items = [];
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 0;
+  String? _error;
+
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _future = widget.admin.getHistory();
+    _scrollController.addListener(_onScroll);
+    _loadPage(0);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_loadingMore &&
+        _hasMore) {
+      _loadPage(_page + 1);
+    }
+  }
+
+  Future<void> _loadPage(int page) async {
+    if (page == 0) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      setState(() => _loadingMore = true);
+    }
+
+    try {
+      final result = await widget.admin.getHistory(page: page);
+      if (!mounted) return;
+      setState(() {
+        if (page == 0) _items.clear();
+        _items.addAll(result.content);
+        _page = page;
+        _hasMore = page < result.totalPages - 1;
+        _loading = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+        _loadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _refresh() async {
+    _hasMore = true;
+    await _loadPage(0);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return FutureBuilder<PagedResponse<HistoryEntry>>(
-      future: _future,
-      builder: (context, snap) {
-        if (snap.hasError) {
-          return Center(child: Text(l10n.historyLoadError));
-        }
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        final items = snap.data!.content;
-        if (items.isEmpty) {
-          return Center(child: Text(l10n.noHistory));
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() => _future = widget.admin.getHistory());
-          },
-          child: ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (_, i) {
-              final h = items[i];
-              return ListTile(
-                title: Text(h.monitoredPersonName),
-                subtitle: Text(
-                  '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
-                ),
-                trailing: Text(h.alertStatus.name),
-              );
-            },
-          ),
-        );
-      },
+
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null && _items.isEmpty) {
+      return Center(child: Text(l10n.historyLoadError));
+    }
+    if (_items.isEmpty) return Center(child: Text(l10n.noHistory));
+
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        itemCount: _items.length + (_hasMore ? 1 : 0),
+        itemBuilder: (_, i) {
+          if (i >= _items.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final h = _items[i];
+          return ListTile(
+            title: Text(h.monitoredPersonName),
+            subtitle: Text(
+              '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
+            ),
+            trailing: Text(h.alertStatus.name),
+          );
+        },
+      ),
     );
   }
 }

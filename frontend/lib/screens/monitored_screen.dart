@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../models/monitored_person.dart';
 import '../models/user.dart';
 import '../services/auth_session.dart';
 import '../services/device_id_service.dart';
@@ -70,6 +71,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
   bool _consentInFlight = false;
   bool _pairingInFlight = false;
   MonitoredLinkStatus _linkStatus = MonitoredLinkStatus.loading;
+  ConsentStatus? _backendConsentStatus;
   ImuGateStatus _imuGateStatus = ImuGateStatus.checking;
   ImuCapabilityResult? _imuCapabilityResult;
   late TabController _tabController;
@@ -139,8 +141,9 @@ class _MonitoredScreenState extends State<MonitoredScreen>
 
   Future<void> _resolveLinkStatus() async {
     try {
-      await _monitoredService.getMyProfile();
+      final profile = await _monitoredService.getMyProfile();
       if (!mounted) return;
+      _backendConsentStatus = profile.consentStatus;
       setState(() => _linkStatus = MonitoredLinkStatus.linked);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -166,6 +169,11 @@ class _MonitoredScreenState extends State<MonitoredScreen>
         deviceId: recovered.deviceId,
         deviceToken: recovered.deviceToken,
       );
+      // If the backend already has an active consent, sync it locally
+      // to avoid re-submitting and hitting the unique constraint.
+      if (_backendConsentStatus == ConsentStatus.active) {
+        await _contextStore.setConsentActive(true);
+      }
       if (!mounted) return;
       setState(() => _consentAccepted = _contextStore.consentActive);
     } catch (_) {

@@ -79,6 +79,7 @@ class AdminService {
     final params = <String, String>{
       'page': '$page',
       'size': '$size',
+      'sort': 'detectedAt,desc',
       if (from != null) 'from': from.toUtc().toIso8601String(),
       if (to != null) 'to': to.toUtc().toIso8601String(),
     };
