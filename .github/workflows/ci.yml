@@ -295,6 +295,18 @@ jobs:
             POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-fallsentinel123}"
             POSTGRES_DB="${POSTGRES_DB:-fallsentinel}"
 
+            # Todas las invocaciones de compose deben llevar GROQ_API_KEY:
+            # si falta, compose avisa y RECREA assistant/backend sin clave → 503.
+            compose_env() {
+              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
+              POSTGRES_USER="$POSTGRES_USER" \
+              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+              POSTGRES_DB="$POSTGRES_DB" \
+              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+                "$@"
+            }
+
             reset_pgdata_if_corrupt() {
               local pg_volume="sentilife_pgdata"
               if ! docker volume inspect "$pg_volume" >/dev/null 2>&1; then
@@ -303,11 +315,7 @@ jobs:
               fi
 
               echo "=== Comprobando estado Flyway en pgdata ==="
-              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
-              POSTGRES_USER="$POSTGRES_USER" \
-              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-              POSTGRES_DB="$POSTGRES_DB" \
-                docker compose -f docker-compose.prod.yml up -d db
+              compose_env docker compose -f docker-compose.prod.yml up -d db
 
               for i in $(seq 1 30); do
                 if docker exec sentilife-db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
@@ -351,29 +359,17 @@ jobs:
             }
 
             deploy_stack() {
-              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
-              POSTGRES_USER="$POSTGRES_USER" \
-              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-              POSTGRES_DB="$POSTGRES_DB" \
-              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
-                docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate --pull always \
+              compose_env docker compose -f docker-compose.prod.yml up -d \
+                --remove-orphans --force-recreate --pull always \
                 db rabbitmq api assistant backend
             }
 
             deploy_observability() {
-              DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
-              POSTGRES_USER="$POSTGRES_USER" \
-              POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-              POSTGRES_DB="$POSTGRES_DB" \
-              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-                docker compose -f docker-compose.prod.yml up -d prometheus grafana --no-wait 2>/dev/null \
-                || DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" \
-                   POSTGRES_USER="$POSTGRES_USER" \
-                   POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-                   POSTGRES_DB="$POSTGRES_DB" \
-                   JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-                     docker compose -f docker-compose.prod.yml up -d prometheus grafana
+              # --no-deps: no tocar assistant/backend al levantar métricas
+              compose_env docker compose -f docker-compose.prod.yml up -d --no-deps \
+                prometheus grafana --no-wait 2>/dev/null \
+                || compose_env docker compose -f docker-compose.prod.yml up -d --no-deps \
+                     prometheus grafana
             }
 
             wait_for_backend() {
