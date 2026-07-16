@@ -42,8 +42,17 @@ public class AdminController {
 
     @GetMapping("/history")
     public ResponseEntity<Page<AdminDtos.HistoryEntry>> history(
+            @RequestParam(required = false) UUID monitoredPersonId,
+            @RequestParam(defaultValue = "false") boolean requireFeedback,
+            @RequestParam(required = false) String feedbackLabel,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(service.getHistory(pageable));
+        return ResponseEntity.ok(service.getHistory(
+                monitoredPersonId, requireFeedback, feedbackLabel, pageable));
+    }
+
+    @GetMapping("/monitored-persons")
+    public ResponseEntity<List<AdminDtos.MonitoredPersonOption>> listMonitoredPersons() {
+        return ResponseEntity.ok(service.listMonitoredPersons());
     }
 
     /**

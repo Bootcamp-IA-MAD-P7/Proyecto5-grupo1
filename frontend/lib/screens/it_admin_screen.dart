@@ -89,7 +89,98 @@ class _HistoryTab extends StatefulWidget {
   State<_HistoryTab> createState() => _HistoryTabState();
 }
 
-class _HistoryTabState extends State<_HistoryTab> {
+class _HistoryTabState extends State<_HistoryTab>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+  List<AdminPersonOption> _persons = const [];
+  String? _selectedPersonId;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+    unawaited(_loadPersons());
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPersons() async {
+    try {
+      final persons = await widget.admin.listMonitoredPersons();
+      if (!mounted) return;
+      setState(() => _persons = persons);
+    } catch (_) {
+      // Dropdown stays with "all persons"; list still loads.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Column(
+      children: [
+        Material(
+          color: Theme.of(context).colorScheme.surface,
+          child: TabBar(
+            controller: _tabs,
+            tabs: [
+              Tab(text: l10n.history),
+              Tab(text: l10n.historyWithFeedback),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              _HistoryPane(
+                admin: widget.admin,
+                persons: _persons,
+                selectedPersonId: _selectedPersonId,
+                onPersonChanged: (id) => setState(() => _selectedPersonId = id),
+                requireFeedback: false,
+              ),
+              _HistoryPane(
+                admin: widget.admin,
+                persons: _persons,
+                selectedPersonId: _selectedPersonId,
+                onPersonChanged: (id) => setState(() => _selectedPersonId = id),
+                requireFeedback: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+enum _FeedbackFilter { all, accepted, rejected }
+
+class _HistoryPane extends StatefulWidget {
+  final AdminService admin;
+  final List<AdminPersonOption> persons;
+  final String? selectedPersonId;
+  final ValueChanged<String?> onPersonChanged;
+  final bool requireFeedback;
+
+  const _HistoryPane({
+    required this.admin,
+    required this.persons,
+    required this.selectedPersonId,
+    required this.onPersonChanged,
+    required this.requireFeedback,
+  });
+
+  @override
+  State<_HistoryPane> createState() => _HistoryPaneState();
+}
+
+class _HistoryPaneState extends State<_HistoryPane> {
   static const _pageSize = 20;
 
   int _page = 0;
@@ -98,11 +189,29 @@ class _HistoryTabState extends State<_HistoryTab> {
   List<HistoryEntry> _items = const [];
   bool _loading = true;
   String? _error;
+  _FeedbackFilter _feedbackFilter = _FeedbackFilter.all;
 
   @override
   void initState() {
     super.initState();
     unawaited(_loadPage(0));
+  }
+
+  @override
+  void didUpdateWidget(covariant _HistoryPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedPersonId != widget.selectedPersonId) {
+      unawaited(_loadPage(0));
+    }
+  }
+
+  String? get _feedbackLabelQuery {
+    if (!widget.requireFeedback) return null;
+    return switch (_feedbackFilter) {
+      _FeedbackFilter.all => null,
+      _FeedbackFilter.accepted => 'TRUE_FALL',
+      _FeedbackFilter.rejected => 'FALSE_ALARM',
+    };
   }
 
   Future<void> _loadPage(int page) async {
@@ -111,8 +220,13 @@ class _HistoryTabState extends State<_HistoryTab> {
       _error = null;
     });
     try {
-      final response =
-          await widget.admin.getHistory(page: page, size: _pageSize);
+      final response = await widget.admin.getHistory(
+        page: page,
+        size: _pageSize,
+        monitoredPersonId: widget.selectedPersonId,
+        requireFeedback: widget.requireFeedback,
+        feedbackLabel: _feedbackLabelQuery,
+      );
       if (!mounted) return;
       setState(() {
         _page = response.page;
@@ -135,57 +249,83 @@ class _HistoryTabState extends State<_HistoryTab> {
     await _loadPage(page);
   }
 
+  void _onFeedbackFilter(_FeedbackFilter filter) {
+    if (_feedbackFilter == filter) return;
+    setState(() => _feedbackFilter = filter);
+    unawaited(_loadPage(0));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-
-    if (_loading && _items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null && _items.isEmpty) {
-      return Center(child: Text(_error!));
-    }
-    if (_items.isEmpty) {
-      return Center(child: Text(l10n.noHistory));
-    }
-
-    final hasPagination = _totalPages > 1;
+    final theme = Theme.of(context);
 
     return Column(
       children: [
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => _loadPage(_page),
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: _items.length + 1,
-              itemBuilder: (_, i) {
-                if (i == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      l10n.historyPageIndicator(
-                        _page + 1,
-                        _totalPages == 0 ? 1 : _totalPages,
-                        _totalElements,
-                      ),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  );
-                }
-                final h = _items[i - 1];
-                return ListTile(
-                  title: Text(h.monitoredPersonName),
-                  subtitle: Text(
-                    '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
-                  ),
-                  trailing: Text(h.alertStatus.name),
-                );
-              },
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: DropdownButtonFormField<String?>(
+            key: ValueKey('person-${widget.selectedPersonId ?? 'all'}'),
+            initialValue: widget.selectedPersonId,
+            isExpanded: true,
+            menuMaxHeight: 280,
+            decoration: InputDecoration(
+              isDense: true,
+              labelText: l10n.historyFilterPerson,
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
+            items: [
+              DropdownMenuItem<String?>(
+                value: null,
+                child: Text(l10n.historyFilterAllPersons),
+              ),
+              ...widget.persons.map(
+                (p) => DropdownMenuItem<String?>(
+                  value: p.id,
+                  child: Text(p.fullName, overflow: TextOverflow.ellipsis),
+                ),
+              ),
+            ],
+            onChanged: widget.onPersonChanged,
           ),
         ),
-        if (hasPagination)
+        if (widget.requireFeedback)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filterChip(
+                      label: l10n.historyFilterFeedbackAll,
+                      selected: _feedbackFilter == _FeedbackFilter.all,
+                      onSelected: () => _onFeedbackFilter(_FeedbackFilter.all),
+                    ),
+                    _filterChip(
+                      label: l10n.historyFilterAccepted,
+                      selected: _feedbackFilter == _FeedbackFilter.accepted,
+                      onSelected: () =>
+                          _onFeedbackFilter(_FeedbackFilter.accepted),
+                    ),
+                    _filterChip(
+                      label: l10n.historyFilterRejected,
+                      selected: _feedbackFilter == _FeedbackFilter.rejected,
+                      onSelected: () =>
+                          _onFeedbackFilter(_FeedbackFilter.rejected),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        Expanded(child: _buildList(l10n, theme)),
+        if (_totalPages > 1)
           SafeArea(
             top: false,
             child: Padding(
@@ -221,6 +361,86 @@ class _HistoryTabState extends State<_HistoryTab> {
           ),
       ],
     );
+  }
+
+  Widget _filterChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onSelected,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: FilterChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        onSelected: (_) => onSelected(),
+      ),
+    );
+  }
+
+  Widget _buildList(AppLocalizations l10n, ThemeData theme) {
+    if (_loading && _items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _items.isEmpty) {
+      return Center(child: Text(_error!));
+    }
+    if (_items.isEmpty) {
+      return Center(
+        child: Text(
+          widget.requireFeedback ? l10n.noFeedbackHistory : l10n.noHistory,
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => _loadPage(_page),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: _items.length + 1,
+        itemBuilder: (_, i) {
+          if (i == 0) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(
+                l10n.historyPageIndicator(
+                  _page + 1,
+                  _totalPages == 0 ? 1 : _totalPages,
+                  _totalElements,
+                ),
+                style: theme.textTheme.titleSmall,
+              ),
+            );
+          }
+          final h = _items[i - 1];
+          final trailing = widget.requireFeedback
+              ? _feedbackLabelText(l10n, h.feedbackLabel)
+              : h.alertStatus.name;
+          return ListTile(
+            dense: true,
+            title: Text(h.monitoredPersonName),
+            subtitle: Text(
+              '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
+            ),
+            trailing: Text(
+              trailing,
+              style: theme.textTheme.labelMedium,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _feedbackLabelText(AppLocalizations l10n, String? label) {
+    return switch (label) {
+      'TRUE_FALL' => l10n.historyFilterAccepted,
+      'FALSE_ALARM' => l10n.historyFilterRejected,
+      _ => label ?? '—',
+    };
   }
 }
 

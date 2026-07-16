@@ -24,6 +24,14 @@ public class AdminDtos {
         String comment
     ) {}
 
+    // ── GET /admin/monitored-persons ──────────────────────────────────────────
+
+    /** Compact option for IT admin history person filter. */
+    public record MonitoredPersonOption(
+        UUID id,
+        String fullName
+    ) {}
+
     // ── GET /admin/users ──────────────────────────────────────────────────────
 
     public record UserSummary(

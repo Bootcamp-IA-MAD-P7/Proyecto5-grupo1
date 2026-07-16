@@ -56,12 +56,47 @@ public class AdminService {
 
     // ── History ───────────────────────────────────────────────────────────────
 
-    public Page<AdminDtos.HistoryEntry> getHistory(Pageable pageable) {
+    /**
+     * Global alert history with optional filters for the IT admin UI.
+     *
+     * @param monitoredPersonId when non-null, only alerts for that person
+     * @param requireFeedback   when true, only alerts that already have feedback
+     * @param feedbackLabel     optional TRUE_FALL | FALSE_ALARM (only with requireFeedback)
+     */
+    public Page<AdminDtos.HistoryEntry> getHistory(
+            UUID monitoredPersonId,
+            boolean requireFeedback,
+            String feedbackLabel,
+            Pageable pageable) {
+        String normalizedLabel = normalizeFeedbackLabel(feedbackLabel, requireFeedback);
         var sorted = org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 Sort.by(Sort.Direction.DESC, "detectedAt"));
-        return alertRepository.findAll(sorted).map(this::toHistoryEntry);
+        return alertRepository
+                .findForAdminHistory(
+                        monitoredPersonId, requireFeedback, normalizedLabel, sorted)
+                .map(this::toHistoryEntry);
+    }
+
+    public List<AdminDtos.MonitoredPersonOption> listMonitoredPersons() {
+        return monitoredPersonRepository
+                .findAll(Sort.by(Sort.Direction.ASC, "fullName"))
+                .stream()
+                .map(p -> new AdminDtos.MonitoredPersonOption(p.getId(), p.getFullName()))
+                .collect(Collectors.toList());
+    }
+
+    private String normalizeFeedbackLabel(String feedbackLabel, boolean requireFeedback) {
+        if (!requireFeedback || feedbackLabel == null || feedbackLabel.isBlank()) {
+            return null;
+        }
+        String label = feedbackLabel.trim().toUpperCase();
+        if (!"TRUE_FALL".equals(label) && !"FALSE_ALARM".equals(label)) {
+            throw DomainExceptions.BadRequestException.of(
+                    "feedbackLabel must be TRUE_FALL or FALSE_ALARM");
+        }
+        return label;
     }
 
     // ── Export labelled dataset ───────────────────────────────────────────────

@@ -35,4 +35,26 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
     void deleteByMonitoredPersonId(UUID monitoredPersonId);
 
     long countByMonitoredPersonId(UUID monitoredPersonId);
+
+    /**
+     * Admin history — optional person + feedback filters.
+     * When {@code requireFeedback} is false, {@code feedbackLabel} is ignored.
+     */
+    @Query("""
+            SELECT a FROM Alert a
+            WHERE (:personId IS NULL OR a.monitoredPersonId = :personId)
+              AND (
+                :requireFeedback = false
+                OR EXISTS (
+                  SELECT 1 FROM FeedbackLabel f
+                  WHERE f.alertId = a.id
+                    AND (:feedbackLabel IS NULL OR f.label = :feedbackLabel)
+                )
+              )
+            """)
+    Page<Alert> findForAdminHistory(
+            @Param("personId") UUID personId,
+            @Param("requireFeedback") boolean requireFeedback,
+            @Param("feedbackLabel") String feedbackLabel,
+            Pageable pageable);
 }

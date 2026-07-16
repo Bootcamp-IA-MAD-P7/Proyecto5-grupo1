@@ -260,6 +260,13 @@
   },
   "historyPreviousPage": "Previous page",
   "historyNextPage": "Next page",
+  "historyWithFeedback": "With feedback",
+  "historyFilterPerson": "Person",
+  "historyFilterAllPersons": "All persons",
+  "historyFilterFeedbackAll": "All",
+  "historyFilterAccepted": "Accepted",
+  "historyFilterRejected": "Rejected",
+  "noFeedbackHistory": "No alerts with feedback yet.",
   "pairingRecoveringTitle": "Restoring link",
   "pairingRecoveringBody": "Recovering your device link after sign-in…"
 }
