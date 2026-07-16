@@ -3,7 +3,7 @@
 .PHONY: up down logs verify \
         test-java test-python test-flutter test \
         flutter-local flutter-phone flutter-qa apk-qa \
-        env env-qa reset-db smoke-telemetry smoke-mvp smoke-qa-ec2 smoke-expert
+        env env-qa reset-db smoke-telemetry smoke-mvp smoke-qa-ec2 smoke-expert smoke-assistant
 
 # ── Entorno local ─────────────────────────────────────────────────────────────
 env:
@@ -23,7 +23,7 @@ reset-db:
 	@echo "Volumen Postgres borrado. Ejecuta: make up"
 
 logs:
-	docker compose logs -f backend api db
+	docker compose logs -f backend api assistant db
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 # Corren exactamente igual que en CI (ver .github/workflows/ci.yml)
@@ -60,6 +60,10 @@ smoke-qa-ec2:
 # T4.INT — demo experto MLOps: retrain IT → decisión → drift → A/B (requiere make up)
 smoke-expert: verify
 	bash scripts/smoke-expert-mlops.sh
+
+# T6.8 / T6.INT — asistente IA (RAG + tools IT_ADMIN)
+smoke-assistant: verify
+	bash scripts/smoke-assistant.sh
 
 # ── Flutter ───────────────────────────────────────────────────────────────────
 flutter-local: verify

@@ -100,7 +100,7 @@ Future<void> _openAddPersonDialog(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byType(FloatingActionButton));
+  await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.person_add));
   await tester.pumpAndSettle();
 }
 
@@ -166,7 +166,7 @@ void main() {
 
     await tester.pumpWidget(_buildCaregiver(monitoredService: monitoredService));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.person_add));
     await tester.pumpAndSettle();
     await _fillPersonForm(tester, monitoredEmail: 'monitored@test.com');
     expect(find.text('Manuel Pérez'), findsOneWidget);
@@ -196,7 +196,7 @@ void main() {
 
     await tester.pumpWidget(_buildCaregiver(monitoredService: monitoredService));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.person_add));
     await tester.pumpAndSettle();
     await _lookupEmail(tester, 'missing@test.com');
     await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
@@ -230,7 +230,7 @@ void main() {
 
     await tester.pumpWidget(_buildCaregiver(monitoredService: monitoredService));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.person_add));
     await tester.pumpAndSettle();
     await _lookupEmail(tester, 'caregiver@test.com');
 
@@ -259,7 +259,7 @@ void main() {
 
     await tester.pumpWidget(_buildCaregiver(monitoredService: monitoredService));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.person_add));
     await tester.pumpAndSettle();
     await _lookupEmail(tester, 'linked@test.com');
 

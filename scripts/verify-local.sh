@@ -47,6 +47,12 @@ curl -fsS "http://localhost:${java_port}/actuator/health" | grep -q '"status":"U
   || fail "GET http://localhost:${java_port}/actuator/health falló (Java backend)"
 ok "Java backend responde en :${java_port}/actuator/health"
 
+assistant_port="${ASSISTANT_PORT:-$(_read_port ASSISTANT_PORT 8001)}"
+assistant_port="${assistant_port:-8001}"
+curl -fsS "http://localhost:${assistant_port}/health" | grep -q '"status":"healthy"' \
+  || fail "GET http://localhost:${assistant_port}/health falló (assistant)"
+ok "Assistant API responde en :${assistant_port}/health"
+
 echo ""
 LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
 echo "Flutter emulador : make flutter-local"

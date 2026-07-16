@@ -15,6 +15,7 @@ import '../services/monitored_context_store.dart';
 import '../services/monitored_service.dart';
 import '../services/sensor_capability_service.dart';
 import '../services/telemetry_service.dart';
+import '../widgets/assistant_fab.dart';
 import '../widgets/consent_dialog.dart';
 import '../widgets/live_sensor_charts.dart';
 import '../widgets/transparency_dialog.dart';
@@ -493,6 +494,8 @@ class _MonitoredScreenState extends State<MonitoredScreen>
       );
     }
 
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.monitoredTitle),
@@ -524,6 +527,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
           ),
         ],
       ),
+      floatingActionButton: AssistantFab(locale: locale),
       body: TabBarView(
         controller: _tabController,
         children: [

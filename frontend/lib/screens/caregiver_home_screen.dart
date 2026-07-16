@@ -9,6 +9,7 @@ import '../services/auth_session.dart';
 import '../services/exceptions.dart';
 import '../services/monitored_service.dart';
 import '../services/telemetry_service.dart';
+import '../widgets/assistant_fab.dart';
 import 'alerts_screen.dart';
 import 'app_shell.dart';
 
@@ -81,6 +82,8 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.caregiverTitle),
@@ -101,12 +104,16 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
         ],
       ),
       body: _tab == 0 ? _buildPersonsTab() : AlertsScreen(embedded: true),
-      floatingActionButton: _tab == 0
-          ? FloatingActionButton(
-              onPressed: _addPerson,
-              child: const Icon(Icons.person_add),
-            )
-          : null,
+      floatingActionButton: AssistantFabColumn(
+        locale: locale,
+        primaryFab: _tab == 0
+            ? FloatingActionButton(
+                heroTag: 'caregiver-add-person',
+                onPressed: _addPerson,
+                child: const Icon(Icons.person_add),
+              )
+            : null,
+      ),
     );
   }
 

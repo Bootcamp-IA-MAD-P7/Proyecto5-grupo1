@@ -1417,6 +1417,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Recuperando la vinculación de tu dispositivo tras iniciar sesión…'**
   String get pairingRecoveringBody;
+
+  /// No description provided for @assistantTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Asistente SentiLife'**
+  String get assistantTitle;
+
+  /// No description provided for @assistantWelcome.
+  ///
+  /// In es, this message translates to:
+  /// **'Pregúntame sobre reentrenamiento, alertas, sensores o documentación del proyecto. También puedes usar el micrófono.'**
+  String get assistantWelcome;
+
+  /// No description provided for @assistantHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu pregunta…'**
+  String get assistantHint;
+
+  /// No description provided for @assistantSend.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar'**
+  String get assistantSend;
+
+  /// No description provided for @assistantStartRecording.
+  ///
+  /// In es, this message translates to:
+  /// **'Grabar voz'**
+  String get assistantStartRecording;
+
+  /// No description provided for @assistantStopRecording.
+  ///
+  /// In es, this message translates to:
+  /// **'Detener grabación'**
+  String get assistantStopRecording;
+
+  /// No description provided for @assistantMicDenied.
+  ///
+  /// In es, this message translates to:
+  /// **'Permiso de micrófono denegado'**
+  String get assistantMicDenied;
+
+  /// No description provided for @assistantEmptyTranscript.
+  ///
+  /// In es, this message translates to:
+  /// **'No se entendió el audio. Inténtalo de nuevo.'**
+  String get assistantEmptyTranscript;
 }
 
 class _AppLocalizationsDelegate

@@ -150,6 +150,16 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:${{ github.sha }}
 
+      - name: Build & push assistant agent image
+        run: |
+          docker build \
+            -f assistant/Dockerfile \
+            -t ${{ secrets.DOCKER_USERNAME }}/sentilife-assistant:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/sentilife-assistant:${{ github.sha }} \
+            .
+          docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-assistant:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/sentilife-assistant:${{ github.sha }}
+
   # ── Deploy to EC2 (only after successful build on main) ────────────────────
   deploy:
     name: 🚀 Deploy to EC2
@@ -256,6 +266,7 @@ jobs:
 
             docker pull ${{ secrets.DOCKER_USERNAME }}/sentilife-java:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/sentilife-inference:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/sentilife-assistant:latest
 
             cd ~/sentilife
 
@@ -272,8 +283,8 @@ jobs:
             # Stack SentiLife anterior (mismo compose) — forzar parada completa
             docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
             # Huérfanos fuera del compose project (p. ej. db borrada a mano)
-            for c in sentilife-db sentilife-backend sentilife-inference sentilife-rabbitmq \
-                     sentilife-prometheus sentilife-grafana; do
+            for c in sentilife-db sentilife-backend sentilife-inference sentilife-assistant \
+                     sentilife-rabbitmq sentilife-prometheus sentilife-grafana; do
               docker rm -f "$c" 2>/dev/null || true
             done
 
@@ -345,8 +356,9 @@ jobs:
               POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
               POSTGRES_DB="$POSTGRES_DB" \
               JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
                 docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate --pull always \
-                db rabbitmq api backend
+                db rabbitmq api assistant backend
             }
 
             deploy_observability() {
@@ -429,7 +441,7 @@ jobs:
 
             echo "→ Contenedores SentiLife:"
             docker ps --filter name=sentilife --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-            for required in sentilife-db sentilife-backend sentilife-inference sentilife-rabbitmq; do
+            for required in sentilife-db sentilife-backend sentilife-inference sentilife-assistant sentilife-rabbitmq; do
               if ! docker ps --filter name="$required" --filter status=running --format '{{.Names}}' | grep -qx "$required"; then
                 echo "::error::Contenedor obligatorio ausente: ${required}"
                 exit 1

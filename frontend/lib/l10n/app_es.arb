@@ -282,5 +282,13 @@
   "historyFilterRejected": "Rechazados",
   "noFeedbackHistory": "No hay alertas con feedback.",
   "pairingRecoveringTitle": "Restaurando vínculo",
-  "pairingRecoveringBody": "Recuperando la vinculación de tu dispositivo tras iniciar sesión…"
+  "pairingRecoveringBody": "Recuperando la vinculación de tu dispositivo tras iniciar sesión…",
+  "assistantTitle": "Asistente SentiLife",
+  "assistantWelcome": "Pregúntame sobre reentrenamiento, alertas, sensores o documentación del proyecto. También puedes usar el micrófono.",
+  "assistantHint": "Escribe tu pregunta…",
+  "assistantSend": "Enviar",
+  "assistantStartRecording": "Grabar voz",
+  "assistantStopRecording": "Detener grabación",
+  "assistantMicDenied": "Permiso de micrófono denegado",
+  "assistantEmptyTranscript": "No se entendió el audio. Inténtalo de nuevo."
 }
