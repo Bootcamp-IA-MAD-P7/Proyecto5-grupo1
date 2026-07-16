@@ -83,7 +83,7 @@ class AdminService {
       if (to != null) 'to': to.toUtc().toIso8601String(),
     };
     final uri = Uri.parse('$_base/history').replace(queryParameters: params);
-    final res = await _client.get(uri, headers: _headers());
+    final res = await _client.get(uri, headers: await _headers());
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     final content = (json['content'] as List)
@@ -107,7 +107,7 @@ class AdminService {
       if (to != null) 'to': to.toUtc().toIso8601String(),
     };
     final uri = Uri.parse('$_base/export').replace(queryParameters: params);
-    final res = await _client.get(uri, headers: _authHeaders());
+    final res = await _client.get(uri, headers: await _authHeaders());
     _checkStatus(res);
     return ExportDownload(
       bytes: res.bodyBytes,
@@ -119,7 +119,7 @@ class AdminService {
   Future<PagedResponse<User>> getUsers({int page = 0, int size = 20}) async {
     final res = await _client.get(
       Uri.parse('$_base/users?page=$page&size=$size'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
@@ -139,7 +139,7 @@ class AdminService {
   Future<User> setUserActive(String userId, {required bool active}) async {
     final res = await _client.patch(
       Uri.parse('$_base/users/$userId'),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode({'active': active}),
     );
     _checkStatus(res);
@@ -150,7 +150,7 @@ class AdminService {
   Future<RetrainPrerequisites> getRetrainPrerequisites() async {
     final res = await _client.get(
       Uri.parse('$_base/retrain/prerequisites'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
     return RetrainPrerequisites.fromJson(
@@ -161,7 +161,7 @@ class AdminService {
   Future<void> startRetrain() async {
     final res = await _client.post(
       Uri.parse('$_base/retrain'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
   }
@@ -170,7 +170,7 @@ class AdminService {
   Future<RetrainJobStatus> getRetrainStatus() async {
     final res = await _client.get(
       Uri.parse('$_base/retrain/status'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
     return RetrainJobStatus.fromJson(
@@ -179,15 +179,11 @@ class AdminService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => apiJsonHeaders();
+  Future<Map<String, String>> _headers() => apiJsonHeadersAsync();
 
-  Map<String, String> _authHeaders() {
-    final headers = <String, String>{};
-    final token = SessionManager().accessToken;
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    return headers;
+  Future<Map<String, String>> _authHeaders() async {
+    final token = await SessionManager().ensureValidAccessToken();
+    return apiJsonHeaders(requireAuth: true, accessToken: token);
   }
 
   String _parseExportFilename(String? contentDisposition) {

@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:sentilife/models/user.dart';
 import 'package:sentilife/services/auth_service.dart';
 import 'package:sentilife/services/secure_token_storage.dart';
+import 'package:sentilife/services/api_headers.dart';
 import 'package:sentilife/services/session_repository.dart';
 
 const _user = User(
@@ -112,5 +113,33 @@ void main() {
 
     expect(repo.accessToken, 'access-new');
     expect(repo.user?.id, 'user-1');
+  });
+
+  test('login persiste tokens en la misma sesión usada por los servicios HTTP', () async {
+    final repo = SessionRepository.instance;
+    await repo.login(_tokens);
+
+    final headers = await apiJsonHeadersAsync();
+    expect(headers['Authorization'], 'Bearer access-new');
+    expect(repo.isLoggedIn, isTrue);
+  });
+
+  test('ensureValidAccessToken refreshes expired access token', () async {
+    final repo = SessionRepository.instance;
+    await repo.login(_tokens);
+    repo.setSession(
+      AuthTokens(
+        accessToken: 'expired-access',
+        refreshToken: 'stored-refresh',
+        expiresIn: 0,
+        user: _user,
+      ),
+    );
+
+    final token = await repo.ensureValidAccessToken();
+
+    expect(token, 'access-new');
+    expect(repo.accessToken, 'access-new');
+    expect(await storage.readRefreshToken(), 'refresh-rotated');
   });
 }

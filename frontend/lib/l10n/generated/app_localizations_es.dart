@@ -657,4 +657,30 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get helpItAdminBody =>
       'Historial: alertas globales del sistema.\n\nExportar: descarga CSV autenticado con ventanas etiquetadas (feedback de cuidadores).\n\nUsuarios: activar o desactivar cuentas.\n\nMLOps — Reentrenamiento:\n• Lee el feedback de Postgres automáticamente (sin CSV manual).\n• Requiere un mínimo de registros etiquetados antes de lanzar el job.\n• Muestra fases, métricas y decisión (promoted / candidate / discarded).\n• Solo promueve si mejora el recall de caídas sin sobreajuste.\n\nGrafana (QA): http://100.52.221.179:3006 — dashboards de latencia, colas y drift.';
+
+  @override
+  String get historyLoadError => 'No se pudo cargar el historial.';
+
+  @override
+  String get noHistory => 'No hay historial de alertas.';
+
+  @override
+  String historyPageIndicator(int current, int total, int count) =>
+      'Página $current de $total · $count alertas en total';
+
+  @override
+  String historyPageShort(int current, int total) => '$current / $total';
+
+  @override
+  String get historyPreviousPage => 'Página anterior';
+
+  @override
+  String get historyNextPage => 'Página siguiente';
+
+  @override
+  String get pairingRecoveringTitle => 'Restaurando vínculo';
+
+  @override
+  String get pairingRecoveringBody =>
+      'Recuperando la vinculación de tu dispositivo tras iniciar sesión…';
 }

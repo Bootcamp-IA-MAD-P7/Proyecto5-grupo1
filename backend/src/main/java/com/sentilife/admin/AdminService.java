@@ -13,6 +13,7 @@ import com.sentilife.users.User;
 import com.sentilife.users.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,7 +57,11 @@ public class AdminService {
     // ── History ───────────────────────────────────────────────────────────────
 
     public Page<AdminDtos.HistoryEntry> getHistory(Pageable pageable) {
-        return alertRepository.findAll(pageable).map(this::toHistoryEntry);
+        var sorted = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "detectedAt"));
+        return alertRepository.findAll(sorted).map(this::toHistoryEntry);
     }
 
     // ── Export labelled dataset ───────────────────────────────────────────────

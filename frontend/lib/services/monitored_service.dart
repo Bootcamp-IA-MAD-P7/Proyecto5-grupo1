@@ -22,7 +22,7 @@ class MonitoredService {
   }) async {
     final res = await _client.get(
       Uri.parse('$_base?page=$page&size=$size'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
@@ -41,7 +41,7 @@ class MonitoredService {
 
   /// GET /{id}
   Future<MonitoredPerson> get(String id) async {
-    final res = await _client.get(Uri.parse('$_base/$id'), headers: _headers());
+    final res = await _client.get(Uri.parse('$_base/$id'), headers: await _headers());
     _checkStatus(res);
     return MonitoredPerson.fromJson(
         jsonDecode(res.body) as Map<String, dynamic>);
@@ -59,7 +59,7 @@ class MonitoredService {
   }) async {
     final res = await _client.post(
       Uri.parse(_base),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode({
         'monitoredUserEmail': monitoredUserEmail,
         'fullName': fullName,
@@ -78,7 +78,7 @@ class MonitoredService {
 
   /// GET /me — ficha vinculada al MONITORED autenticado (RF-34)
   Future<MonitoredPerson> getMyProfile() async {
-    final res = await _client.get(Uri.parse('$_base/me'), headers: _headers());
+    final res = await _client.get(Uri.parse('$_base/me'), headers: await _headers());
     _checkStatus(res);
     return MonitoredPerson.fromJson(
         jsonDecode(res.body) as Map<String, dynamic>);
@@ -87,7 +87,7 @@ class MonitoredService {
   /// DELETE /{id} — supresión GDPR (RF-08)
   Future<void> delete(String id) async {
     final res =
-        await _client.delete(Uri.parse('$_base/$id'), headers: _headers());
+        await _client.delete(Uri.parse('$_base/$id'), headers: await _headers());
     _checkStatus(res);
   }
 
@@ -95,7 +95,7 @@ class MonitoredService {
   Future<void> acceptConsent(String id, {String policyVersion = '1.0-es'}) async {
     final res = await _client.post(
       Uri.parse('$_base/$id/consent'),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode({
         'policyVersion': policyVersion,
         'acceptedBy': 'MONITORED',
@@ -108,7 +108,7 @@ class MonitoredService {
   Future<void> revokeConsent(String id) async {
     final res = await _client.delete(
       Uri.parse('$_base/$id/consent'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
   }
@@ -117,7 +117,7 @@ class MonitoredService {
   Future<void> notifyMonitoringEvent(String id, {required bool started}) async {
     final res = await _client.post(
       Uri.parse('$_base/$id/monitoring-events'),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode({'event': started ? 'STARTED' : 'STOPPED'}),
     );
     _checkStatus(res);
@@ -125,7 +125,7 @@ class MonitoredService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => apiJsonHeaders();
+  Future<Map<String, String>> _headers() => apiJsonHeadersAsync();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

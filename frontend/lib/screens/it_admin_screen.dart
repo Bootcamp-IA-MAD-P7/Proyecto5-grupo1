@@ -90,47 +90,136 @@ class _HistoryTab extends StatefulWidget {
 }
 
 class _HistoryTabState extends State<_HistoryTab> {
-  late Future<PagedResponse<HistoryEntry>> _future;
+  static const _pageSize = 20;
+
+  int _page = 0;
+  int _totalPages = 0;
+  int _totalElements = 0;
+  List<HistoryEntry> _items = const [];
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _future = widget.admin.getHistory();
+    unawaited(_loadPage(0));
+  }
+
+  Future<void> _loadPage(int page) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final response =
+          await widget.admin.getHistory(page: page, size: _pageSize);
+      if (!mounted) return;
+      setState(() {
+        _page = response.page;
+        _totalPages = response.totalPages;
+        _totalElements = response.totalElements;
+        _items = response.content;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = context.l10n.historyLoadError;
+      });
+    }
+  }
+
+  Future<void> _goToPage(int page) async {
+    if (page < 0 || page >= _totalPages || page == _page) return;
+    await _loadPage(page);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return FutureBuilder<PagedResponse<HistoryEntry>>(
-      future: _future,
-      builder: (context, snap) {
-        if (snap.hasError) {
-          return Center(child: Text(l10n.historyLoadError));
-        }
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        final items = snap.data!.content;
-        if (items.isEmpty) {
-          return Center(child: Text(l10n.noHistory));
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() => _future = widget.admin.getHistory());
-          },
-          child: ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (_, i) {
-              final h = items[i];
-              return ListTile(
-                title: Text(h.monitoredPersonName),
-                subtitle: Text(
-                  '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
-                ),
-                trailing: Text(h.alertStatus.name),
-              );
-            },
+
+    if (_loading && _items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _items.isEmpty) {
+      return Center(child: Text(_error!));
+    }
+    if (_items.isEmpty) {
+      return Center(child: Text(l10n.noHistory));
+    }
+
+    final hasPagination = _totalPages > 1;
+
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _loadPage(_page),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: _items.length + 1,
+              itemBuilder: (_, i) {
+                if (i == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      l10n.historyPageIndicator(
+                        _page + 1,
+                        _totalPages == 0 ? 1 : _totalPages,
+                        _totalElements,
+                      ),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  );
+                }
+                final h = _items[i - 1];
+                return ListTile(
+                  title: Text(h.monitoredPersonName),
+                  subtitle: Text(
+                    '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
+                  ),
+                  trailing: Text(h.alertStatus.name),
+                );
+              },
+            ),
           ),
-        );
-      },
+        ),
+        if (hasPagination)
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    tooltip: l10n.historyPreviousPage,
+                    onPressed: _loading || _page <= 0
+                        ? null
+                        : () => unawaited(_goToPage(_page - 1)),
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  if (_loading)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Text(l10n.historyPageShort(_page + 1, _totalPages)),
+                  IconButton(
+                    tooltip: l10n.historyNextPage,
+                    onPressed: _loading || _page >= _totalPages - 1
+                        ? null
+                        : () => unawaited(_goToPage(_page + 1)),
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

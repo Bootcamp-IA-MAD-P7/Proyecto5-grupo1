@@ -31,7 +31,7 @@ class AlertsService {
       if (monitoredPersonId != null) 'monitoredPersonId': monitoredPersonId,
     };
     final uri = Uri.parse(_base).replace(queryParameters: params);
-    final res = await _client.get(uri, headers: _headers());
+    final res = await _client.get(uri, headers: await _headers());
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     final content = (json['content'] as List)
@@ -67,7 +67,7 @@ class AlertsService {
   }) async {
     final res = await _client.patch(
       Uri.parse('$_base/$id'),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode({
         'status': status.value,
         // ignore: use_null_aware_elements
@@ -79,7 +79,7 @@ class AlertsService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => apiJsonHeaders();
+  Future<Map<String, String>> _headers() => apiJsonHeadersAsync();
 
   void _checkStatus(http.Response res) {
     if (res.statusCode >= 400) {

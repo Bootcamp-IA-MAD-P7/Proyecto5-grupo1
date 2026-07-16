@@ -156,6 +156,9 @@ class _AppRootState extends State<_AppRoot> {
         onLocaleChanged: widget.onLocaleChanged,
       );
     }
-    return LoginScreen(onLoginSuccess: _onLoginSuccess);
+    return LoginScreen(
+      session: widget.session,
+      onLoginSuccess: _onLoginSuccess,
+    );
   }
 }

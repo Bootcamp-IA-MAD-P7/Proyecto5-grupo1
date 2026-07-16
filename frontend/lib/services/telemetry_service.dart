@@ -92,7 +92,7 @@ class TelemetryService {
   Future<MonitoringStatusResponse> getStatus(String monitoredPersonId) async {
     final res = await _client.get(
       Uri.parse('$_base/status/$monitoredPersonId'),
-      headers: _headers(),
+      headers: await _headers(),
     );
     _checkStatus(res);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
@@ -118,7 +118,7 @@ class TelemetryService {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Map<String, String> _headers() => apiJsonHeaders();
+  Future<Map<String, String>> _headers() => apiJsonHeadersAsync();
 
   Map<String, String> _deviceHeaders(String deviceToken) => {
     'Content-Type': 'application/json',

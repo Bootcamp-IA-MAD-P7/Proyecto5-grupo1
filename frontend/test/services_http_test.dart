@@ -199,10 +199,29 @@ void main() {
       );
     });
 
-    test('create envía monitoredUserEmail y parsea la persona creada', () async {
+    test('create envía monitoredUserEmail y Bearer tras login en sesión', () async {
+      SessionRepository.resetForTests();
+      final session = SessionRepository(storage: InMemorySecureTokenStorage());
+      SessionRepository.useForTests(session);
+      await session.login(
+        const AuthTokens(
+          accessToken: 'caregiver-access',
+          refreshToken: 'caregiver-refresh',
+          expiresIn: 900,
+          user: User(
+            id: 'cg-1',
+            email: 'caregiver@test.com',
+            fullName: 'Ana',
+            role: UserRole.caregiver,
+          ),
+        ),
+      );
+
       late Map<String, dynamic> sent;
+      String? authHeader;
       final service = MonitoredService(
         client: MockClient((req) async {
+          authHeader = req.headers['Authorization'];
           sent = jsonDecode(req.body) as Map<String, dynamic>;
           return _json(_personJson(id: 'uuid-created'));
         }),
@@ -216,9 +235,11 @@ void main() {
         weightKg: 78.5,
         heightCm: 172,
       );
+      expect(authHeader, 'Bearer caregiver-access');
       expect(sent['monitoredUserEmail'], 'monitored@test.com');
       expect(sent['fullName'], 'Manuel Pérez');
       expect(person.id, 'uuid-created');
+      SessionRepository.resetForTests();
     });
 
     test('create con 404 lanza ApiException NOT_FOUND', () async {
