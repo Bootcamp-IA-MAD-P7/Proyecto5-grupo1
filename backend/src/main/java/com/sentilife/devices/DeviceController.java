@@ -35,6 +35,25 @@ public class DeviceController {
     }
 
     /**
+     * Recovers the active pairing for the authenticated MONITORED user.
+     * Returns personId + deviceId + a fresh deviceToken so the app can
+     * restore telemetry after a re-login without re-entering the pairing code.
+     *
+     * 200 with pairing data if an active device exists.
+     * 404 if the user has no linked person or no active device.
+     */
+    @GetMapping("/my-pairing")
+    @PreAuthorize("hasRole('MONITORED')")
+    public ResponseEntity<DeviceDtos.MyPairingResponse> getMyPairing(
+            @AuthenticationPrincipal User user) {
+        var pairing = service.recoverPairing(user.getId());
+        if (pairing == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(pairing);
+    }
+
+    /**
      * Registers or updates the caregiver's FCM token.
      * Requires authenticated CAREGIVER JWT (T2.22).
      */

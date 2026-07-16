@@ -77,6 +77,34 @@ public class DeviceService {
         }
     }
 
+    /**
+     * Recovers the pairing for the authenticated MONITORED user.
+     * Finds the MonitoredPerson linked to the user, then the active PairedDevice,
+     * and re-issues a fresh device token (the original is only stored as a hash).
+     *
+     * Returns null if no active pairing exists for this user.
+     */
+    public DeviceDtos.MyPairingResponse recoverPairing(UUID monitoredUserId) {
+        var person = monitoredPersonRepo.findByUserId(monitoredUserId)
+                .orElse(null);
+        if (person == null) {
+            return null;
+        }
+
+        var device = pairedDeviceRepo.findFirstByMonitoredPersonIdAndActiveTrue(person.getId())
+                .orElse(null);
+        if (device == null) {
+            return null;
+        }
+
+        // Re-issue a fresh device token (original JWT is not stored, only its hash)
+        String freshToken = jwtService.generateDeviceToken(person.getId(), device.getDeviceId());
+        device.setDeviceTokenHash(hashToken(freshToken));
+        pairedDeviceRepo.save(device);
+
+        return new DeviceDtos.MyPairingResponse(person.getId(), device.getDeviceId(), freshToken);
+    }
+
     @Transactional
     public void registerPushToken(UUID userId, DeviceDtos.PushTokenRequest request) {
         var token = pushTokenRepo

@@ -23,6 +23,14 @@ public class DeviceDtos {
         String deviceToken           // JWT device token for POST /telemetry/windows
     ) {}
 
+    // ── GET /devices/my-pairing ───────────────────────────────────────────────
+
+    public record MyPairingResponse(
+        UUID monitoredPersonId,
+        String deviceId,
+        String deviceToken           // Fresh JWT device token
+    ) {}
+
     // ── POST /devices/push-token ──────────────────────────────────────────────
 
     public record PushTokenRequest(

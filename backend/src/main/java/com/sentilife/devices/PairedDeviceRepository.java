@@ -9,6 +9,8 @@ public interface PairedDeviceRepository extends JpaRepository<PairedDevice, UUID
 
     Optional<PairedDevice> findByMonitoredPersonIdAndDeviceId(UUID monitoredPersonId, String deviceId);
 
+    Optional<PairedDevice> findFirstByMonitoredPersonIdAndActiveTrue(UUID monitoredPersonId);
+
     boolean existsByMonitoredPersonId(UUID monitoredPersonId);
 
     /** Used for GDPR suppression */
