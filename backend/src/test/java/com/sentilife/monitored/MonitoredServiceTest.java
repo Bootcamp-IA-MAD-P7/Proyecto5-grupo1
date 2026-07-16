@@ -70,6 +70,7 @@ class MonitoredServiceTest {
         User monitoredUser = mock(User.class);
         when(monitoredUser.getId()).thenReturn(monitoredUserId);
         when(monitoredUser.getEmail()).thenReturn("monitored@test.com");
+        when(monitoredUser.getFullName()).thenReturn("Nombre De Cuenta");
         when(monitoredUser.getRole()).thenReturn(DomainConstants.ROLE_MONITORED);
         when(monitoredUser.getActive()).thenReturn(true);
         when(userRepository.findByEmailIgnoreCase("monitored@test.com"))
@@ -93,6 +94,28 @@ class MonitoredServiceTest {
                 monitoredUserId.equals(saved.getUserId())));
         assertThat(result.userId()).isEqualTo(monitoredUserId);
         assertThat(result.userEmail()).isEqualTo("monitored@test.com");
+        assertThat(result.fullName()).isEqualTo("Nombre De Cuenta");
+    }
+
+    @Test
+    void lookupLinkableAccount_returnsMonitoredUserSummary() {
+        UUID monitoredUserId = UUID.randomUUID();
+        User monitoredUser = mock(User.class);
+        when(monitoredUser.getEmail()).thenReturn("monitored@test.com");
+        when(monitoredUser.getFullName()).thenReturn("Nombre De Cuenta");
+        when(monitoredUser.getRole()).thenReturn(DomainConstants.ROLE_MONITORED);
+        when(monitoredUser.getActive()).thenReturn(true);
+        when(userRepository.findByEmailIgnoreCase("monitored@test.com"))
+                .thenReturn(Optional.of(monitoredUser));
+        when(repository.existsByUserId(monitoredUserId)).thenReturn(false);
+        when(monitoredUser.getId()).thenReturn(monitoredUserId);
+
+        var result = service.lookupLinkableAccount("monitored@test.com");
+
+        assertThat(result.email()).isEqualTo("monitored@test.com");
+        assertThat(result.fullName()).isEqualTo("Nombre De Cuenta");
+        assertThat(result.active()).isTrue();
+        assertThat(result.alreadyLinked()).isFalse();
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.sentilife.monitored;
 
 import com.sentilife.config.DomainConstants;
 import com.sentilife.users.User;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -58,6 +59,13 @@ public class MonitoredController {
     public ResponseEntity<MonitoredDtos.MonitoredResponse> getMyProfile(
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(service.getByMonitoredUserId(user.getId()));
+    }
+
+    @GetMapping("/linkable-account")
+    @PreAuthorize("hasRole('CAREGIVER')")
+    public ResponseEntity<MonitoredDtos.LinkableAccountResponse> lookupLinkableAccount(
+            @RequestParam @Email String email) {
+        return ResponseEntity.ok(service.lookupLinkableAccount(email));
     }
 
     @GetMapping("/{id}")

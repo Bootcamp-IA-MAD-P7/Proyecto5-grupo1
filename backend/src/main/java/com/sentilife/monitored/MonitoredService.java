@@ -80,10 +80,27 @@ public class MonitoredService {
         }
         MonitoredPerson person = new MonitoredPerson();
         fillFromRequest(person, request);
+        person.setFullName(monitoredUser.getFullName());
         person.setCaregiverId(caregiverId);
         person.setUserId(monitoredUser.getId());
         person.setPairingCode(generatePairingCode());
         return toResponse(repository.save(person));
+    }
+
+    public MonitoredDtos.LinkableAccountResponse lookupLinkableAccount(String email) {
+        User monitoredUser = userRepository
+                .findByEmailIgnoreCase(normalizeEmail(email))
+                .orElseThrow(() -> DomainExceptions.NotFoundException.of(
+                        "Monitored user not found"));
+        if (!DomainConstants.ROLE_MONITORED.equals(monitoredUser.getRole())) {
+            throw DomainExceptions.BadRequestException.of(
+                    "Linked account must have MONITORED role");
+        }
+        return new MonitoredDtos.LinkableAccountResponse(
+                monitoredUser.getEmail(),
+                monitoredUser.getFullName(),
+                Boolean.TRUE.equals(monitoredUser.getActive()),
+                repository.existsByUserId(monitoredUser.getId()));
     }
 
     public Page<MonitoredDtos.MonitoredResponse> listByCaegiver(UUID caregiverId, Pageable pageable) {
@@ -236,7 +253,6 @@ public class MonitoredService {
     }
 
     private void fillFromRequest(MonitoredPerson p, MonitoredDtos.MonitoredRequest r) {
-        p.setFullName(r.fullName());
         p.setBirthDate(r.birthDate());
         p.setSex(r.sex());
         p.setWeightKg(r.weightKg());

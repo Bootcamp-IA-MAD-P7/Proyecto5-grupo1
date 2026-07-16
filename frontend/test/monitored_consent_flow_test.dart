@@ -3,10 +3,16 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sentilife/services/monitored_context_store.dart';
 import 'package:sentilife/services/monitored_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _testUserId = 'user-monitored-consent';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    MonitoredContextStore().resetInMemoryForTests();
+  });
+
   group('MonitoredContextStore', () {
     tearDown(() async {
       final store = MonitoredContextStore()..bindUser(_testUserId);
@@ -24,6 +30,39 @@ void main() {
 
       expect(store.isPaired, isTrue);
       expect(store.consentActive, isFalse);
+    });
+
+    test('pairing recovery preserves consent flag', () async {
+      final store = MonitoredContextStore()..bindUser(_testUserId);
+      await store.setConsentActive(true);
+      await store.setPairing(
+        personId: 'person-1',
+        deviceId: 'device-1',
+        deviceToken: 'token-1',
+        resetConsent: false,
+      );
+
+      expect(store.isPaired, isTrue);
+      expect(store.consentActive, isTrue);
+    });
+
+    test('cold start bindUser does not wipe persisted state before load', () async {
+      final store = MonitoredContextStore()..bindUser(_testUserId);
+      await store.setPairing(
+        personId: 'person-1',
+        deviceId: 'device-1',
+        deviceToken: 'token-1',
+      );
+      await store.setConsentActive(true);
+
+      store.resetInMemoryForTests();
+      store.bindUser(_testUserId);
+      expect(store.isPaired, isFalse);
+      expect(store.consentActive, isFalse);
+
+      await store.load();
+      expect(store.isPaired, isTrue);
+      expect(store.consentActive, isTrue);
     });
   });
 

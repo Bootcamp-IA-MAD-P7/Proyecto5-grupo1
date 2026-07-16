@@ -27,12 +27,18 @@ class MonitoredContextStore {
   /// Binds subsequent [load]/[clear]/[setPairing] to this account namespace.
   void bindUser(String userId) {
     if (_userId == userId && _loaded) return;
+    final previousUser = _userId;
     _userId = userId;
-    _loaded = false;
-    monitoredPersonId = null;
-    deviceId = null;
-    deviceToken = null;
-    consentActive = false;
+    if (previousUser != null && previousUser != userId) {
+      _loaded = false;
+      monitoredPersonId = null;
+      deviceId = null;
+      deviceToken = null;
+      consentActive = false;
+    } else if (!_loaded) {
+      // Same account on cold start: [load] hydrates from disk — do not wipe.
+      _loaded = false;
+    }
   }
 
   bool get isPaired =>
@@ -110,12 +116,15 @@ class MonitoredContextStore {
     required String personId,
     required String deviceId,
     required String deviceToken,
+    bool resetConsent = true,
   }) async {
     _requireUserId();
     monitoredPersonId = personId;
     this.deviceId = deviceId;
     this.deviceToken = deviceToken;
-    consentActive = false;
+    if (resetConsent) {
+      consentActive = false;
+    }
     _loaded = true;
     await _persist();
   }

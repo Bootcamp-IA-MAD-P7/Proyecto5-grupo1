@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../models/monitored_person.dart';
 import '../models/user.dart';
 import '../services/auth_session.dart';
 import '../services/device_id_service.dart';
@@ -34,6 +35,7 @@ class MonitoredScreen extends StatefulWidget {
   final ValueChanged<Locale> onLocaleChanged;
   final MonitoredContextStore? contextStore;
   final MonitoredService? monitoredService;
+  final DevicesService? devicesService;
   final TelemetryService? telemetryService;
   final MonitoringCoordinator? coordinator;
   final SensorCapabilityService? sensorCapabilityService;
@@ -44,6 +46,7 @@ class MonitoredScreen extends StatefulWidget {
     required this.onLocaleChanged,
     this.contextStore,
     this.monitoredService,
+    this.devicesService,
     this.telemetryService,
     this.coordinator,
     this.sensorCapabilityService,
@@ -58,7 +61,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
   late final MonitoredContextStore _contextStore;
   late final TelemetryService _telemetryService;
   late final MonitoredService _monitoredService;
-  final _devicesService = DevicesService();
+  late final DevicesService _devicesService;
   final _deviceIdService = DeviceIdService();
   final _pairingCodeController = TextEditingController();
   late final MonitoringCoordinator _coordinator;
@@ -91,7 +94,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     _contextStore.bindUser(widget.session.user!.id);
     _telemetryService = widget.telemetryService ?? TelemetryService();
     _monitoredService = widget.monitoredService ?? MonitoredService();
-    _consentAccepted = _contextStore.consentActive;
+    _devicesService = widget.devicesService ?? DevicesService();
     _coordinator = widget.coordinator ??
         MonitoringCoordinator(
           onTelemetryError: _handleTelemetryError,
@@ -118,20 +121,47 @@ class _MonitoredScreenState extends State<MonitoredScreen>
   }
 
   Future<void> _hydrateContext() async {
-    await _resolveLinkStatus();
-    if (!mounted || _linkStatus == MonitoredLinkStatus.pendingLink) return;
-
+    await widget.session.ensureValidAccessToken();
     await _contextStore.load();
     if (!mounted) return;
-    setState(() => _consentAccepted = _contextStore.consentActive);
+
+    MonitoredPerson? profile;
+    try {
+      profile = await _monitoredService.getMyProfile();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.status == 404) {
+        setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
+        return;
+      }
+      setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _linkStatus = MonitoredLinkStatus.linked);
+    await _syncConsentFromProfile(profile);
 
     // If local pairing was cleared (e.g. after logout) but the backend still
     // has an active device linked, recover the credentials automatically.
-    if (!_contextStore.isPaired && _linkStatus == MonitoredLinkStatus.linked) {
+    if (!_contextStore.isPaired) {
       setState(() => _pairingRecoveryInFlight = true);
       await _tryRecoverPairing();
       if (!mounted) return;
       setState(() => _pairingRecoveryInFlight = false);
+      try {
+        profile = await _monitoredService.getMyProfile();
+        await _syncConsentFromProfile(profile);
+      } catch (_) {
+        // Best-effort re-sync after recovery.
+      }
     }
 
     if (_contextStore.isPaired) {
@@ -140,25 +170,13 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     await _maybeShowConsent();
   }
 
-  Future<void> _resolveLinkStatus() async {
-    try {
-      await _monitoredService.getMyProfile();
-      if (!mounted) return;
-      setState(() => _linkStatus = MonitoredLinkStatus.linked);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      if (e.status == 404) {
-        setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
-      } else {
-        setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _linkStatus = MonitoredLinkStatus.pendingLink);
+  Future<void> _syncConsentFromProfile(MonitoredPerson profile) async {
+    final serverConsent = profile.consentStatus == ConsentStatus.active;
+    if (serverConsent != _contextStore.consentActive) {
+      await _contextStore.setConsentActive(serverConsent);
     }
+    if (!mounted) return;
+    setState(() => _consentAccepted = serverConsent);
   }
 
   /// Attempts to recover pairing credentials from the backend when the local
@@ -171,6 +189,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
         personId: recovered.monitoredPersonId,
         deviceId: recovered.deviceId,
         deviceToken: recovered.deviceToken,
+        resetConsent: false,
       );
       if (!mounted) return;
       setState(() => _consentAccepted = _contextStore.consentActive);
@@ -206,7 +225,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
   void _handleTelemetryError(TelemetryException error) {
     if (!mounted || error.status != 403) return;
     unawaited(_stopMonitoring());
-    _contextStore.setConsentActive(false);
+    unawaited(_contextStore.setConsentActive(false));
     setState(() => _consentAccepted = false);
     ScaffoldMessenger.of(
       context,
@@ -291,7 +310,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
         personId,
         policyVersion: consentPolicyVersion(locale),
       );
-      _contextStore.setConsentActive(true);
+      await _contextStore.setConsentActive(true);
       if (!mounted) return;
       setState(() => _consentAccepted = true);
       ScaffoldMessenger.of(
@@ -339,7 +358,7 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     try {
       await _monitoredService.revokeConsent(personId);
       await _stopMonitoring();
-      _contextStore.setConsentActive(false);
+      await _contextStore.setConsentActive(false);
       if (!mounted) return;
       setState(() => _consentAccepted = false);
       ScaffoldMessenger.of(

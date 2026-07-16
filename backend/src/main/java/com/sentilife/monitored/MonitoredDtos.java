@@ -16,6 +16,15 @@ import java.util.UUID;
  */
 public class MonitoredDtos {
 
+    // ── GET /linkable-account ─────────────────────────────────────────────────
+
+    public record LinkableAccountResponse(
+        String email,
+        String fullName,
+        boolean active,
+        boolean alreadyLinked
+    ) {}
+
     // ── POST / y PUT /{id} ────────────────────────────────────────────────────
 
     public record MonitoredRequest(

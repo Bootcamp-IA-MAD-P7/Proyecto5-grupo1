@@ -76,6 +76,19 @@ class MonitoredService {
         jsonDecode(res.body) as Map<String, dynamic>);
   }
 
+  /// GET /linkable-account — validar email MONITORED y obtener nombre (cuidador)
+  Future<LinkableAccount> lookupLinkableAccount(String email) async {
+    final encoded = Uri.encodeQueryComponent(email.trim());
+    final res = await _client.get(
+      Uri.parse('$_base/linkable-account?email=$encoded'),
+      headers: await _headers(),
+    );
+    _checkStatus(res);
+    return LinkableAccount.fromJson(
+      jsonDecode(res.body) as Map<String, dynamic>,
+    );
+  }
+
   /// GET /me — ficha vinculada al MONITORED autenticado (RF-34)
   Future<MonitoredPerson> getMyProfile() async {
     final res = await _client.get(Uri.parse('$_base/me'), headers: await _headers());
@@ -139,5 +152,29 @@ class MonitoredService {
         body?['message'] as String? ?? 'Error del servidor.',
       );
     }
+  }
+}
+
+/// Cuenta MONITORED localizable por email al registrar una ficha.
+class LinkableAccount {
+  final String email;
+  final String fullName;
+  final bool active;
+  final bool alreadyLinked;
+
+  const LinkableAccount({
+    required this.email,
+    required this.fullName,
+    required this.active,
+    required this.alreadyLinked,
+  });
+
+  factory LinkableAccount.fromJson(Map<String, dynamic> json) {
+    return LinkableAccount(
+      email: json['email'] as String,
+      fullName: json['fullName'] as String,
+      active: json['active'] as bool,
+      alreadyLinked: json['alreadyLinked'] as bool,
+    );
   }
 }
