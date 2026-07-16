@@ -121,7 +121,11 @@ jobs:
           path: frontend/${{ env.APK_PATH }}
           retention-days: 7
 
+      # GitHub Releases a veces responde Unicorn/503 (API caída). El APK ya está
+      # en Artifacts; no tumbar el job ni Firebase Distribution por eso.
       - name: Create GitHub Release
+        id: gh_release
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
@@ -134,11 +138,17 @@ jobs:
           prerelease: false
           token: ${{ secrets.GH_PAT }}
 
+      - name: Release status
+        if: steps.gh_release.outcome == 'failure'
+        run: |
+          echo "::warning::GitHub Releases API falló (Unicorn/503). El APK está en Artifacts → app-release-apk"
+
   notify-backend:
     runs-on: ubuntu-latest
     needs: build-and-release
     steps:
       - name: Register APK version in Postgres (OTA)
+        continue-on-error: true
         run: |
           APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
           curl --fail --silent --show-error --retry 3 --retry-delay 5 \
