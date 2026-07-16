@@ -292,6 +292,30 @@ class AppLocalizationsEs extends AppLocalizations {
       'Introduce el email de una cuenta MONITORED existente.';
 
   @override
+  String get fullNameFromAccount => 'Nombre (desde la cuenta)';
+
+  @override
+  String get selectBirthDate => 'Seleccionar fecha de nacimiento';
+
+  @override
+  String get birthDateRequired => 'Selecciona la fecha de nacimiento';
+
+  @override
+  String get monitoredAccountLookupError =>
+      'No se encontró una cuenta MONITORED activa con ese email';
+
+  @override
+  String get monitoredAccountAlreadyLinked =>
+      'Esta cuenta ya está vinculada a otra ficha';
+
+  @override
+  String get monitoredAccountInactive => 'La cuenta MONITORED no está activa';
+
+  @override
+  String get monitoredAccountValidated =>
+      'Valida el email para cargar el nombre';
+
+  @override
   String get pendingLinkStatus => 'PENDING_LINK';
 
   @override
@@ -665,11 +689,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noHistory => 'No hay historial de alertas.';
 
   @override
-  String historyPageIndicator(int current, int total, int count) =>
-      'Página $current de $total · $count alertas en total';
+  String historyPageIndicator(int current, int total, int count) {
+    return 'Página $current de $total · $count alertas en total';
+  }
 
   @override
-  String historyPageShort(int current, int total) => '$current / $total';
+  String historyPageShort(int current, int total) {
+    return '$current / $total';
+  }
 
   @override
   String get historyPreviousPage => 'Página anterior';

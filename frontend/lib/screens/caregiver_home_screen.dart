@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
@@ -53,7 +55,7 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
   Future<void> _addPerson() async {
     final result = await showDialog<_PersonFormData>(
       context: context,
-      builder: (_) => const _AddPersonDialog(),
+      builder: (_) => _AddPersonDialog(monitoredService: _monitored),
     );
     if (result == null) return;
     try {
@@ -200,7 +202,9 @@ class _PersonFormData {
 }
 
 class _AddPersonDialog extends StatefulWidget {
-  const _AddPersonDialog();
+  const _AddPersonDialog({required this.monitoredService});
+
+  final MonitoredService monitoredService;
 
   @override
   State<_AddPersonDialog> createState() => _AddPersonDialogState();
@@ -209,22 +213,116 @@ class _AddPersonDialog extends StatefulWidget {
 class _AddPersonDialogState extends State<_AddPersonDialog> {
   final _email = TextEditingController();
   final _name = TextEditingController();
-  final _birth = TextEditingController(text: '1950-01-01');
   final _weight = TextEditingController(text: '70');
   final _height = TextEditingController(text: '170');
   final _contact = TextEditingController();
+  Timer? _emailLookupTimer;
   String _sex = 'M';
   String? _emailError;
+  String? _birthDateError;
+  DateTime? _birthDate;
+  bool _lookupInFlight = false;
+  bool _accountValidated = false;
+
+  MonitoredService get _monitoredService => widget.monitoredService;
 
   @override
   void dispose() {
+    _emailLookupTimer?.cancel();
     _email.dispose();
     _name.dispose();
-    _birth.dispose();
     _weight.dispose();
     _height.dispose();
     _contact.dispose();
     super.dispose();
+  }
+
+  String _formatBirthDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  void _scheduleEmailLookup() {
+    _emailLookupTimer?.cancel();
+    _emailLookupTimer = Timer(const Duration(milliseconds: 450), () {
+      unawaited(_lookupEmailAccount());
+    });
+  }
+
+  Future<void> _lookupEmailAccount() async {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _accountValidated = false;
+        _name.clear();
+        _emailError = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _lookupInFlight = true;
+      _emailError = null;
+      _accountValidated = false;
+      _name.clear();
+    });
+
+    try {
+      final account = await _monitoredService.lookupLinkableAccount(email);
+      if (!mounted) return;
+      if (account.alreadyLinked) {
+        setState(() {
+          _emailError = context.l10n.monitoredAccountAlreadyLinked;
+          _lookupInFlight = false;
+        });
+        return;
+      }
+      if (!account.active) {
+        setState(() {
+          _emailError = context.l10n.monitoredAccountInactive;
+          _lookupInFlight = false;
+        });
+        return;
+      }
+      setState(() {
+        _name.text = account.fullName;
+        _accountValidated = true;
+        _lookupInFlight = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _emailError = e.status == 404
+            ? context.l10n.monitoredAccountLookupError
+            : e.message;
+        _lookupInFlight = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _emailError = context.l10n.monitoredAccountLookupError;
+        _lookupInFlight = false;
+      });
+    }
+  }
+
+  Future<void> _pickBirthDate(AppLocalizations l10n) async {
+    final now = DateTime.now();
+    final initial = _birthDate ?? DateTime(now.year - 70, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900),
+      lastDate: now.subtract(const Duration(days: 1)),
+      helpText: l10n.selectBirthDate,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _birthDate = picked;
+      _birthDateError = null;
+    });
   }
 
   void _submit(AppLocalizations l10n) {
@@ -233,12 +331,23 @@ class _AddPersonDialogState extends State<_AddPersonDialog> {
       setState(() => _emailError = l10n.monitoredUserEmailRequired);
       return;
     }
+    if (!_accountValidated || _name.text.trim().isEmpty) {
+      setState(
+        () => _emailError ??= l10n.monitoredAccountLookupError,
+      );
+      return;
+    }
+    if (_birthDate == null) {
+      setState(() => _birthDateError = l10n.birthDateRequired);
+      return;
+    }
+
     Navigator.pop(
       context,
       _PersonFormData(
         monitoredUserEmail: email,
-        fullName: _name.text,
-        birthDate: _birth.text,
+        fullName: _name.text.trim(),
+        birthDate: _formatBirthDate(_birthDate!),
         sex: _sex,
         weightKg: double.tryParse(_weight.text) ?? 70,
         heightCm: double.tryParse(_height.text) ?? 170,
@@ -250,49 +359,166 @@ class _AddPersonDialogState extends State<_AddPersonDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.addPerson),
-      content: SingleChildScrollView(
+    final theme = Theme.of(context);
+    final size = MediaQuery.sizeOf(context);
+    final dialogWidth = (size.width * 0.92).clamp(320.0, 560.0);
+    final dialogMaxHeight = size.height * 0.82;
+    final birthLabel = _birthDate == null
+        ? l10n.selectBirthDate
+        : _formatBirthDate(_birthDate!);
+
+    Widget fieldSpacing(Widget child) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: child,
+        );
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: dialogWidth,
+          minWidth: dialogWidth,
+          maxHeight: dialogMaxHeight,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: l10n.monitoredUserEmail,
-                errorText: _emailError,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.addPerson,
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    tooltip: l10n.back,
+                  ),
+                ],
               ),
-              onChanged: (_) {
-                if (_emailError != null) {
-                  setState(() => _emailError = null);
-                }
-              },
             ),
-            TextField(controller: _name, decoration: InputDecoration(labelText: l10n.fullName)),
-            TextField(controller: _birth, decoration: InputDecoration(labelText: l10n.birthDate)),
-            DropdownButtonFormField<String>(
-              initialValue: _sex,
-              items: const [
-                DropdownMenuItem(value: 'M', child: Text('M')),
-                DropdownMenuItem(value: 'F', child: Text('F')),
-              ],
-              onChanged: (v) => setState(() => _sex = v ?? 'M'),
-              decoration: InputDecoration(labelText: l10n.sex),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    fieldSpacing(
+                      TextField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: l10n.monitoredUserEmail,
+                          errorText: _emailError,
+                          suffixIcon: _lookupInFlight
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : _accountValidated
+                                  ? const Icon(Icons.check_circle, color: Colors.green)
+                                  : null,
+                        ),
+                        onChanged: (_) {
+                          setState(() {
+                            _emailError = null;
+                            _accountValidated = false;
+                            _name.clear();
+                          });
+                          _scheduleEmailLookup();
+                        },
+                        onSubmitted: (_) => unawaited(_lookupEmailAccount()),
+                      ),
+                    ),
+                    fieldSpacing(
+                      TextField(
+                        controller: _name,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.fullNameFromAccount,
+                          hintText: l10n.monitoredAccountValidated,
+                        ),
+                      ),
+                    ),
+                    fieldSpacing(
+                      InkWell(
+                        onTap: () => unawaited(_pickBirthDate(l10n)),
+                        borderRadius: BorderRadius.circular(4),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.birthDate,
+                            errorText: _birthDateError,
+                            suffixIcon: const Icon(Icons.calendar_today),
+                          ),
+                          child: Text(birthLabel),
+                        ),
+                      ),
+                    ),
+                    fieldSpacing(
+                      DropdownButtonFormField<String>(
+                        initialValue: _sex,
+                        items: const [
+                          DropdownMenuItem(value: 'M', child: Text('M')),
+                          DropdownMenuItem(value: 'F', child: Text('F')),
+                        ],
+                        onChanged: (v) => setState(() => _sex = v ?? 'M'),
+                        decoration: InputDecoration(labelText: l10n.sex),
+                      ),
+                    ),
+                    fieldSpacing(
+                      TextField(
+                        controller: _weight,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(labelText: l10n.weightKg),
+                      ),
+                    ),
+                    fieldSpacing(
+                      TextField(
+                        controller: _height,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(labelText: l10n.heightCm),
+                      ),
+                    ),
+                    TextField(
+                      controller: _contact,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(labelText: l10n.emergencyContact),
+                      onSubmitted: (_) => _submit(l10n),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            TextField(controller: _weight, decoration: InputDecoration(labelText: l10n.weightKg)),
-            TextField(controller: _height, decoration: InputDecoration(labelText: l10n.heightCm)),
-            TextField(controller: _contact, decoration: InputDecoration(labelText: l10n.emergencyContact)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.back),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _lookupInFlight ? null : () => _submit(l10n),
+                    child: Text(l10n.save),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.back)),
-        FilledButton(
-          onPressed: () => _submit(l10n),
-          child: Text(l10n.save),
-        ),
-      ],
     );
   }
 }

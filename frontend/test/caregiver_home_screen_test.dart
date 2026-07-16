@@ -42,6 +42,19 @@ Map<String, dynamic> _personJson({String id = 'uuid-person-001'}) => {
       'createdAt': '2026-07-08T10:00:00Z',
     };
 
+Map<String, dynamic> _linkableAccount({
+  required String email,
+  String fullName = 'Manuel Pérez',
+  bool active = true,
+  bool alreadyLinked = false,
+}) =>
+    {
+      'email': email,
+      'fullName': fullName,
+      'active': active,
+      'alreadyLinked': alreadyLinked,
+    };
+
 SessionRepository _caregiverSession() {
   SessionRepository.resetForTests();
   final session = SessionRepository(storage: InMemorySecureTokenStorage());
@@ -91,19 +104,33 @@ Future<void> _openAddPersonDialog(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _fillPersonForm(
-  WidgetTester tester, {
-  required String monitoredEmail,
-  String fullName = 'Manuel Pérez',
-}) async {
+Future<void> _lookupEmail(WidgetTester tester, String monitoredEmail) async {
   await tester.enterText(
     find.widgetWithText(TextField, 'Email de la cuenta monitorizada'),
     monitoredEmail,
   );
-  await tester.enterText(
-    find.widgetWithText(TextField, 'Nombre completo'),
-    fullName,
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pickDefaultBirthDate(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.calendar_today));
+  await tester.pumpAndSettle();
+  final okButtons = find.descendant(
+    of: find.byType(DatePickerDialog),
+    matching: find.byType(TextButton),
   );
+  expect(okButtons, findsWidgets);
+  await tester.tap(okButtons.last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _fillPersonForm(
+  WidgetTester tester, {
+  required String monitoredEmail,
+}) async {
+  await _lookupEmail(tester, monitoredEmail);
+  await _pickDefaultBirthDate(tester);
 }
 
 void main() {
@@ -118,12 +145,17 @@ void main() {
       find.widgetWithText(TextField, 'Email de la cuenta monitorizada'),
       findsOneWidget,
     );
+    expect(find.text('Nombre (desde la cuenta)'), findsOneWidget);
+    expect(find.text('Contacto de emergencia'), findsOneWidget);
   });
 
   testWidgets('create envía monitoredUserEmail al backend', (tester) async {
     Map<String, dynamic>? sentBody;
     final monitoredService = MonitoredService(
       client: MockClient((req) async {
+        if (req.url.path.endsWith('/linkable-account')) {
+          return _json(_linkableAccount(email: 'monitored@test.com'));
+        }
         if (req.method == 'GET') {
           return _json(_paged([]));
         }
@@ -137,26 +169,28 @@ void main() {
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
     await _fillPersonForm(tester, monitoredEmail: 'monitored@test.com');
+    expect(find.text('Manuel Pérez'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
     await tester.pumpAndSettle();
 
     expect(sentBody?['monitoredUserEmail'], 'monitored@test.com');
     expect(sentBody?['fullName'], 'Manuel Pérez');
+    expect(sentBody?['birthDate'], isNotNull);
   });
 
   testWidgets('muestra error 404 cuando el email no existe', (tester) async {
     final monitoredService = MonitoredService(
       client: MockClient((req) async {
-        if (req.method == 'GET') {
-          return _json(_paged([]));
+        if (req.url.path.endsWith('/linkable-account')) {
+          return _json(
+            {
+              'error': 'NOT_FOUND',
+              'message': 'Monitored user not found',
+            },
+            404,
+          );
         }
-        return _json(
-          {
-            'error': 'NOT_FOUND',
-            'message': 'Monitored user not found',
-          },
-          404,
-        );
+        return _json(_paged([]));
       }),
     );
 
@@ -164,11 +198,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await _fillPersonForm(tester, monitoredEmail: 'missing@test.com');
+    await _lookupEmail(tester, 'missing@test.com');
     await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Monitored user not found'), findsOneWidget);
+    expect(
+      find.text(
+        'No se encontró una cuenta MONITORED activa con ese email',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('muestra error 400 cuando la cuenta no es MONITORED', (
@@ -176,16 +215,16 @@ void main() {
   ) async {
     final monitoredService = MonitoredService(
       client: MockClient((req) async {
-        if (req.method == 'GET') {
-          return _json(_paged([]));
+        if (req.url.path.endsWith('/linkable-account')) {
+          return _json(
+            {
+              'error': 'BAD_REQUEST',
+              'message': 'Linked account must have MONITORED role',
+            },
+            400,
+          );
         }
-        return _json(
-          {
-            'error': 'BAD_REQUEST',
-            'message': 'Linked account must have MONITORED role',
-          },
-          400,
-        );
+        return _json(_paged([]));
       }),
     );
 
@@ -193,9 +232,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await _fillPersonForm(tester, monitoredEmail: 'caregiver@test.com');
-    await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
-    await tester.pumpAndSettle();
+    await _lookupEmail(tester, 'caregiver@test.com');
 
     expect(
       find.text('Linked account must have MONITORED role'),
@@ -203,21 +240,20 @@ void main() {
     );
   });
 
-  testWidgets('muestra error 409 cuando la cuenta ya está vinculada', (
+  testWidgets('muestra error cuando la cuenta ya está vinculada', (
     tester,
   ) async {
     final monitoredService = MonitoredService(
       client: MockClient((req) async {
-        if (req.method == 'GET') {
-          return _json(_paged([]));
+        if (req.url.path.endsWith('/linkable-account')) {
+          return _json(
+            _linkableAccount(
+              email: 'linked@test.com',
+              alreadyLinked: true,
+            ),
+          );
         }
-        return _json(
-          {
-            'error': 'CONFLICT',
-            'message': 'MONITORED account is already linked',
-          },
-          409,
-        );
+        return _json(_paged([]));
       }),
     );
 
@@ -225,10 +261,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await _fillPersonForm(tester, monitoredEmail: 'linked@test.com');
-    await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
-    await tester.pumpAndSettle();
+    await _lookupEmail(tester, 'linked@test.com');
 
-    expect(find.text('MONITORED account is already linked'), findsOneWidget);
+    expect(
+      find.text('Esta cuenta ya está vinculada a otra ficha'),
+      findsOneWidget,
+    );
   });
 }

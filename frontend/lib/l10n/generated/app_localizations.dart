@@ -638,6 +638,48 @@ abstract class AppLocalizations {
   /// **'Introduce el email de una cuenta MONITORED existente.'**
   String get monitoredUserEmailRequired;
 
+  /// No description provided for @fullNameFromAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre (desde la cuenta)'**
+  String get fullNameFromAccount;
+
+  /// No description provided for @selectBirthDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Seleccionar fecha de nacimiento'**
+  String get selectBirthDate;
+
+  /// No description provided for @birthDateRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona la fecha de nacimiento'**
+  String get birthDateRequired;
+
+  /// No description provided for @monitoredAccountLookupError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se encontró una cuenta MONITORED activa con ese email'**
+  String get monitoredAccountLookupError;
+
+  /// No description provided for @monitoredAccountAlreadyLinked.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta cuenta ya está vinculada a otra ficha'**
+  String get monitoredAccountAlreadyLinked;
+
+  /// No description provided for @monitoredAccountInactive.
+  ///
+  /// In es, this message translates to:
+  /// **'La cuenta MONITORED no está activa'**
+  String get monitoredAccountInactive;
+
+  /// No description provided for @monitoredAccountValidated.
+  ///
+  /// In es, this message translates to:
+  /// **'Valida el email para cargar el nombre'**
+  String get monitoredAccountValidated;
+
   /// No description provided for @pendingLinkStatus.
   ///
   /// In es, this message translates to:
@@ -1287,27 +1329,51 @@ abstract class AppLocalizations {
   String get helpItAdminBody;
 
   /// No description provided for @historyLoadError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el historial.'**
   String get historyLoadError;
 
   /// No description provided for @noHistory.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay historial de alertas.'**
   String get noHistory;
 
   /// No description provided for @historyPageIndicator.
+  ///
+  /// In es, this message translates to:
+  /// **'Página {current} de {total} · {count} alertas en total'**
   String historyPageIndicator(int current, int total, int count);
 
   /// No description provided for @historyPageShort.
+  ///
+  /// In es, this message translates to:
+  /// **'{current} / {total}'**
   String historyPageShort(int current, int total);
 
   /// No description provided for @historyPreviousPage.
+  ///
+  /// In es, this message translates to:
+  /// **'Página anterior'**
   String get historyPreviousPage;
 
   /// No description provided for @historyNextPage.
+  ///
+  /// In es, this message translates to:
+  /// **'Página siguiente'**
   String get historyNextPage;
 
   /// No description provided for @pairingRecoveringTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Restaurando vínculo'**
   String get pairingRecoveringTitle;
 
   /// No description provided for @pairingRecoveringBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Recuperando la vinculación de tu dispositivo tras iniciar sesión…'**
   String get pairingRecoveringBody;
 }
 
