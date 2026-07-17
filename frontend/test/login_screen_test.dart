@@ -115,6 +115,8 @@ void main() {
       find.widgetWithText(TextFormField, 'Contraseña'),
       'Password123!',
     );
+    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Registrarse'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Registrarse'));
     await tester.pumpAndSettle();
 

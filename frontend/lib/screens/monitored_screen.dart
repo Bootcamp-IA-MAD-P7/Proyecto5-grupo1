@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../config/app_theme.dart';
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
 import '../models/user.dart';
@@ -17,6 +18,7 @@ import '../services/sensor_capability_service.dart';
 import '../services/telemetry_service.dart';
 import '../widgets/assistant_fab.dart';
 import '../widgets/consent_dialog.dart';
+import '../widgets/gradient_app_bar.dart';
 import '../widgets/live_sensor_charts.dart';
 import '../widgets/transparency_dialog.dart';
 import 'app_shell.dart';
@@ -452,10 +454,8 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     if (_imuGateStatus == ImuGateStatus.checking ||
         _linkStatus == MonitoredLinkStatus.loading) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(context.l10n.monitoredTitle),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Colors.white,
+        appBar: GradientAppBar(
+          title: 'SentiLife',
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -485,10 +485,8 @@ class _MonitoredScreenState extends State<MonitoredScreen>
 
     if (_linkStatus == MonitoredLinkStatus.loading) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.monitoredTitle),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: Colors.white,
+        appBar: GradientAppBar(
+          title: 'SentiLife',
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -497,10 +495,8 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.monitoredTitle),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: GradientAppBar(
+        title: 'SentiLife',
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -559,14 +555,47 @@ class _MonitoredScreenState extends State<MonitoredScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: ListTile(
-            leading: CircleAvatar(child: Text(user.fullName[0])),
-            title: Text(user.fullName),
-            subtitle: Text(l10n.roleMonitored),
-          ),
+        // Welcome header
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+              child: Text(
+                user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${Localizations.localeOf(context).languageCode == 'en' ? 'Hi' : 'Hola'}, ${user.fullName.split(' ').first}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.roleMonitored,
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         if (isPendingLink)
           _buildPendingLinkCard(l10n, theme)
         else if (_pairingRecoveryInFlight)
@@ -582,19 +611,22 @@ class _MonitoredScreenState extends State<MonitoredScreen>
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.circle,
-                    color: _monitoring ? Colors.green : Colors.grey,
-                    size: 14,
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _monitoring ? AppTheme.success : AppTheme.textSecondary,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Text(
                     _monitoring
                         ? l10n.monitoringActive
                         : l10n.monitoringInactive,
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: _monitoring ? Colors.green : Colors.grey,
+                      fontWeight: FontWeight.w600,
+                      color: _monitoring ? AppTheme.success : AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -627,33 +659,53 @@ class _MonitoredScreenState extends State<MonitoredScreen>
           if (_lastPrediction != null) ...[
             Card(
               color: _lastPrediction!.fallDetected
-                  ? Colors.red[50]
-                  : Colors.green[50],
+                  ? AppTheme.danger.withValues(alpha: 0.08)
+                  : AppTheme.success.withValues(alpha: 0.08),
               child: ListTile(
                 leading: Icon(
                   _lastPrediction!.fallDetected
-                      ? Icons.warning
+                      ? Icons.warning_rounded
                       : Icons.check_circle,
                   color: _lastPrediction!.fallDetected
-                      ? Colors.red
-                      : Colors.green,
+                      ? AppTheme.danger
+                      : AppTheme.success,
                 ),
                 title: Text(
                   _lastPrediction!.fallDetected
                       ? l10n.fallDetected
                       : l10n.noFall,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(
-                  '${l10n.confidence(((_lastPrediction!.confidence) * 100).toStringAsFixed(1))}\n'
-                  '${l10n.modelVersion}: ${_lastPrediction!.modelVersion}',
+                subtitle: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: l10n.confidence(((_lastPrediction!.confidence) * 100).toStringAsFixed(1)),
+                        style: AppTheme.monoStyle(fontSize: 13),
+                      ),
+                      const TextSpan(text: '\n'),
+                      TextSpan(text: '${l10n.modelVersion}: '),
+                      TextSpan(
+                        text: _lastPrediction!.modelVersion,
+                        style: AppTheme.monoStyle(fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             if (_lastWindowAt != null)
-              Text(
-                l10n.lastWindowAt(
-                  _lastWindowAt!.toLocal().toString().substring(0, 19),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: l10n.lastWindowAt(''),
+                    ),
+                    TextSpan(
+                      text: _lastWindowAt!.toLocal().toString().substring(0, 19),
+                      style: AppTheme.monoStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                  ],
                 ),
                 style: theme.textTheme.bodySmall,
               ),
@@ -688,12 +740,12 @@ class _MonitoredScreenState extends State<MonitoredScreen>
 
   Widget _buildPendingLinkCard(AppLocalizations l10n, ThemeData theme) {
     return Card(
-      color: Colors.orange[50],
+      color: AppTheme.warning.withValues(alpha: 0.08),
       child: ListTile(
-        leading: Icon(Icons.hourglass_empty, color: theme.colorScheme.primary),
+        leading: Icon(Icons.hourglass_empty, color: AppTheme.warning),
         title: Text(
           l10n.pendingLinkTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text('${l10n.pendingLinkStatus}\n${l10n.pendingLinkBody}'),
       ),
@@ -706,11 +758,11 @@ class _MonitoredScreenState extends State<MonitoredScreen>
         leading: SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.primary),
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
         ),
         title: Text(
           l10n.pairingRecoveringTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(l10n.pairingRecoveringBody),
       ),
@@ -767,12 +819,12 @@ class _MonitoredScreenState extends State<MonitoredScreen>
 
   Widget _buildLinkedCard(AppLocalizations l10n, ThemeData theme) {
     return Card(
-      color: Colors.green[50],
+      color: AppTheme.success.withValues(alpha: 0.08),
       child: ListTile(
-        leading: Icon(Icons.link, color: theme.colorScheme.primary),
+        leading: const Icon(Icons.link, color: AppTheme.primaryColor),
         title: Text(
           l10n.deviceLinked,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(l10n.deviceLinkedSubtitle),
       ),
