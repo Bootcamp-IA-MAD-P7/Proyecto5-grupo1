@@ -212,7 +212,8 @@ jobs:
           ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -o TCPKeepAlive=yes \
             -i ~/.ssh/ec2_key.pem \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/sentilife/backend/config \
+            "mkdir -p ~/sentilife/ota \
+                       ~/sentilife/backend/config \
                        ~/sentilife/backend/observability/grafana/provisioning/dashboards \
                        ~/sentilife/backend/observability/grafana/provisioning/datasources \
                        ~/sentilife/backend/observability/grafana/dashboards"

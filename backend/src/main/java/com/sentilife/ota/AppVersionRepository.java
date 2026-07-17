@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface AppVersionRepository extends JpaRepository<AppVersion, Integer> {
 
     Optional<AppVersion> findTopByOrderByVersionCodeDesc();
+
+    Optional<AppVersion> findByVersionCode(Integer versionCode);
 }

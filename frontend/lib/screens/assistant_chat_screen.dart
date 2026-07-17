@@ -134,7 +134,15 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       setState(() => _sending = true);
       try {
         final bytes = await File(path).readAsBytes();
-        final text = await _service.transcribe(bytes, filename: 'voice.m4a');
+        if (bytes.length < 512) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.assistantEmptyTranscript)),
+          );
+          return;
+        }
+        // WAV 16 kHz mono — formato que Groq Whisper procesa de forma fiable.
+        final text = await _service.transcribe(bytes, filename: 'voice.wav');
         if (text.isEmpty) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -146,6 +154,11 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       } on ApiException catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.assistantEmptyTranscript}: $e')),
+        );
       } finally {
         if (mounted) setState(() => _sending = false);
       }
@@ -161,12 +174,23 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       return;
     }
     final dir = await getTemporaryDirectory();
-    final file = '${dir.path}/assistant_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final file = '${dir.path}/assistant_${DateTime.now().millisecondsSinceEpoch}.wav';
     await _recorder.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc, numChannels: 1),
+      const RecordConfig(
+        encoder: AudioEncoder.wav,
+        numChannels: 1,
+        sampleRate: 16000,
+      ),
       path: file,
     );
     setState(() => _recording = true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.assistantStopRecording),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _speakReply(String text, String? audioBase64) async {

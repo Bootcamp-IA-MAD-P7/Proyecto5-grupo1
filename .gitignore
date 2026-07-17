@@ -83,6 +83,9 @@ kaggle.json
 .env
 .env.qa
 
+# OTA APK publicado en EC2 (solo .gitkeep en repo)
+ota/*.apk
+
 # ---------------------------------------------------
 # ORQUESTACIÓN IA
 # ---------------------------------------------------

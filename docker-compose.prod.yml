@@ -70,8 +70,10 @@ services:
       ASSISTANT_URL: http://assistant:8001
       INFERENCE_FAIL_FAST: "true"
       FIREBASE_SERVICE_ACCOUNT: /app/config/firebase-service-account.json
+      OTA_APK_PATH: /ota/app-release.apk
     volumes:
       - ./backend/config:/app/config:ro
+      - ./ota:/ota
     depends_on:
       db:
         condition: service_healthy

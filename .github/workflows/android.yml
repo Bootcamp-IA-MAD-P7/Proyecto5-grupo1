@@ -140,14 +140,49 @@ jobs:
           file: apk/app-release.apk
           releaseNotes: "Build automático · API http://${{ secrets.EC2_HOST }}:8005 · commit ${{ github.event.workflow_run.head_sha || github.sha }}"
 
+  # OTA: APK en EC2 + URL estable (no depende de GitHub Releases / Unicorn).
   notify-backend:
     runs-on: ubuntu-latest
     needs: build-apk
-    continue-on-error: true
+    environment: production
     steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-apk
+          path: apk
+
+      - name: Set up SSH key
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${EC2_HOST:-}" ] || [ -z "${EC2_SSH_KEY:-}" ]; then
+            echo "::error::EC2_HOST / EC2_SSH_KEY vacíos (environment production)"
+            exit 1
+          fi
+          EC2_HOST="$(printf '%s' "$EC2_HOST" | tr -d '[:space:]')"
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          ssh-keyscan -T 15 -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload APK to EC2 (servido por /app/download.apk)
+        run: |
+          set -euo pipefail
+          ssh -o ServerAliveInterval=30 -i ~/.ssh/ec2_key.pem \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            'mkdir -p ~/sentilife/ota'
+          scp -o ServerAliveInterval=30 -i ~/.ssh/ec2_key.pem \
+            apk/app-release.apk \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/sentilife/ota/app-release.apk
+          echo "✓ APK en EC2 ~/sentilife/ota/app-release.apk"
+
       - name: Register APK version in Postgres (OTA)
         run: |
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/app-release.apk"
+          set -euo pipefail
+          APK_URL="http://${{ secrets.EC2_HOST }}:8005/app/download.apk"
           curl --fail --silent --show-error --retry 3 --retry-delay 5 \
             -X POST \
             -H "Content-Type: application/json" \
@@ -158,7 +193,7 @@ jobs:
               \"release_notes\": \"Build automático desde commit ${{ github.event.workflow_run.head_sha || github.sha }}\"
             }" \
             "http://${{ secrets.EC2_HOST }}:8005/app/register-version"
-          echo "✓ Versión registrada en Postgres (OTA)"
+          echo "✓ OTA registrado → ${APK_URL}"
 
   # Job aislado: si Unicorn tumba Releases, Firebase ya corrió igual.
   create-github-release:

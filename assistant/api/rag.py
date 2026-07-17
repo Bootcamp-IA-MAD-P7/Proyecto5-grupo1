@@ -1,4 +1,4 @@
-"""BM25 RAG over project markdown (docs/, contracts/, README, spec)."""
+"""BM25 RAG with role-scoped corpora (end users ≠ architecture docs)."""
 
 from __future__ import annotations
 
@@ -16,25 +16,28 @@ log = logging.getLogger("assistant.rag")
 _CHUNK_SIZE = 900
 _CHUNK_OVERLAP = 120
 
+# End-user help + admin ops live under docs/assistant/.
+# Technical corpus (contracts / README / spec) is IT_ADMIN only.
 _INCLUDE_GLOBS = (
-    "docs/**/*.md",
+    "docs/assistant/**/*.md",
     "contracts/**/*.md",
     "README.md",
     ".specify/specs/factoria/2_spec.md",
 )
+
+_ALL_ROLES = frozenset({"IT_ADMIN", "CAREGIVER", "MONITORED"})
 
 
 @dataclass(frozen=True)
 class Chunk:
     source: str
     text: str
+    roles: frozenset[str]
 
 
 class DocIndex:
     def __init__(self) -> None:
         self.chunks: list[Chunk] = []
-        self._bm25: BM25Okapi | None = None
-        self._tokens: list[list[str]] = []
 
     def build(self, root: Path | None = None) -> int:
         root = root or config.CORPUS_ROOT
@@ -43,34 +46,44 @@ class DocIndex:
             for path in root.glob(pattern):
                 if not path.is_file():
                     continue
+                # Never index daily notes / internal plans even if nested under docs/.
+                rel = str(path.relative_to(root)).replace("\\", "/")
+                if "/daily/" in f"/{rel}" or "/superpowers/" in f"/{rel}":
+                    continue
                 try:
                     text = path.read_text(encoding="utf-8", errors="ignore")
                 except OSError as exc:
                     log.warning("skip %s: %s", path, exc)
                     continue
-                rel = str(path.relative_to(root)).replace("\\", "/")
+                roles = _roles_for_source(rel)
                 for piece in _split_markdown(text):
                     if len(piece.strip()) < 40:
                         continue
-                    chunks.append(Chunk(source=rel, text=piece.strip()))
+                    chunks.append(Chunk(source=rel, text=piece.strip(), roles=roles))
 
         self.chunks = chunks
-        self._tokens = [_tokenize(c.text) for c in chunks]
-        self._bm25 = BM25Okapi(self._tokens) if chunks else None
         log.info("RAG index: %d chunks from %s", len(chunks), root)
         return len(chunks)
 
-    def search(self, query: str, k: int = 4) -> list[dict]:
-        if not self.chunks or self._bm25 is None:
+    def search(self, query: str, k: int = 4, role: str = "MONITORED") -> list[dict]:
+        role_key = (role or "MONITORED").upper()
+        if role_key not in _ALL_ROLES:
+            role_key = "MONITORED"
+
+        eligible = [c for c in self.chunks if role_key in c.roles]
+        if not eligible:
             return []
-        scores = self._bm25.get_scores(_tokenize(query))
+
+        tokens = [_tokenize(c.text) for c in eligible]
+        bm25 = BM25Okapi(tokens)
+        scores = bm25.get_scores(_tokenize(query))
         ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
         out: list[dict] = []
         seen: set[str] = set()
         for i in ranked:
             if scores[i] <= 0:
                 break
-            chunk = self.chunks[i]
+            chunk = eligible[i]
             key = f"{chunk.source}:{chunk.text[:80]}"
             if key in seen:
                 continue
@@ -85,6 +98,19 @@ class DocIndex:
             if len(out) >= k:
                 break
         return out
+
+
+def _roles_for_source(rel: str) -> frozenset[str]:
+    if rel.startswith("docs/assistant/shared/"):
+        return _ALL_ROLES
+    if rel.startswith("docs/assistant/monitored/"):
+        return frozenset({"MONITORED", "IT_ADMIN"})
+    if rel.startswith("docs/assistant/caregiver/"):
+        return frozenset({"CAREGIVER", "IT_ADMIN"})
+    if rel.startswith("docs/assistant/it_admin/"):
+        return frozenset({"IT_ADMIN"})
+    # contracts, README, spec, any other matched path → admin only
+    return frozenset({"IT_ADMIN"})
 
 
 def _tokenize(text: str) -> list[str]:

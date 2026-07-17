@@ -2,6 +2,11 @@ spring:
   application:
     name: sentilife-backend
 
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 8MB
+
   # ── Base de datos ──────────────────────────────────────────────
   datasource:
     url: jdbc:postgresql://localhost:5432/fallsentinel
@@ -76,6 +81,10 @@ sentilife:
   # ── Asistente IA (FastAPI agente, interna) ───────────────────
   assistant:
     url: ${ASSISTANT_URL:http://localhost:8001}
+
+  # ── OTA APK servido desde disco (CI lo sube a EC2) ───────────
+  ota:
+    apk-path: ${OTA_APK_PATH:./ota/app-release.apk}
 
   retrain:
     min-feedback-records: ${RETRAIN_MIN_FEEDBACK:5}

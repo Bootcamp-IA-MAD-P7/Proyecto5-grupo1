@@ -36,6 +36,8 @@ sentilife:
     fail-fast: ${INFERENCE_FAIL_FAST:false}
   assistant:
     url: ${ASSISTANT_URL:http://assistant:8001}
+  ota:
+    apk-path: ${OTA_APK_PATH:/ota/app-release.apk}
   retrain:
     min-feedback-records: ${RETRAIN_MIN_FEEDBACK:5}
     recommended-feedback-records: ${RETRAIN_RECOMMENDED_FEEDBACK:10}

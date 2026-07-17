@@ -80,24 +80,28 @@ public class AssistantClient {
     }
 
     public AssistantDtos.TranscribeResponse transcribe(byte[] audio, String filename) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        // IMPORTANT: do NOT set Content-Type to multipart/form-data manually.
+        // RestTemplate must add the boundary parameter; without it FastAPI receives
+        // a broken body and Whisper returns empty / 400.
+        String safeName = (filename != null && !filename.isBlank()) ? filename : "audio.wav";
 
         ByteArrayResource resource = new ByteArrayResource(audio) {
             @Override
             public String getFilename() {
-                return filename != null ? filename : "audio.m4a";
+                return safeName;
             }
         };
 
+        HttpHeaders partHeaders = new HttpHeaders();
+        partHeaders.setContentType(guessAudioMediaType(safeName));
         MultiValueMap<String, Object> multipart = new LinkedMultiValueMap<>();
-        multipart.add("audio", resource);
+        multipart.add("audio", new HttpEntity<>(resource, partHeaders));
 
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> resp = restTemplate.postForObject(
                     baseUrl + "/assistant/transcribe",
-                    new HttpEntity<>(multipart, headers),
+                    new HttpEntity<>(multipart),
                     Map.class);
             if (resp == null) {
                 throw DomainExceptions.ServiceUnavailableException.of("Transcripción vacía");
@@ -145,6 +149,23 @@ public class AssistantClient {
             headers.set(HttpHeaders.AUTHORIZATION, authorizationHeader);
         }
         return headers;
+    }
+
+    private static MediaType guessAudioMediaType(String filename) {
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".wav")) {
+            return MediaType.parseMediaType("audio/wav");
+        }
+        if (lower.endsWith(".webm")) {
+            return MediaType.parseMediaType("audio/webm");
+        }
+        if (lower.endsWith(".mp3")) {
+            return MediaType.parseMediaType("audio/mpeg");
+        }
+        if (lower.endsWith(".m4a") || lower.endsWith(".aac") || lower.endsWith(".mp4")) {
+            return MediaType.parseMediaType("audio/mp4");
+        }
+        return MediaType.APPLICATION_OCTET_STREAM;
     }
 
     @SuppressWarnings("unchecked")

@@ -22,7 +22,7 @@ public class OtaService {
 
     @Transactional
     public OtaDtos.LatestVersionResponse register(OtaDtos.RegisterRequest request) {
-        var entity = new AppVersion();
+        var entity = repository.findByVersionCode(request.versionCode()).orElseGet(AppVersion::new);
         entity.setVersionCode(request.versionCode());
         entity.setVersionName(request.versionName());
         entity.setApkUrl(request.apkUrl());

@@ -71,7 +71,7 @@ class AssistantService {
     throw _parseError(resp);
   }
 
-  Future<String> transcribe(List<int> audioBytes, {String filename = 'audio.m4a'}) async {
+  Future<String> transcribe(List<int> audioBytes, {String filename = 'audio.wav'}) async {
     final token = (await apiJsonHeadersAsync())['Authorization'];
     final req = http.MultipartRequest('POST', Uri.parse('$_base/transcribe'));
     if (token != null) {

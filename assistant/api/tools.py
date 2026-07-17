@@ -36,7 +36,11 @@ GROQ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "search_docs",
-            "description": "Busca en la documentación del proyecto (docs, contracts, README, spec).",
+            "description": (
+                "Busca en la documentación permitida para el rol del usuario. "
+                "Cuidadores y monitorizados solo ven guías de uso; IT_ADMIN también "
+                "contratos/README/spec."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -125,8 +129,9 @@ def _get_json(url: str, headers: dict[str, str] | None = None) -> Any:
         return resp.json()
 
 
-def search_docs(query: str, **_: Any) -> dict[str, Any]:
-    hits = INDEX.search(query, k=4)
+def search_docs(query: str, ctx: ToolContext | None = None, **_: Any) -> dict[str, Any]:
+    role = ctx.role if ctx else "MONITORED"
+    hits = INDEX.search(query, k=4, role=role)
     return {"results": hits, "count": len(hits)}
 
 
@@ -167,7 +172,7 @@ def get_recent_alerts(ctx: ToolContext, status: str | None = None, **_: Any) -> 
 
 
 _DISPATCH: dict[str, Callable[..., Any]] = {
-    "search_docs": lambda ctx, **kwargs: search_docs(**kwargs),
+    "search_docs": lambda ctx, **kwargs: search_docs(ctx=ctx, **kwargs),
     "get_retrain_prerequisites": get_retrain_prerequisites,
     "get_retrain_status": get_retrain_status,
     "get_drift_snapshot": get_drift_snapshot,

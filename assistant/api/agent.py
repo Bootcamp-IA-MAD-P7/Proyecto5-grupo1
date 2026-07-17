@@ -43,7 +43,8 @@ def chat(
     sources: list[str] = []
 
     # Always prefetch RAG so docs work even if Groq tool-calling misformats.
-    rag_hits = INDEX.search(message, k=4)
+    # Corpus is role-scoped (end users never see architecture/spec).
+    rag_hits = INDEX.search(message, k=4, role=role)
     for hit in rag_hits:
         src = hit.get("source")
         if src and src not in sources:
@@ -247,19 +248,46 @@ def _dedupe(items: list[str]) -> list[str]:
     return out
 
 
-def transcribe(audio_bytes: bytes, filename: str = "audio.m4a") -> dict[str, Any]:
+def transcribe(
+    audio_bytes: bytes,
+    filename: str = "audio.wav",
+    language: str | None = "es",
+) -> dict[str, Any]:
     try:
         api_key = config.require_groq_key()
     except RuntimeError as exc:
         raise GroqUnavailable(str(exc)) from exc
 
+    if not audio_bytes or len(audio_bytes) < 256:
+        return {"text": "", "language": language or "es"}
+
     client = Groq(api_key=api_key)
-    transcription = client.audio.transcriptions.create(
-        file=(filename, audio_bytes),
-        model=config.GROQ_WHISPER_MODEL,
-        response_format="verbose_json",
-        language="es",
-    )
+    content_type = _audio_content_type(filename)
+    kwargs: dict[str, Any] = {
+        "file": (filename, audio_bytes, content_type),
+        "model": config.GROQ_WHISPER_MODEL,
+        "response_format": "verbose_json",
+    }
+    # Groq Whisper: omit language to auto-detect if caller passes None.
+    if language:
+        kwargs["language"] = language[:2].lower()
+
+    transcription = client.audio.transcriptions.create(**kwargs)
     text = getattr(transcription, "text", None) or str(transcription)
-    language = getattr(transcription, "language", None) or "es"
-    return {"text": text.strip(), "language": language}
+    detected = getattr(transcription, "language", None) or language or "es"
+    return {"text": text.strip(), "language": detected}
+
+
+def _audio_content_type(filename: str) -> str:
+    lower = (filename or "").lower()
+    if lower.endswith(".wav"):
+        return "audio/wav"
+    if lower.endswith(".webm"):
+        return "audio/webm"
+    if lower.endswith(".mp3"):
+        return "audio/mpeg"
+    if lower.endswith(".ogg"):
+        return "audio/ogg"
+    if lower.endswith(".m4a") or lower.endswith(".mp4") or lower.endswith(".aac"):
+        return "audio/mp4"
+    return "application/octet-stream"
