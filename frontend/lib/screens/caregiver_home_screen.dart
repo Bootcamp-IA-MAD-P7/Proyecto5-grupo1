@@ -594,6 +594,7 @@ class _AddPersonDialogState extends State<_AddPersonDialog> {
                           SizedBox(
                             width: 70,
                             child: DropdownButtonFormField<String>(
+                              // ignore: deprecated_member_use
                               value: _sex,
                               isExpanded: true,
                               items: const [
