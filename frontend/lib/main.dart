@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'config/app_theme.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'models/user.dart';
 import 'screens/app_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/auth_session.dart';
 import 'services/firebase_bootstrap.dart';
 import 'services/push_notification_service.dart';
@@ -45,13 +47,7 @@ class _MyAppState extends State<MyApp> {
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1B5E20),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: _AppRoot(
         session: _session,
         onLocaleChanged: _changeLocale,
@@ -146,9 +142,7 @@ class _AppRootState extends State<_AppRoot> {
   @override
   Widget build(BuildContext context) {
     if (widget.session.isRestoring) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const SplashScreen();
     }
     if (widget.session.isLoggedIn) {
       return AppShell(
@@ -159,6 +153,7 @@ class _AppRootState extends State<_AppRoot> {
     return LoginScreen(
       session: widget.session,
       onLoginSuccess: _onLoginSuccess,
+      onLocaleChanged: widget.onLocaleChanged,
     );
   }
 }

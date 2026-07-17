@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../config/app_theme.dart';
+
 import '../l10n/l10n.dart';
 import '../models/monitored_person.dart';
 import '../models/retrain_prerequisites.dart';
@@ -15,6 +17,7 @@ import '../services/admin_service.dart';
 import '../services/auth_session.dart';
 import '../services/exceptions.dart';
 import '../widgets/assistant_fab.dart';
+import '../widgets/gradient_app_bar.dart';
 import 'app_shell.dart';
 
 /// SL-40 / T2.17 + T4.5 — Perfil IT_ADMIN: historial, export, usuarios, MLOps.
@@ -51,8 +54,8 @@ class _ItAdminScreenState extends State<ItAdminScreen> {
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.itAdminTitle),
+      appBar: GradientAppBar(
+        title: 'SentiLife',
         actions: [
           AppTopActions(
             session: widget.session,
@@ -426,8 +429,16 @@ class _HistoryPaneState extends State<_HistoryPane> {
           return ListTile(
             dense: true,
             title: Text(h.monitoredPersonName),
-            subtitle: Text(
-              '${h.detectedAt.toLocal()} · ${l10n.confidence((h.confidence * 100).toStringAsFixed(1))}',
+            subtitle: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '${h.detectedAt.toLocal()} · '),
+                  TextSpan(
+                    text: l10n.confidence((h.confidence * 100).toStringAsFixed(1)),
+                    style: AppTheme.monoStyle(fontSize: 13),
+                  ),
+                ],
+              ),
             ),
             trailing: Text(
               trailing,
@@ -866,29 +877,45 @@ class _MlopsTabState extends State<_MlopsTab> {
                   ],
                   if (status.modelVersion != null) ...[
                     const SizedBox(height: 8),
-                    Text('${l10n.mlopsModelVersion}: ${status.modelVersion}'),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '${l10n.mlopsModelVersion}: '),
+                      TextSpan(text: status.modelVersion, style: AppTheme.monoStyle(fontSize: 14)),
+                    ])),
                   ],
                   if (details?.newRecall != null) ...[
                     const SizedBox(height: 8),
-                    Text('${l10n.mlopsRecall}: ${(details!.newRecall! * 100).toStringAsFixed(1)}%'),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '${l10n.mlopsRecall}: '),
+                      TextSpan(text: '${(details!.newRecall! * 100).toStringAsFixed(1)}%', style: AppTheme.monoStyle(fontSize: 14)),
+                    ])),
                   ],
                   if (details?.currentRecall != null) ...[
                     const SizedBox(height: 4),
-                    Text('${l10n.mlopsCurrentRecall}: ${(details!.currentRecall! * 100).toStringAsFixed(1)}%'),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '${l10n.mlopsCurrentRecall}: '),
+                      TextSpan(text: '${(details!.currentRecall! * 100).toStringAsFixed(1)}%', style: AppTheme.monoStyle(fontSize: 14)),
+                    ])),
                   ],
                   if (details?.overfittingGap != null) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      '${l10n.mlopsOverfitting}: ${(details!.overfittingGap! * 100).toStringAsFixed(1)}%',
-                    ),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '${l10n.mlopsOverfitting}: '),
+                      TextSpan(text: '${(details!.overfittingGap! * 100).toStringAsFixed(1)}%', style: AppTheme.monoStyle(fontSize: 14)),
+                    ])),
                   ],
                   if (details?.feedbackRecords != null) ...[
                     const SizedBox(height: 8),
-                    Text('${l10n.mlopsFeedbackRecords}: ${details!.feedbackRecords}'),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '${l10n.mlopsFeedbackRecords}: '),
+                      TextSpan(text: '${details!.feedbackRecords}', style: AppTheme.monoStyle(fontSize: 14)),
+                    ])),
                   ],
                   if (details?.augmentedWindows != null) ...[
                     const SizedBox(height: 4),
-                    Text('${l10n.mlopsAugmentedWindows}: ${details!.augmentedWindows}'),
+                    Text.rich(TextSpan(children: [
+                      TextSpan(text: '${l10n.mlopsAugmentedWindows}: '),
+                      TextSpan(text: '${details!.augmentedWindows}', style: AppTheme.monoStyle(fontSize: 14)),
+                    ])),
                   ],
                 ],
               ),
